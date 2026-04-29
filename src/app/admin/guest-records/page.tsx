@@ -220,7 +220,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
               <Button asChild>
                 <Link href="/admin/guests/new">
                   <UserPlus className="h-4 w-4" aria-hidden="true" />
-                  Add Guest
+                  Add Guest / Walk-in
                 </Link>
               </Button>
             ) : null}

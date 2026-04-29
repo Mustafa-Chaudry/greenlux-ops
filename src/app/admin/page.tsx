@@ -103,7 +103,7 @@ export default async function AdminPage() {
               <Button asChild>
                 <Link href="/admin/guests/new">
                   <UserPlus className="h-4 w-4" aria-hidden="true" />
-                  Add Guest
+                Add Guest / Walk-in
                 </Link>
               </Button>
             ) : null}
@@ -130,9 +130,9 @@ export default async function AdminPage() {
             <Card>
               <CardHeader>
                 <UserPlus className="h-5 w-5 text-brand-fresh" aria-hidden="true" />
-                <CardTitle>Add Guest</CardTitle>
+                <CardTitle>Add Guest / Walk-in</CardTitle>
                 <CardDescription>
-                  Create a front desk guest record without requiring self-registration or email confirmation.
+                  Create a staff-managed guest record for WhatsApp bookings, walk-ins, VIPs, or non-email guests.
                 </CardDescription>
               </CardHeader>
               <CardContent>
