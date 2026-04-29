@@ -284,7 +284,8 @@ export function isReadyForCheckin(checkin: {
   payment_verified: boolean;
   status: CheckinStatus;
 }) {
-  return Boolean(checkin.assigned_room_id) && checkin.cnic_verified && checkin.payment_verified && checkin.status !== "issue";
+  const awaitingArrival = checkin.status === "submitted" || checkin.status === "under_review" || checkin.status === "approved";
+  return Boolean(checkin.assigned_room_id) && checkin.cnic_verified && checkin.payment_verified && awaitingArrival;
 }
 
 export function getActionRequiredLabel(checkin: {

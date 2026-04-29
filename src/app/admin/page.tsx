@@ -78,7 +78,7 @@ export default async function AdminPage() {
     {
       title: "Ready for Check-in",
       value: readyForCheckinCount,
-      description: "Room assigned with ID and payment verified",
+      description: "Not yet checked in, with room, ID, and payment verified",
       href: "/admin/guest-records?view=ready",
       icon: CheckCircle2,
     },
