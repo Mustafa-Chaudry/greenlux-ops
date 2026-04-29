@@ -238,6 +238,8 @@ export function buildBusinessReport({
   const totalRevenue = checkins.reduce((sum, checkin) => sum + paidRevenue(checkin), 0);
   const expectedTotal = checkins.reduce((sum, checkin) => sum + expectedRevenue(checkin), 0);
   const outstandingTotal = checkins.reduce((sum, checkin) => sum + outstandingBalance(checkin), 0);
+  // Financial source of truth: net profit subtracts only rows from expenses.
+  // room_maintenance_logs.cost_pkr is operational tracking and must not be double-counted as cash spend.
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount_pkr, 0);
   const directBookingRevenue = checkins
     .filter((checkin) => checkin.booking_source === "direct_whatsapp_call")
@@ -398,6 +400,7 @@ export function buildBusinessReport({
       openIssues: maintenanceLogs.filter((log) => log.status === "reported").length,
       inProgressIssues: maintenanceLogs.filter((log) => log.status === "in_progress").length,
       resolvedIssues: maintenanceLogs.filter((log) => log.status === "resolved").length,
+      // Operational estimate/repair tracking only. Actual profit/loss impact comes from expenses.
       costTotal: maintenanceLogs.reduce((sum, log) => sum + (log.cost_pkr ?? 0), 0),
       costByRoomRows: Array.from(maintenanceCostByRoom.values()).sort((a, b) => b.totalCost - a.totalCost),
     },

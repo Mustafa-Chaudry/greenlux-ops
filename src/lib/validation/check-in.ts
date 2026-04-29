@@ -3,6 +3,7 @@ import { allowedUploadMimeTypes, maxUploadSizeBytes } from "@/lib/validation/upl
 
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
 const optionalNumber = z.preprocess(emptyToUndefined, z.coerce.number().min(0).optional());
+const purposeOfVisitSchema = z.enum(["family_visit", "business", "medical", "tourism", "event_wedding", "other"]);
 
 const fileListSchema = z.custom<FileList>((value) => value instanceof FileList, "Please choose a file.");
 
@@ -30,7 +31,10 @@ export const checkInFormSchema = z
     additional_documents: fileListSchema.optional(),
     estimated_arrival_time: z.string().optional(),
     city_country_from: z.string().trim().min(2, "City/country travelling from is required."),
-    purpose_of_visit: z.enum(["family_visit", "business", "medical", "tourism", "event_wedding", "other"]),
+    purpose_of_visit: z
+      .union([z.literal(""), purposeOfVisitSchema])
+      .refine((value) => value !== "", "Please select the purpose of visit.")
+      .transform((value) => value as z.infer<typeof purposeOfVisitSchema>),
     booking_source: z.enum(["booking_com", "airbnb", "direct_whatsapp_call", "referral", "other"]),
     has_stayed_before: z.enum(["yes", "no"]),
     payment_method: z.enum(["cash", "bank_transfer", "online_payment", "other"]),

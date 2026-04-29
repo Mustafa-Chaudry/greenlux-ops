@@ -93,7 +93,7 @@ export function CheckInForm({ profile }: CheckInFormProps) {
       number_of_guests: 1,
       has_stayed_before: "no",
       payment_method: "cash",
-      purpose_of_visit: "family_visit",
+      purpose_of_visit: "",
       booking_source: "direct_whatsapp_call",
       consent: false,
     },
@@ -293,14 +293,16 @@ export function CheckInForm({ profile }: CheckInFormProps) {
             <FieldError message={errors.city_country_from?.message} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="purpose_of_visit">Purpose of visit</Label>
+            <Label htmlFor="purpose_of_visit">Purpose of visit required</Label>
             <Select id="purpose_of_visit" {...register("purpose_of_visit")}>
+              <option value="">Select purpose</option>
               {purposeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </Select>
+            <FieldError message={errors.purpose_of_visit?.message} />
           </div>
         </CardContent>
       </Card>

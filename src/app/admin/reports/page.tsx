@@ -134,7 +134,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
   const kpiCards = [
     { label: "Total Revenue", value: formatPkr(report.kpis.totalRevenue), hint: "Paid or partially paid stays" },
     { label: "Total Expenses", value: formatPkr(report.kpis.totalExpenses), hint: "Recorded operating spend" },
-    { label: "Net Profit", value: formatPkr(report.kpis.netProfit), hint: "Revenue minus expenses" },
+    { label: "Net Profit", value: formatPkr(report.kpis.netProfit), hint: "Revenue minus recorded expenses" },
     { label: "Outstanding Balance", value: formatPkr(report.kpis.outstandingTotal), hint: "Expected minus paid" },
     { label: "Total Bookings", value: String(report.kpis.totalBookings), hint: "Check-ins in date range" },
     { label: "Active Stays", value: String(report.kpis.activeStays), hint: "Status marked checked-in" },
@@ -273,21 +273,23 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
           <Card>
             <CardHeader>
               <CardTitle>Maintenance Summary</CardTitle>
-              <CardDescription>Open repair burden and recorded repair cost.</CardDescription>
+              <CardDescription>
+                Open repair burden and maintenance log cost. Profit/loss uses Expenses only.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <MiniMetric label="Open issues" value={String(report.maintenance.openIssues)} />
                 <MiniMetric label="In progress" value={String(report.maintenance.inProgressIssues)} />
                 <MiniMetric label="Resolved" value={String(report.maintenance.resolvedIssues)} />
-                <MiniMetric label="Maintenance cost" value={formatPkr(report.maintenance.costTotal)} />
+                <MiniMetric label="Maintenance log cost" value={formatPkr(report.maintenance.costTotal)} />
               </div>
             </CardContent>
           </Card>
 
           <DataTable
-            title="Maintenance Cost by Room"
-            headers={["Room", "Issues", "Total cost"]}
+            title="Maintenance Log Cost by Room"
+            headers={["Room", "Issues", "Log cost"]}
             minWidth={480}
           >
             {report.maintenance.costByRoomRows.length ? (
@@ -300,7 +302,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
               ))
             ) : (
               <tr className="bg-white">
-                <td className="px-4 py-3 text-slate-600" colSpan={3}>No maintenance costs recorded.</td>
+                <td className="px-4 py-3 text-slate-600" colSpan={3}>No maintenance log costs recorded.</td>
               </tr>
             )}
           </DataTable>

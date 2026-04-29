@@ -18,7 +18,16 @@ export const metadata: Metadata = {
 };
 
 type PageProps = {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{
+    message?: string;
+    error_id?: string;
+    room_id_error?: string;
+    issue_title_error?: string;
+    status_error?: string;
+    cost_pkr_error?: string;
+    reported_date_error?: string;
+    resolved_date_error?: string;
+  }>;
 };
 
 type MaintenanceLog = Database["public"]["Tables"]["room_maintenance_logs"]["Row"];
@@ -31,6 +40,26 @@ function maintenanceTone(status: MaintenanceLog["status"]) {
     return "warning";
   }
   return "neutral";
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) {
+    return null;
+  }
+
+  return <p className="mt-1 text-sm font-medium text-red-700">{message}</p>;
+}
+
+function fieldError(params: Awaited<PageProps["searchParams"]>, field: string, id?: string) {
+  if (id && params.error_id !== id) {
+    return undefined;
+  }
+
+  if (!id && params.error_id) {
+    return undefined;
+  }
+
+  return params[`${field}_error` as keyof Awaited<PageProps["searchParams"]>];
 }
 
 export default async function MaintenancePage({ searchParams }: PageProps) {
@@ -64,7 +93,10 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
         <Card>
           <CardHeader>
             <CardTitle>Create maintenance issue</CardTitle>
-            <CardDescription>Attach each issue to a room so repair costs can be reviewed later.</CardDescription>
+            <CardDescription>
+              Room, issue title, reported date, and status are required. Cost here is for maintenance tracking. To
+              affect profit/loss, record the actual payment in Expenses.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form action={createMaintenanceLog} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -78,14 +110,17 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                     </option>
                   ))}
                 </Select>
+                <FieldError message={fieldError(params, "room_id")} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="issue_title">Issue title</Label>
                 <Input id="issue_title" name="issue_title" required />
+                <FieldError message={fieldError(params, "issue_title")} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reported_date">Reported date</Label>
                 <Input id="reported_date" name="reported_date" type="date" defaultValue={today} required />
+                <FieldError message={fieldError(params, "reported_date")} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
@@ -94,14 +129,18 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </Select>
+                <FieldError message={fieldError(params, "status")} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cost_pkr">Cost PKR</Label>
                 <Input id="cost_pkr" name="cost_pkr" type="number" min={0} />
+                <p className="text-xs text-slate-500">Operational estimate only. Actual cash spent belongs in Expenses.</p>
+                <FieldError message={fieldError(params, "cost_pkr")} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="resolved_date">Resolved date</Label>
                 <Input id="resolved_date" name="resolved_date" type="date" />
+                <FieldError message={fieldError(params, "resolved_date")} />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="issue_description">Issue description</Label>
@@ -141,24 +180,44 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                     <Badge tone={maintenanceTone(log.status)}>{formatEnumLabel(log.status)}</Badge>
                   </div>
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <Select name="room_id" defaultValue={log.room_id} aria-label="Room">
-                      {(rooms ?? []).map((room) => (
-                        <option key={room.id} value={room.id}>{room.name}</option>
-                      ))}
-                    </Select>
-                    <Input name="issue_title" defaultValue={log.issue_title} aria-label="Issue title" />
-                    <Select name="status" defaultValue={log.status} aria-label="Status">
-                      {maintenanceStatusOptions.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </Select>
-                    <Input name="cost_pkr" type="number" min={0} defaultValue={log.cost_pkr ?? ""} aria-label="Cost PKR" />
-                    <Input name="reported_date" type="date" defaultValue={log.reported_date} aria-label="Reported date" />
-                    <Input name="resolved_date" type="date" defaultValue={log.resolved_date ?? ""} aria-label="Resolved date" />
+                    <div>
+                      <Select name="room_id" defaultValue={log.room_id} aria-label="Room">
+                        {(rooms ?? []).map((room) => (
+                          <option key={room.id} value={room.id}>{room.name}</option>
+                        ))}
+                      </Select>
+                      <FieldError message={fieldError(params, "room_id", log.id)} />
+                    </div>
+                    <div>
+                      <Input name="issue_title" defaultValue={log.issue_title} aria-label="Issue title" />
+                      <FieldError message={fieldError(params, "issue_title", log.id)} />
+                    </div>
+                    <div>
+                      <Select name="status" defaultValue={log.status} aria-label="Status">
+                        {maintenanceStatusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </Select>
+                      <FieldError message={fieldError(params, "status", log.id)} />
+                    </div>
+                    <div>
+                      <Input name="cost_pkr" type="number" min={0} defaultValue={log.cost_pkr ?? ""} aria-label="Cost PKR" />
+                      <FieldError message={fieldError(params, "cost_pkr", log.id)} />
+                    </div>
+                    <div>
+                      <Input name="reported_date" type="date" defaultValue={log.reported_date} aria-label="Reported date" />
+                      <FieldError message={fieldError(params, "reported_date", log.id)} />
+                    </div>
+                    <div>
+                      <Input name="resolved_date" type="date" defaultValue={log.resolved_date ?? ""} aria-label="Resolved date" />
+                      <FieldError message={fieldError(params, "resolved_date", log.id)} />
+                    </div>
                     <Textarea name="issue_description" defaultValue={log.issue_description ?? ""} aria-label="Issue description" />
                     <Textarea name="notes" defaultValue={log.notes ?? ""} aria-label="Notes" />
                   </div>
-                  <p className="mt-3 text-xs text-slate-500">Cost: {formatPkr(log.cost_pkr)}</p>
+                  <p className="mt-3 text-xs text-slate-500">
+                    Maintenance tracking cost: {formatPkr(log.cost_pkr)}. Profit/loss only uses records entered in Expenses.
+                  </p>
                   <div className="mt-4">
                     <Button type="submit" size="sm">Save issue</Button>
                   </div>

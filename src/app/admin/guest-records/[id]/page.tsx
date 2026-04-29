@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ExternalLink, LogIn, LogOut, MessageCircle, TriangleAlert } from "lucide-react";
-import { updateCheckinStatus, updateGuestRecord } from "@/app/admin/guest-records/actions";
+import { updateCheckinStatus, updateGuestRecord, uploadGuestRecordDocuments } from "@/app/admin/guest-records/actions";
 import { PrintButton } from "@/components/admin/print-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,19 +59,36 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function DocumentGroup({ title, documents }: { title: string; documents: GuestDocument[] }) {
+function DocumentGroup({
+  title,
+  documents,
+  verified,
+}: {
+  title: string;
+  documents: GuestDocument[];
+  verified: boolean;
+}) {
+  const status = !documents.length ? "No document uploaded" : verified ? "Verified" : "Uploaded - pending verification";
+
   return (
     <div className="rounded-lg border border-brand-sage bg-white p-4">
-      <h3 className="font-semibold text-brand-deep">{title}</h3>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="font-semibold text-brand-deep">{title}</h3>
+        <Badge tone={!documents.length ? "neutral" : verified ? "success" : "warning"}>{status}</Badge>
+      </div>
       {!documents.length ? (
         <p className="mt-3 text-sm text-slate-500">No document uploaded.</p>
       ) : (
         <div className="mt-3 space-y-2">
-          {documents.map((document) => (
+          {documents.map((document, index) => (
             <div key={document.id} className="flex flex-col gap-2 rounded-lg bg-brand-ivory p-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium text-brand-deep">{document.file_path.split("/").pop()}</p>
+                <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-brand-deep">
+                  {document.file_path.split("/").pop()}
+                  {index === 0 ? <Badge tone="info">Latest</Badge> : null}
+                </p>
                 <p className="text-xs text-slate-500">{document.mime_type}</p>
+                <p className="text-xs text-slate-500">Uploaded {new Date(document.created_at).toLocaleString()}</p>
               </div>
               {document.signedUrl ? (
                 <Button asChild size="sm" variant="outline">
@@ -99,7 +116,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const [{ data: record, error: recordError }, { data: rooms }, { data: documents }] = await Promise.all([
     supabase.from("guest_checkins").select("*").eq("id", id).single(),
     supabase.from("rooms").select("id,name,status,base_price_pkr").order("name"),
-    supabase.from("guest_documents").select("*").eq("checkin_id", id).order("created_at", { ascending: true }),
+    supabase.from("guest_documents").select("*").eq("checkin_id", id).order("created_at", { ascending: false }),
   ]);
 
   if (recordError || !record) {
@@ -139,6 +156,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const showCheckInAction = record.status === "approved";
   const showCheckOutAction = record.status === "checked_in";
   const isCompleted = record.status === "checked_out";
+  const showIssueAction = record.status !== "issue" && record.status !== "checked_out";
   const assignedRoom = record.assigned_room_id ? rooms?.find((room) => room.id === record.assigned_room_id) : null;
   const roomName = assignedRoom?.name ?? "To be assigned";
   const expectedAmount = getExpectedAmount(record);
@@ -154,12 +172,19 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
       message: `Hello ${record.full_name}, your GreenLux Residency check-in is approved. Room: ${roomName}. Dates: ${record.check_in_date} to ${record.check_out_date}. Thank you.`,
     },
     {
-      label: "Request payment proof",
-      message: `Hello ${record.full_name}, please share/upload your payment proof for your GreenLux Residency booking so we can complete verification. Thank you.`,
+      label: "Request corrected CNIC",
+      message:
+        "Assalam o Alaikum, this is GreenLux Residency. We need a corrected CNIC/passport image for your check-in record. Please send a clear photo on WhatsApp so we can complete verification.",
     },
     {
-      label: "Request CNIC verification",
-      message: `Hello ${record.full_name}, please upload or share your CNIC/passport document for GreenLux Residency check-in verification. Thank you.`,
+      label: "Request payment proof",
+      message:
+        "Assalam o Alaikum, this is GreenLux Residency. Please send your payment proof on WhatsApp so we can complete payment verification for your booking.",
+    },
+    {
+      label: "Request additional guest CNICs",
+      message:
+        "Assalam o Alaikum, this is GreenLux Residency. Please send clear CNIC/passport images for the additional guests staying with you so we can complete the check-in record.",
     },
     {
       label: "Send checkout thanks",
@@ -234,7 +259,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
             <Card>
               <CardHeader>
-                  <CardTitle>Guest information</CardTitle>
+                <CardTitle>Guest information</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -279,12 +304,47 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
             <Card>
               <CardHeader>
                 <CardTitle>Documents</CardTitle>
-                <CardDescription>Links are short-lived signed URLs from the private storage bucket.</CardDescription>
+                <CardDescription>
+                  Links are short-lived signed URLs from the private storage bucket. Newest uploads are shown first.
+                </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
-                <DocumentGroup title="Primary CNIC / passport" documents={primaryDocuments} />
-                <DocumentGroup title="Additional guest CNIC/passports" documents={additionalDocuments} />
-                <DocumentGroup title="Payment proof" documents={paymentDocuments} />
+                <DocumentGroup title="Primary CNIC / passport" documents={primaryDocuments} verified={record.cnic_verified} />
+                <DocumentGroup title="Additional guest CNIC/passports" documents={additionalDocuments} verified={record.cnic_verified} />
+                <DocumentGroup title="Payment proof" documents={paymentDocuments} verified={record.payment_verified} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Replace / Upload Documents</CardTitle>
+                <CardDescription>
+                  Upload corrected files received by WhatsApp or in person. Existing files are kept for audit trail;
+                  the newest upload appears as latest.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form action={uploadGuestRecordDocuments} encType="multipart/form-data" className="grid gap-4 md:grid-cols-2">
+                  <input type="hidden" name="id" value={record.id} />
+                  <div className="space-y-2">
+                    <Label htmlFor="primary_document">Primary guest CNIC/passport</Label>
+                    <Input id="primary_document" name="primary_document" type="file" accept=".jpg,.jpeg,.png,.pdf" />
+                    <p className="text-xs text-slate-500">Optional. JPG, PNG, or PDF up to 10 MB.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="additional_documents">Additional guest CNIC/passports</Label>
+                    <Input id="additional_documents" name="additional_documents" type="file" accept=".jpg,.jpeg,.png,.pdf" multiple />
+                    <p className="text-xs text-slate-500">Optional. Multiple files allowed.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="payment_proof">Payment proof</Label>
+                    <Input id="payment_proof" name="payment_proof" type="file" accept=".jpg,.jpeg,.png,.pdf" />
+                    <p className="text-xs text-slate-500">Optional. Upload later even if proof was missing originally.</p>
+                  </div>
+                  <div className="flex items-end">
+                    <Button type="submit">Upload documents</Button>
+                  </div>
+                </form>
               </CardContent>
             </Card>
           </div>
@@ -326,6 +386,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     This guest has been checked out. The stay is complete.
                   </div>
                 ) : null}
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  If CNIC number or document is incorrect, mark as Issue, add a note, message the guest, then upload
+                  the corrected document here once received.
+                </div>
 
                 <div className="rounded-lg border border-brand-sage bg-white p-3">
                   <p className="text-sm font-semibold text-brand-deep">Requirements Checklist</p>
@@ -380,6 +445,17 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                       </form>
                     ) : null}
                   </div>
+                ) : null}
+
+                {showIssueAction ? (
+                  <form action={updateCheckinStatus}>
+                    <input type="hidden" name="id" value={record.id} />
+                    <input type="hidden" name="status" value="issue" />
+                    <Button type="submit" variant="outline" className="w-full">
+                      <TriangleAlert className="h-4 w-4" aria-hidden="true" />
+                      Mark as Issue / Needs Correction
+                    </Button>
+                  </form>
                 ) : null}
               </div>
 

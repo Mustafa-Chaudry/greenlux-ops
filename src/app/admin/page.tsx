@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { BarChart3, CalendarDays, CheckCircle2, ClipboardList, Hotel, UserCheck, UserPlus, Wrench } from "lucide-react";
+import { BarChart3, CalendarDays, CheckCircle2, ClipboardList, Hotel, TriangleAlert, UserCheck, UserPlus, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
-import { hasAllowedRole, managementRoles, staffGuestCreationRoles } from "@/lib/auth/roles";
+import { hasAllowedRole, managementRoles, staffGuestCreationRoles, superAdminRoles } from "@/lib/auth/roles";
 import { getBusinessTodayDate, isReadyToApprove } from "@/lib/check-in/options";
 
 const adminAreas = [
@@ -24,6 +24,7 @@ const adminAreas = [
     description: "Record owner-level operating expenses, related rooms, payment method, and optional receipt uploads.",
     href: "/admin/expenses",
     icon: ClipboardList,
+    ownerOnly: true,
   },
   {
     title: "Maintenance",
@@ -33,15 +34,17 @@ const adminAreas = [
   },
   {
     title: "Reports",
-    description: "Placeholder for future management reports. Guest CSV export is available from Guest Records.",
+    description: "Review revenue, expenses, maintenance, and operational business reports.",
     href: "/admin/reports",
     icon: BarChart3,
+    ownerOnly: true,
   },
 ];
 
 export default async function AdminPage() {
   const { supabase, profile } = await requireRole(managementRoles);
   const canCreateGuests = hasAllowedRole(profile.role, staffGuestCreationRoles);
+  const canAccessOwnerReports = hasAllowedRole(profile.role, superAdminRoles);
   const today = getBusinessTodayDate();
   const { data: records } = await supabase
     .from("guest_checkins")
@@ -52,6 +55,7 @@ export default async function AdminPage() {
   const readyToApproveCount = checkins.filter(isReadyToApprove).length;
   const activeGuestsCount = checkins.filter((record) => record.status === "checked_in").length;
   const todaysCheckinsCount = checkins.filter((record) => record.check_in_date === today).length;
+  const issuesCount = checkins.filter((record) => record.status === "issue").length;
 
   const summaryCards = [
     {
@@ -82,6 +86,13 @@ export default async function AdminPage() {
       href: `/admin/guest-records?date_from=${today}&date_to=${today}`,
       icon: CalendarDays,
     },
+    {
+      title: "Issues",
+      value: issuesCount,
+      description: "Records flagged for correction",
+      href: "/admin/guest-records?view=issues",
+      icon: TriangleAlert,
+    },
   ];
 
   return (
@@ -110,7 +121,7 @@ export default async function AdminPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {summaryCards.map((card) => (
             <Link key={card.title} href={card.href} className="group block">
               <Card className="h-full transition-shadow group-hover:shadow-soft">
@@ -142,7 +153,9 @@ export default async function AdminPage() {
               </CardContent>
             </Card>
           ) : null}
-          {adminAreas.map((area) => (
+          {adminAreas
+            .filter((area) => !area.ownerOnly || canAccessOwnerReports)
+            .map((area) => (
             <Card key={area.title}>
               <CardHeader>
                 <area.icon className="h-5 w-5 text-brand-fresh" aria-hidden="true" />

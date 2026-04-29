@@ -13,6 +13,10 @@ import {
   isReadyToApprove,
   paymentStatusOptions,
 } from "@/lib/check-in/options";
+import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/uploads";
+import type { Database } from "@/types/database";
+
+type DocumentType = Database["public"]["Enums"]["document_type"];
 
 const nullableNumber = (value: FormDataEntryValue | null) => {
   if (typeof value !== "string" || value.trim() === "") {
@@ -144,7 +148,8 @@ export async function updateCheckinStatus(formData: FormData) {
     redirect(withMessage(returnTo, "Only checked-in records can be marked checked-out."));
   }
 
-  const { error } = await supabase.from("guest_checkins").update({ status }).eq("id", id);
+  const updatePayload = status === "issue" ? { status, guest_tag: "issue" as const } : { status };
+  const { error } = await supabase.from("guest_checkins").update(updatePayload).eq("id", id);
 
   if (error) {
     redirect(withMessage(returnTo, error.message));
@@ -153,4 +158,107 @@ export async function updateCheckinStatus(formData: FormData) {
   revalidatePath("/admin/guest-records");
   revalidatePath(`/admin/guest-records/${id}`);
   redirect(withMessage(returnTo, `Status updated to ${getCheckinStatusLabel(status)}.`));
+}
+
+function sanitizeFileName(fileName: string) {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-") || "document";
+}
+
+function getUploadFiles(formData: FormData, fieldName: string) {
+  return formData
+    .getAll(fieldName)
+    .filter((value): value is File => value instanceof File && value.size > 0);
+}
+
+function validateUpload(file: File) {
+  if (!isAllowedUploadMimeType(file.type) || !isAllowedUploadSize(file.size)) {
+    throw new Error("Uploads must be JPG, PNG, or PDF files up to 10 MB each.");
+  }
+}
+
+async function uploadGuestDocument({
+  supabase,
+  checkinId,
+  uploadedBy,
+  documentType,
+  file,
+}: {
+  supabase: Awaited<ReturnType<typeof requireRole>>["supabase"];
+  checkinId: string;
+  uploadedBy: string;
+  documentType: DocumentType;
+  file: File;
+}) {
+  validateUpload(file);
+
+  const filePath = `${uploadedBy}/${checkinId}/admin-${documentType}-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
+  const { error: uploadError } = await supabase.storage.from("guest-documents").upload(filePath, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type,
+  });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  const { error: documentError } = await supabase.from("guest_documents").insert({
+    checkin_id: checkinId,
+    uploaded_by: uploadedBy,
+    document_type: documentType,
+    file_path: filePath,
+    file_url: null,
+    mime_type: file.type,
+  });
+
+  if (documentError) {
+    throw new Error(documentError.message);
+  }
+}
+
+export async function uploadGuestRecordDocuments(formData: FormData) {
+  const { supabase, profile } = await requireRole(managementRoles);
+  const parsed = z.object({ id: z.uuid() }).safeParse({ id: formData.get("id") });
+
+  if (!parsed.success) {
+    redirect(`/admin/guest-records?message=${encodeURIComponent("Invalid document upload request.")}`);
+  }
+
+  const { id } = parsed.data;
+  const { data: record, error: recordError } = await supabase.from("guest_checkins").select("id").eq("id", id).single();
+
+  if (recordError || !record) {
+    redirect(`/admin/guest-records?message=${encodeURIComponent(recordError?.message ?? "Guest record not found.")}`);
+  }
+
+  const uploads: Array<{ documentType: DocumentType; file: File }> = [
+    ...getUploadFiles(formData, "primary_document").map((file) => ({ documentType: "primary_cnic" as const, file })),
+    ...getUploadFiles(formData, "additional_documents").map((file) => ({ documentType: "additional_guest_cnic" as const, file })),
+    ...getUploadFiles(formData, "payment_proof").map((file) => ({ documentType: "payment_proof" as const, file })),
+  ];
+
+  if (uploads.length === 0) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent("Choose at least one document to upload.")}`);
+  }
+
+  try {
+    for (const upload of uploads) {
+      await uploadGuestDocument({
+        supabase,
+        checkinId: id,
+        uploadedBy: profile.id,
+        documentType: upload.documentType,
+        file: upload.file,
+      });
+    }
+  } catch (error) {
+    redirect(
+      `/admin/guest-records/${id}?message=${encodeURIComponent(
+        error instanceof Error ? error.message : "Document upload failed.",
+      )}`,
+    );
+  }
+
+  revalidatePath(`/admin/guest-records/${id}`);
+  redirect(`/admin/guest-records/${id}?message=${encodeURIComponent("Document upload saved. Review verification flags before approval.")}`);
 }

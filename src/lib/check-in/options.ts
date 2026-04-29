@@ -57,7 +57,7 @@ export const guestCheckinStatusLabels: Record<CheckinStatus, string> = {
   approved: "Approved - ready for arrival",
   checked_in: "Checked in",
   checked_out: "Checked out",
-  issue: "Action needed - please contact management",
+  issue: "Action needed — please contact GreenLux management.",
 };
 
 export const checkinStatusTone: Record<CheckinStatus, "neutral" | "success" | "warning" | "danger" | "info" | "blue"> = {
