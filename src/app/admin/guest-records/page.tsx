@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2, LogIn, LogOut, Search } from "lucide-react";
+import { CheckCircle2, LogIn, LogOut, Search, UserPlus } from "lucide-react";
 import { updateCheckinStatus } from "@/app/admin/guest-records/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { requireRole } from "@/lib/auth/guards";
-import { managementRoles } from "@/lib/auth/roles";
+import { hasAllowedRole, managementRoles, staffGuestCreationRoles } from "@/lib/auth/roles";
 import {
   bookingSourceOptions,
   checkinStatusTone,
@@ -20,6 +20,7 @@ import {
   getExpectedAmount,
   isReadyToApprove,
   paymentStatusOptions,
+  guestTypeOptions,
 } from "@/lib/check-in/options";
 import type { Database } from "@/types/database";
 
@@ -63,6 +64,11 @@ function verifiedBadge(verified: boolean) {
 
 function statusBadge(status: Checkin["status"]) {
   return <Badge tone={checkinStatusTone[status]}>{getCheckinStatusLabel(status)}</Badge>;
+}
+
+function guestTypeBadge(type: Checkin["guest_type"]) {
+  const label = guestTypeOptions.find((option) => option.value === type)?.label ?? formatEnumLabel(type);
+  return <Badge tone={type === "admin_created" ? "info" : "neutral"}>{label}</Badge>;
 }
 
 function getActiveView(value?: string): OperatorView {
@@ -139,7 +145,8 @@ function QuickStatusButton({
 
 export default async function GuestRecordsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const { supabase } = await requireRole(managementRoles);
+  const { supabase, profile } = await requireRole(managementRoles);
+  const canCreateGuests = hasAllowedRole(profile.role, staffGuestCreationRoles);
   const activeView = getActiveView(params.view);
   const returnTo = getReturnTo(params);
 
@@ -205,12 +212,22 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
             <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">Guest Records</h1>
             <p className="mt-2 text-sm text-slate-600">Search check-ins, review payments, and verify documents.</p>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/admin">Back to admin</Link>
-          </Button>
-          <Button asChild>
-            <Link href={getExportHref(params)}>Export CSV</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href="/admin">Back to admin</Link>
+            </Button>
+            {canCreateGuests ? (
+              <Button asChild>
+                <Link href="/admin/guests/new">
+                  <UserPlus className="h-4 w-4" aria-hidden="true" />
+                  Add Guest
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="secondary">
+              <Link href={getExportHref(params)}>Export CSV</Link>
+            </Button>
+          </div>
         </header>
 
         {params.message ? (
@@ -286,11 +303,12 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
               <div className="p-5 text-sm text-slate-600">No guest records found.</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1700px] text-left text-sm">
+                <table className="w-full min-w-[1800px] text-left text-sm">
                   <thead className="border-b border-brand-sage bg-brand-ivory text-xs uppercase tracking-[0.12em] text-brand-deep">
                     <tr>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Action Required</th>
+                      <th className="px-4 py-3">Type</th>
                       <th className="px-4 py-3">Guest</th>
                       <th className="px-4 py-3">Phone</th>
                       <th className="px-4 py-3">Dates</th>
@@ -316,9 +334,10 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
                             {getActionRequiredLabel(record)}
                           </Badge>
                         </td>
+                        <td className="px-4 py-3">{guestTypeBadge(record.guest_type)}</td>
                         <td className="px-4 py-3">
                           <div className="font-semibold text-brand-deep">{record.full_name}</div>
-                          <div className="text-xs text-slate-500">{record.email}</div>
+                          <div className="text-xs text-slate-500">{record.email || "No email"}</div>
                         </td>
                         <td className="px-4 py-3">{record.phone}</td>
                         <td className="px-4 py-3">

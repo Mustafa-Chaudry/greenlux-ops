@@ -5,6 +5,7 @@ export type BookingSource = Database["public"]["Enums"]["booking_source"];
 export type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 export type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 export type CheckinStatus = Database["public"]["Enums"]["checkin_status"];
+export type GuestType = Database["public"]["Enums"]["guest_type"];
 export type GuestTag = Database["public"]["Enums"]["guest_tag"];
 export type RoomStatus = Database["public"]["Enums"]["room_status"];
 export type ExpenseCategory = Database["public"]["Enums"]["expense_category"];
@@ -76,6 +77,11 @@ export const guestTagOptions: Array<{ value: GuestTag; label: string }> = [
   { value: "do_not_host", label: "Do not host" },
 ];
 
+export const guestTypeOptions: Array<{ value: GuestType; label: string }> = [
+  { value: "self_registered", label: "Self-registered" },
+  { value: "admin_created", label: "Staff-created" },
+];
+
 export const roomStatusOptions: Array<{ value: RoomStatus; label: string }> = [
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
@@ -144,10 +150,10 @@ export function getBalanceDue(checkin: {
   return Math.max(expected - (checkin.amount_paid_pkr ?? 0), 0);
 }
 
-export function maskSensitiveId(value: string) {
-  const trimmed = value.trim();
+export function maskSensitiveId(value: string | null | undefined) {
+  const trimmed = value?.trim() ?? "";
 
-  if (trimmed.length <= 4) {
+  if (!trimmed || trimmed.length <= 4) {
     return trimmed;
   }
 

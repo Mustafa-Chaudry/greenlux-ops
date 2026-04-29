@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { BarChart3, CalendarDays, CheckCircle2, ClipboardList, Hotel, UserCheck, Wrench } from "lucide-react";
+import { BarChart3, CalendarDays, CheckCircle2, ClipboardList, Hotel, UserCheck, UserPlus, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
-import { managementRoles } from "@/lib/auth/roles";
+import { hasAllowedRole, managementRoles, staffGuestCreationRoles } from "@/lib/auth/roles";
 import { getBusinessTodayDate, isReadyToApprove } from "@/lib/check-in/options";
 
 const adminAreas = [
@@ -41,6 +41,7 @@ const adminAreas = [
 
 export default async function AdminPage() {
   const { supabase, profile } = await requireRole(managementRoles);
+  const canCreateGuests = hasAllowedRole(profile.role, staffGuestCreationRoles);
   const today = getBusinessTodayDate();
   const { data: records } = await supabase
     .from("guest_checkins")
@@ -94,9 +95,19 @@ export default async function AdminPage() {
               Signed in as {profile.full_name || profile.email} with {profile.role.replace("_", " ")} access.
             </p>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/dashboard">Back to dashboard</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href="/dashboard">Back to dashboard</Link>
+            </Button>
+            {canCreateGuests ? (
+              <Button asChild>
+                <Link href="/admin/guests/new">
+                  <UserPlus className="h-4 w-4" aria-hidden="true" />
+                  Add Guest
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -115,6 +126,22 @@ export default async function AdminPage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">
+          {canCreateGuests ? (
+            <Card>
+              <CardHeader>
+                <UserPlus className="h-5 w-5 text-brand-fresh" aria-hidden="true" />
+                <CardTitle>Add Guest</CardTitle>
+                <CardDescription>
+                  Create a front desk guest record without requiring self-registration or email confirmation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="secondary">
+                  <Link href="/admin/guests/new">Open</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
           {adminAreas.map((area) => (
             <Card key={area.title}>
               <CardHeader>

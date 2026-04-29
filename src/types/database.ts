@@ -67,10 +67,11 @@ export type Database = {
         Row: {
           id: string;
           guest_user_id: string | null;
+          guest_type: Database["public"]["Enums"]["guest_type"];
           full_name: string;
           phone: string;
-          email: string;
-          cnic_passport_number: string;
+          email: string | null;
+          cnic_passport_number: string | null;
           address: string;
           city_country_from: string;
           check_in_date: string;
@@ -99,8 +100,8 @@ export type Database = {
         Insert: Partial<Database["public"]["Tables"]["guest_checkins"]["Row"]> & {
           full_name: string;
           phone: string;
-          email: string;
-          cnic_passport_number: string;
+          email?: string | null;
+          cnic_passport_number?: string | null;
           address: string;
           city_country_from: string;
           check_in_date: string;
@@ -231,6 +232,7 @@ export type Database = {
     };
     Enums: {
       user_role: "guest" | "manager" | "admin" | "super_admin";
+      guest_type: "self_registered" | "admin_created";
       room_type: "economy_room" | "executive_room" | "deluxe_room" | "studio" | "apartment";
       room_status: "active" | "inactive" | "maintenance";
       purpose_of_visit: "family_visit" | "business" | "medical" | "tourism" | "event_wedding" | "other";

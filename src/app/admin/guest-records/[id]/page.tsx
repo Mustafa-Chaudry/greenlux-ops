@@ -23,6 +23,7 @@ import {
   getExpectedAmount,
   getWhatsAppGuestHref,
   guestTagOptions,
+  guestTypeOptions,
   isPaymentConfirmed,
   isReadyToApprove,
   maskSensitiveId,
@@ -131,6 +132,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const primaryDocuments = documentsWithUrls.filter((document) => document.document_type === "primary_cnic");
   const additionalDocuments = documentsWithUrls.filter((document) => document.document_type === "additional_guest_cnic");
   const paymentDocuments = documentsWithUrls.filter((document) => document.document_type === "payment_proof");
+  const guestTypeLabel = guestTypeOptions.find((option) => option.value === record.guest_type)?.label ?? formatEnumLabel(record.guest_type);
   const missingApprovalRequirements = getApprovalMissingRequirements(record);
   const canApprove = isReadyToApprove(record);
   const showApproveAction = record.status === "submitted" || record.status === "under_review";
@@ -185,6 +187,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge tone={checkinStatusTone[record.status]}>{getCheckinStatusLabel(record.status)}</Badge>
+            <Badge tone={record.guest_type === "admin_created" ? "info" : "neutral"}>{guestTypeLabel}</Badge>
             <Badge tone={record.cnic_verified ? "success" : "warning"}>CNIC {record.cnic_verified ? "verified" : "pending"}</Badge>
             <Badge tone={record.payment_verified ? "success" : "warning"}>
               Payment proof {record.payment_verified ? "verified" : "pending"}
@@ -231,13 +234,14 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
             <Card>
               <CardHeader>
-                <CardTitle>Guest-submitted information</CardTitle>
+                  <CardTitle>Guest information</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <InfoRow label="Full name" value={record.full_name} />
                   <InfoRow label="Phone" value={record.phone} />
                   <InfoRow label="Email" value={record.email} />
+                  <InfoRow label="Guest type" value={guestTypeLabel} />
                   <InfoRow label="CNIC / passport" value={record.cnic_passport_number} />
                   <InfoRow label="Address" value={record.address} />
                   <InfoRow label="Travelling from" value={record.city_country_from} />

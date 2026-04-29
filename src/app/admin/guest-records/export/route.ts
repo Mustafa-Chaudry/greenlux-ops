@@ -118,6 +118,7 @@ export async function GET(request: NextRequest) {
 
   const headers = [
     "guest name",
+    "guest type",
     "phone",
     "email",
     "check-in date",
@@ -141,6 +142,7 @@ export async function GET(request: NextRequest) {
 
   const rows = visibleRecords.map((record) => [
     record.full_name,
+    formatEnumLabel(record.guest_type),
     record.phone,
     record.email,
     record.check_in_date,
