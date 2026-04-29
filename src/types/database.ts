@@ -88,6 +88,7 @@ export type Database = {
           amount_paid_pkr: number | null;
           payment_status: Database["public"]["Enums"]["payment_status"];
           status: Database["public"]["Enums"]["checkin_status"];
+          issue_type: string | null;
           assigned_room_id: string | null;
           special_requests: string | null;
           internal_notes: string | null;
@@ -120,6 +121,7 @@ export type Database = {
           checkin_id: string;
           uploaded_by: string | null;
           document_type: Database["public"]["Enums"]["document_type"];
+          document_status: "pending" | "verified" | "rejected";
           file_url: string | null;
           file_path: string;
           mime_type: string;
@@ -130,6 +132,7 @@ export type Database = {
           checkin_id: string;
           uploaded_by?: string | null;
           document_type: Database["public"]["Enums"]["document_type"];
+          document_status?: "pending" | "verified" | "rejected";
           file_url?: string | null;
           file_path: string;
           mime_type: string;

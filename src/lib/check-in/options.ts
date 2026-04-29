@@ -7,6 +7,8 @@ export type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 export type CheckinStatus = Database["public"]["Enums"]["checkin_status"];
 export type GuestType = Database["public"]["Enums"]["guest_type"];
 export type GuestTag = Database["public"]["Enums"]["guest_tag"];
+export type DocumentStatus = Database["public"]["Tables"]["guest_documents"]["Row"]["document_status"];
+export type IssueType = NonNullable<Database["public"]["Tables"]["guest_checkins"]["Row"]["issue_type"]>;
 export type RoomStatus = Database["public"]["Enums"]["room_status"];
 export type ExpenseCategory = Database["public"]["Enums"]["expense_category"];
 export type MaintenanceStatus = Database["public"]["Enums"]["maintenance_status"];
@@ -57,7 +59,7 @@ export const guestCheckinStatusLabels: Record<CheckinStatus, string> = {
   approved: "Approved - ready for arrival",
   checked_in: "Checked in",
   checked_out: "Checked out",
-  issue: "Action needed — please contact GreenLux management.",
+  issue: "Action needed - please contact GreenLux management.",
 };
 
 export const checkinStatusTone: Record<CheckinStatus, "neutral" | "success" | "warning" | "danger" | "info" | "blue"> = {
@@ -81,6 +83,30 @@ export const guestTypeOptions: Array<{ value: GuestType; label: string }> = [
   { value: "self_registered", label: "Self-registered" },
   { value: "admin_created", label: "Staff-created" },
 ];
+
+export const documentStatusOptions: Array<{ value: DocumentStatus; label: string }> = [
+  { value: "pending", label: "Pending" },
+  { value: "verified", label: "Verified" },
+  { value: "rejected", label: "Rejected" },
+];
+
+export const issueTypeOptions: Array<{ value: IssueType; label: string }> = [
+  { value: "cnic_pending", label: "CNIC pending" },
+  { value: "payment_pending", label: "Payment pending" },
+  { value: "missing_documents", label: "Missing documents" },
+  { value: "guest_exception", label: "Guest exception" },
+  { value: "other", label: "Other" },
+];
+
+export const exceptionReasonOptions = [
+  { value: "cnic_pending", label: "CNIC pending" },
+  { value: "payment_pending", label: "Payment pending" },
+  { value: "known_guest", label: "Known guest" },
+  { value: "emergency", label: "Emergency" },
+  { value: "other", label: "Other" },
+] as const;
+
+export type ExceptionReason = (typeof exceptionReasonOptions)[number]["value"];
 
 export const roomStatusOptions: Array<{ value: RoomStatus; label: string }> = [
   { value: "active", label: "Active" },
@@ -182,6 +208,30 @@ export function getCheckinStatusLabel(status: CheckinStatus) {
   return checkinStatusOptions.find((option) => option.value === status)?.label ?? formatEnumLabel(status);
 }
 
+export function getDocumentStatusLabel(status: DocumentStatus) {
+  return documentStatusOptions.find((option) => option.value === status)?.label ?? formatEnumLabel(status);
+}
+
+export function getIssueTypeLabel(issueType: IssueType | string | null | undefined) {
+  if (!issueType) {
+    return "No issue type";
+  }
+
+  return issueTypeOptions.find((option) => option.value === issueType)?.label ?? formatEnumLabel(issueType);
+}
+
+export function getExceptionReasonLabel(reason: ExceptionReason) {
+  return exceptionReasonOptions.find((option) => option.value === reason)?.label ?? formatEnumLabel(reason);
+}
+
+export function mapExceptionReasonToIssueType(reason: ExceptionReason): IssueType {
+  if (reason === "known_guest" || reason === "emergency") {
+    return "guest_exception";
+  }
+
+  return reason;
+}
+
 export function getApprovalMissingRequirements(checkin: {
   assigned_room_id: string | null;
   cnic_verified: boolean;
@@ -228,12 +278,19 @@ export function isReadyToApprove(checkin: {
   );
 }
 
+export function isReadyForCheckin(checkin: {
+  assigned_room_id: string | null;
+  cnic_verified: boolean;
+  payment_verified: boolean;
+  status: CheckinStatus;
+}) {
+  return Boolean(checkin.assigned_room_id) && checkin.cnic_verified && checkin.payment_verified && checkin.status !== "issue";
+}
+
 export function getActionRequiredLabel(checkin: {
   status: CheckinStatus;
   assigned_room_id: string | null;
   cnic_verified: boolean;
-  payment_status: PaymentStatus;
-  payment_method: PaymentMethod;
   payment_verified: boolean;
 }) {
   if (checkin.status === "issue") {
@@ -260,11 +317,11 @@ export function getActionRequiredLabel(checkin: {
     return "Verify CNIC";
   }
 
-  if (!isPaymentConfirmed(checkin)) {
+  if (!checkin.payment_verified) {
     return "Verify payment";
   }
 
-  return "Ready to approve";
+  return "Ready for check-in";
 }
 
 export function getBusinessTodayDate() {

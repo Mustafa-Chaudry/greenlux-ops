@@ -132,7 +132,7 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                 <FieldError message={fieldError(params, "status")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cost_pkr">Cost PKR</Label>
+                <Label htmlFor="cost_pkr">Estimated Cost (not included in profit)</Label>
                 <Input id="cost_pkr" name="cost_pkr" type="number" min={0} />
                 <p className="text-xs text-slate-500">Operational estimate only. Actual cash spent belongs in Expenses.</p>
                 <FieldError message={fieldError(params, "cost_pkr")} />
@@ -201,7 +201,13 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                       <FieldError message={fieldError(params, "status", log.id)} />
                     </div>
                     <div>
-                      <Input name="cost_pkr" type="number" min={0} defaultValue={log.cost_pkr ?? ""} aria-label="Cost PKR" />
+                      <Input
+                        name="cost_pkr"
+                        type="number"
+                        min={0}
+                        defaultValue={log.cost_pkr ?? ""}
+                        aria-label="Estimated cost not included in profit"
+                      />
                       <FieldError message={fieldError(params, "cost_pkr", log.id)} />
                     </div>
                     <div>

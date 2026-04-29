@@ -17,6 +17,7 @@ import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/u
 import type { Database } from "@/types/database";
 
 type DocumentType = Database["public"]["Enums"]["document_type"];
+type DocumentStatus = Database["public"]["Tables"]["guest_documents"]["Row"]["document_status"];
 
 const manualPaymentStatuses = ["pending", "partial", "paid"] as const;
 const manualInitialStatuses = ["submitted", "under_review"] as const;
@@ -117,12 +118,14 @@ async function uploadGuestDocument({
   documentType,
   file,
   uploadedBy,
+  documentStatus = "pending",
 }: {
   supabase: Awaited<ReturnType<typeof requireRole>>["supabase"];
   checkinId: string;
   documentType: DocumentType;
   file: File;
   uploadedBy: string;
+  documentStatus?: DocumentStatus;
 }) {
   validateUploadFile(file);
 
@@ -141,6 +144,7 @@ async function uploadGuestDocument({
     checkin_id: checkinId,
     uploaded_by: uploadedBy,
     document_type: documentType,
+    document_status: documentStatus,
     file_path: filePath,
     file_url: null,
     mime_type: file.type,
@@ -266,6 +270,11 @@ export async function createManualGuest(formData: FormData) {
 
   const values = parsed.data;
   const guestId = crypto.randomUUID();
+  const primaryDocuments = getFiles(formData, "primary_document");
+  const additionalDocuments = getFiles(formData, "additional_documents");
+  const paymentProofs = getFiles(formData, "payment_proof");
+  const cnicVerified = values.cnic_verified && primaryDocuments.length > 0;
+  const paymentVerified = values.payment_status === "paid" || values.payment_verified;
   const { guestUserId, warning } = await findOrCreateAuthUser({
     supabase,
     email: values.email,
@@ -302,8 +311,8 @@ export async function createManualGuest(formData: FormData) {
     special_requests: values.special_requests,
     internal_notes: values.internal_notes,
     guest_tag: values.guest_tag,
-    cnic_verified: values.cnic_verified,
-    payment_verified: values.payment_verified,
+    cnic_verified: cnicVerified,
+    payment_verified: paymentVerified,
   });
 
   if (error) {
@@ -311,10 +320,6 @@ export async function createManualGuest(formData: FormData) {
   }
 
   try {
-    const primaryDocuments = getFiles(formData, "primary_document");
-    const additionalDocuments = getFiles(formData, "additional_documents");
-    const paymentProofs = getFiles(formData, "payment_proof");
-
     for (const file of primaryDocuments) {
       await uploadGuestDocument({
         supabase,
@@ -322,6 +327,7 @@ export async function createManualGuest(formData: FormData) {
         documentType: "primary_cnic",
         file,
         uploadedBy: profile.id,
+        documentStatus: cnicVerified ? "verified" : "pending",
       });
     }
 
@@ -342,6 +348,7 @@ export async function createManualGuest(formData: FormData) {
         documentType: "payment_proof",
         file,
         uploadedBy: profile.id,
+        documentStatus: paymentVerified ? "verified" : "pending",
       });
     }
   } catch (uploadError) {

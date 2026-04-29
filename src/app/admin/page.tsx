@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
 import { hasAllowedRole, managementRoles, staffGuestCreationRoles, superAdminRoles } from "@/lib/auth/roles";
-import { getBusinessTodayDate, isReadyToApprove } from "@/lib/check-in/options";
+import { getBusinessTodayDate, isReadyForCheckin } from "@/lib/check-in/options";
 
 const adminAreas = [
   {
@@ -51,33 +51,36 @@ export default async function AdminPage() {
     .select("status,assigned_room_id,cnic_verified,payment_status,payment_method,payment_verified,check_in_date");
 
   const checkins = records ?? [];
-  const needsReviewCount = checkins.filter((record) => record.status === "submitted").length;
-  const readyToApproveCount = checkins.filter(isReadyToApprove).length;
-  const activeGuestsCount = checkins.filter((record) => record.status === "checked_in").length;
+  const needsAttentionCount = checkins.filter(
+    (record) => !record.cnic_verified || !record.payment_verified || record.status === "issue",
+  ).length;
+  const checkedInWithIssuesCount = checkins.filter(
+    (record) => record.status === "checked_in" && (!record.cnic_verified || !record.payment_verified),
+  ).length;
+  const readyForCheckinCount = checkins.filter(isReadyForCheckin).length;
   const todaysCheckinsCount = checkins.filter((record) => record.check_in_date === today).length;
-  const issuesCount = checkins.filter((record) => record.status === "issue").length;
 
   const summaryCards = [
     {
-      title: "Needs Review",
-      value: needsReviewCount,
-      description: "New submissions waiting for management",
-      href: "/admin/guest-records?view=needs_review",
-      icon: ClipboardList,
+      title: "Needs Attention",
+      value: needsAttentionCount,
+      description: "Missing ID, payment verification, or flagged issue",
+      href: "/admin/guest-records?verification=any",
+      icon: TriangleAlert,
     },
     {
-      title: "Ready to Approve",
-      value: readyToApproveCount,
-      description: "Room, CNIC, and payment requirements complete",
+      title: "Checked-in with Issues",
+      value: checkedInWithIssuesCount,
+      description: "Guests accommodated with pending verification",
+      href: "/admin/guest-records?view=active&verification=any",
+      icon: UserCheck,
+    },
+    {
+      title: "Ready for Check-in",
+      value: readyForCheckinCount,
+      description: "Room assigned with ID and payment verified",
       href: "/admin/guest-records?view=ready",
       icon: CheckCircle2,
-    },
-    {
-      title: "Active Guests",
-      value: activeGuestsCount,
-      description: "Guests currently checked in",
-      href: "/admin/guest-records?view=active",
-      icon: UserCheck,
     },
     {
       title: "Today's Check-ins",
@@ -85,13 +88,6 @@ export default async function AdminPage() {
       description: "Expected arrivals for today",
       href: `/admin/guest-records?date_from=${today}&date_to=${today}`,
       icon: CalendarDays,
-    },
-    {
-      title: "Issues",
-      value: issuesCount,
-      description: "Records flagged for correction",
-      href: "/admin/guest-records?view=issues",
-      icon: TriangleAlert,
     },
   ];
 
@@ -121,7 +117,7 @@ export default async function AdminPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card) => (
             <Link key={card.title} href={card.href} className="group block">
               <Card className="h-full transition-shadow group-hover:shadow-soft">

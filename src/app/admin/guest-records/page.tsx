@@ -19,6 +19,7 @@ import {
   getCheckinStatusLabel,
   getExpectedAmount,
   isReadyToApprove,
+  isReadyForCheckin,
   paymentStatusOptions,
   guestTypeOptions,
 } from "@/lib/check-in/options";
@@ -155,7 +156,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
   if (activeView === "needs_review") {
     query = query.eq("status", "submitted");
   } else if (activeView === "ready") {
-    query = query.in("status", ["submitted", "under_review"]);
+    query = query.not("status", "in", "(issue,checked_in,checked_out)");
   } else if (activeView === "active") {
     query = query.eq("status", "checked_in");
   } else if (activeView === "completed") {
@@ -194,7 +195,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
   }
 
   const { data: records, error } = await query;
-  const visibleRecords = activeView === "ready" ? (records ?? []).filter(isReadyToApprove) : records ?? [];
+  const visibleRecords = activeView === "ready" ? (records ?? []).filter(isReadyForCheckin) : records ?? [];
   const assignedRoomIds = Array.from(
     new Set(visibleRecords.map((record) => record.assigned_room_id).filter((id): id is string => Boolean(id))),
   );
@@ -370,7 +371,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
                                 Approve
                               </QuickStatusButton>
                             ) : null}
-                            {record.status === "approved" ? (
+                            {isReadyForCheckin(record) && record.status !== "checked_in" && record.status !== "checked_out" ? (
                               <QuickStatusButton id={record.id} returnTo={returnTo} status="checked_in">
                                 <LogIn className="h-4 w-4" aria-hidden="true" />
                                 Check-in

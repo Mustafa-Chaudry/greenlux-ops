@@ -64,6 +64,7 @@ async function uploadDocument({
     checkin_id: checkinId,
     uploaded_by: userId,
     document_type: documentType,
+    document_status: "pending",
     file_path: filePath,
     file_url: null,
     mime_type: file.type,

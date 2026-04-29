@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ExternalLink, LogIn, LogOut, MessageCircle, TriangleAlert } from "lucide-react";
-import { updateCheckinStatus, updateGuestRecord, uploadGuestRecordDocuments } from "@/app/admin/guest-records/actions";
+import {
+  updateCheckinStatus,
+  updateGuestDocumentStatus,
+  updateGuestRecord,
+  uploadGuestRecordDocuments,
+} from "@/app/admin/guest-records/actions";
+import { ExceptionCheckinButton } from "@/components/admin/exception-checkin-button";
 import { PrintButton } from "@/components/admin/print-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,16 +21,20 @@ import { managementRoles } from "@/lib/auth/roles";
 import {
   bookingSourceOptions,
   checkinStatusTone,
+  documentStatusOptions,
   formatEnumLabel,
   formatPkr,
   getApprovalMissingRequirements,
   getBalanceDue,
   getCheckinStatusLabel,
+  getDocumentStatusLabel,
   getExpectedAmount,
+  getIssueTypeLabel,
   getWhatsAppGuestHref,
   guestTagOptions,
   guestTypeOptions,
-  isPaymentConfirmed,
+  issueTypeOptions,
+  isReadyForCheckin,
   isReadyToApprove,
   maskSensitiveId,
   paymentMethodOptions,
@@ -59,22 +69,27 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function DocumentGroup({
-  title,
-  documents,
-  verified,
-}: {
-  title: string;
-  documents: GuestDocument[];
-  verified: boolean;
-}) {
-  const status = !documents.length ? "No document uploaded" : verified ? "Verified" : "Uploaded - pending verification";
+function documentStatusTone(status: GuestDocument["document_status"]) {
+  if (status === "verified") {
+    return "success";
+  }
+
+  if (status === "rejected") {
+    return "danger";
+  }
+
+  return "warning";
+}
+
+function DocumentGroup({ title, documents }: { title: string; documents: GuestDocument[] }) {
+  const latestDocument = documents[0];
+  const status = !latestDocument ? "No document uploaded" : getDocumentStatusLabel(latestDocument.document_status);
 
   return (
     <div className="rounded-lg border border-brand-sage bg-white p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="font-semibold text-brand-deep">{title}</h3>
-        <Badge tone={!documents.length ? "neutral" : verified ? "success" : "warning"}>{status}</Badge>
+        <Badge tone={!latestDocument ? "neutral" : documentStatusTone(latestDocument.document_status)}>{status}</Badge>
       </div>
       {!documents.length ? (
         <p className="mt-3 text-sm text-slate-500">No document uploaded.</p>
@@ -86,20 +101,37 @@ function DocumentGroup({
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-brand-deep">
                   {document.file_path.split("/").pop()}
                   {index === 0 ? <Badge tone="info">Latest</Badge> : null}
+                  <Badge tone={documentStatusTone(document.document_status)}>{getDocumentStatusLabel(document.document_status)}</Badge>
                 </p>
                 <p className="text-xs text-slate-500">{document.mime_type}</p>
                 <p className="text-xs text-slate-500">Uploaded {new Date(document.created_at).toLocaleString()}</p>
               </div>
-              {document.signedUrl ? (
-                <Button asChild size="sm" variant="outline">
-                  <a href={document.signedUrl} target="_blank" rel="noreferrer">
-                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    View
-                  </a>
-                </Button>
-              ) : (
-                <Badge tone="warning">Signed URL unavailable</Badge>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {document.signedUrl ? (
+                  <Button asChild size="sm" variant="outline">
+                    <a href={document.signedUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      View
+                    </a>
+                  </Button>
+                ) : (
+                  <Badge tone="warning">Signed URL unavailable</Badge>
+                )}
+                <form action={updateGuestDocumentStatus} className="flex flex-wrap gap-2">
+                  <input type="hidden" name="id" value={document.id} />
+                  <input type="hidden" name="checkin_id" value={document.checkin_id} />
+                  <Select name="document_status" defaultValue={document.document_status} aria-label="Document status" className="h-9 w-32">
+                    {documentStatusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button type="submit" size="sm" variant="secondary">
+                    Save
+                  </Button>
+                </form>
+              </div>
             </div>
           ))}
         </div>
@@ -153,7 +185,8 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const missingApprovalRequirements = getApprovalMissingRequirements(record);
   const canApprove = isReadyToApprove(record);
   const showApproveAction = record.status === "submitted" || record.status === "under_review";
-  const showCheckInAction = record.status === "approved";
+  const readyForCheckin = isReadyForCheckin(record);
+  const showCheckInAction = record.status !== "checked_in" && record.status !== "checked_out";
   const showCheckOutAction = record.status === "checked_in";
   const isCompleted = record.status === "checked_out";
   const showIssueAction = record.status !== "issue" && record.status !== "checked_out";
@@ -164,8 +197,14 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const requirements = [
     { label: "Room assigned", complete: Boolean(record.assigned_room_id), missing: "Room not assigned" },
     { label: "CNIC verified", complete: record.cnic_verified, missing: "CNIC not verified" },
-    { label: "Payment confirmed", complete: isPaymentConfirmed(record), missing: "Payment not confirmed" },
+    { label: "Payment verified", complete: record.payment_verified, missing: "Payment not confirmed" },
   ];
+  const missingCheckinRequirements = [
+    !record.assigned_room_id ? "Room may not be assigned" : null,
+    !record.cnic_verified ? "ID may be missing or unverified" : null,
+    !record.payment_verified ? "Payment may be pending" : null,
+    record.status === "issue" ? "Record is marked as an issue" : null,
+  ].filter((requirement): requirement is string => Boolean(requirement));
   const whatsappActions = [
     {
       label: "Confirm check-in",
@@ -218,11 +257,26 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
               Payment proof {record.payment_verified ? "verified" : "pending"}
             </Badge>
             <Badge tone="info">{formatEnumLabel(record.payment_status)}</Badge>
+            {record.issue_type ? <Badge tone="danger">{getIssueTypeLabel(record.issue_type)}</Badge> : null}
           </div>
         </header>
 
         {queryParams.message ? (
           <div className="rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm text-brand-deep">{queryParams.message}</div>
+        ) : null}
+
+        {!readyForCheckin ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <p className="flex items-center gap-2 font-semibold">
+              <TriangleAlert className="h-4 w-4" aria-hidden="true" />
+              Guest is not fully verified
+            </p>
+            <ul className="mt-2 list-inside list-disc">
+              {missingCheckinRequirements.map((requirement) => (
+                <li key={requirement}>{requirement}</li>
+              ))}
+            </ul>
+          </div>
         ) : null}
 
         <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
@@ -309,9 +363,9 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
-                <DocumentGroup title="Primary CNIC / passport" documents={primaryDocuments} verified={record.cnic_verified} />
-                <DocumentGroup title="Additional guest CNIC/passports" documents={additionalDocuments} verified={record.cnic_verified} />
-                <DocumentGroup title="Payment proof" documents={paymentDocuments} verified={record.payment_verified} />
+                <DocumentGroup title="Primary CNIC / passport" documents={primaryDocuments} />
+                <DocumentGroup title="Additional guest CNIC/passports" documents={additionalDocuments} />
+                <DocumentGroup title="Payment proof" documents={paymentDocuments} />
               </CardContent>
             </Card>
 
@@ -424,15 +478,24 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
                 {!isCompleted && (showCheckInAction || showCheckOutAction) ? (
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {showCheckInAction ? (
+                    {showCheckInAction && readyForCheckin ? (
                       <form action={updateCheckinStatus}>
                         <input type="hidden" name="id" value={record.id} />
                         <input type="hidden" name="status" value="checked_in" />
                         <Button type="submit" variant="outline" className="w-full">
                           <LogIn className="h-4 w-4" aria-hidden="true" />
-                          Mark as Checked-in
+                          Check-in
                         </Button>
                       </form>
+                    ) : null}
+                    {showCheckInAction && !readyForCheckin ? (
+                      <>
+                        <Button type="button" variant="outline" className="w-full" disabled>
+                          <LogIn className="h-4 w-4" aria-hidden="true" />
+                          Check-in (Ready)
+                        </Button>
+                        <ExceptionCheckinButton id={record.id} action={updateCheckinStatus} />
+                      </>
                     ) : null}
                     {showCheckOutAction ? (
                       <form action={updateCheckinStatus}>
@@ -493,7 +556,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="payment_status">Payment status</Label>
                     <Select id="payment_status" name="payment_status" defaultValue={record.payment_status}>
@@ -508,6 +571,17 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     <Label htmlFor="guest_tag">Guest tag</Label>
                     <Select id="guest_tag" name="guest_tag" defaultValue={record.guest_tag}>
                       {guestTagOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="issue_type">Issue type</Label>
+                    <Select id="issue_type" name="issue_type" defaultValue={record.issue_type ?? ""}>
+                      <option value="">No issue type</option>
+                      {issueTypeOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
