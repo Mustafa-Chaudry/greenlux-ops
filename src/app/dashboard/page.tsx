@@ -101,7 +101,9 @@ export default async function DashboardPage() {
               <h2 className="mt-1 font-serif text-2xl font-semibold text-brand-deep">Submitted check-ins</h2>
             </div>
             <Button asChild variant="outline">
-              <Link href="/rooms">View rooms</Link>
+              <Link href="https://greenluxresidency.com/rooms" target="_blank">
+                Browse rooms
+              </Link>
             </Button>
           </div>
 
