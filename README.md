@@ -130,7 +130,14 @@ Currently supports:
 
 ## 📍 Deployment
 
-https://greenlux-ops.vercel.app
+Internal Operations System:
+https://greenlux-ops.vercel.app/admin
+
+Guest Check-in:
+https://greenlux-ops.vercel.app/dashboard/check-in
+
+Public Website:
+https://greenluxresidency.com
 
 ---
 
