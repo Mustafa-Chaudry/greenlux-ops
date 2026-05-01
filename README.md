@@ -1,182 +1,141 @@
-# GreenLux Residency
+# GreenLux Residency — Operations Intelligence System (MVP v5.5D)
 
-Production-grade MVP foundation for GreenLux Residency, a boutique serviced apartment and luxury short-stay business in Rawalpindi/Islamabad.
+A production-grade internal operations platform designed for a real-world serviced accommodation business.
 
-This repository currently contains **Phase 1 only**: Next.js foundation, Supabase auth/database/storage setup, role-based access control, RLS policies, seed room data, and setup/security documentation. Public website pages, guest check-in forms, and management dashboards are intentionally left for the next phases.
+This system replaces fragmented, manual workflows (WhatsApp, spreadsheets, ad-hoc coordination) with a structured, auditable, and analytics-driven operational layer.
 
-## Architecture
+---
 
-```text
-.
-├── middleware.ts                         # Supabase session refresh
-├── supabase/
-│   └── migrations/
-│       └── 20260429000000_phase_1_foundation.sql
-├── src/
-│   ├── app/
-│   │   ├── page.tsx                      # Phase 1 landing/status shell
-│   │   ├── auth/                         # Sign in/up server actions and pages
-│   │   ├── dashboard/                    # Protected guest/account shell
-│   │   └── admin/                        # Protected management/super-admin shells
-│   ├── components/
-│   │   ├── auth/
-│   │   └── ui/                           # Clean reusable shadcn-style primitives
-│   ├── lib/
-│   │   ├── auth/                         # RBAC roles and route guards
-│   │   ├── supabase/                     # Browser, server, middleware clients
-│   │   ├── validation/                   # Auth/upload validation constants
-│   │   └── env.ts                        # Zod environment validation
-│   └── types/
-│       └── database.ts                   # Supabase database types
-└── .env.example
-```
+## 🧠 Problem Context
 
-## Tech Stack
+GreenLux Residency operates in a high-friction environment:
 
-- Next.js 16 App Router, React 19, TypeScript
-- Tailwind CSS with GreenLux brand tokens
-- Supabase Auth, Postgres, Storage, and RLS
-- Zod validation
-- Clean reusable UI components inspired by shadcn/ui
-- Vercel-ready build scripts
+- Bookings from multiple sources (Booking.com, WhatsApp, walk-ins)
+- Non-technical operational staff
+- Incomplete or delayed guest data
+- Real-time decision-making at check-in
 
-Node.js `>=20.9.0` is required by Next.js 16.
+Traditional systems either:
+- ❌ Block operations with rigid validation  
+- ❌ Or allow chaos with no visibility  
 
-## Local Setup
+---
 
-1. Install dependencies:
+## 🎯 Solution Approach
 
-```bash
-pnpm install
-```
+> **Do not block operations — make risk visible and manageable**
 
-2. Copy environment variables:
+Key design principles:
 
-```bash
-cp .env.example .env.local
-```
+- Enable check-in under imperfect conditions
+- Track and surface operational risk explicitly
+- Maintain a single source of truth for data
+- Prioritise usability for non-technical users
+- Preserve auditability for reporting and control
 
-3. Fill in:
+---
 
-```bash
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
-```
+## ⚙️ System Capabilities
 
-`SUPABASE_SERVICE_ROLE_KEY` is server-only and optional for Phase 1. Never expose it to client components.
+### Guest Operations
+- Self-service and admin-assisted check-in
+- Walk-in and WhatsApp booking handling
+- Room assignment and stay lifecycle management
 
-4. Start the app:
+### Verification Layer
+- CNIC / Passport capture
+- Payment proof tracking
+- Structured document status:
+  - `pending`
+  - `verified`
+  - `rejected`
 
-```bash
-pnpm dev
-```
+### Controlled Override System (Core Feature)
+- Automated readiness detection (room, ID, payment)
+- **Exception-based check-in flow**
+- Structured issue tracking for incomplete cases
 
-The scripts use webpack explicitly because the local Windows runtime used during scaffolding could not spawn Turbopack worker processes reliably.
+→ Allows operations to continue without data loss or blind risk
 
-## Supabase Setup
+### Admin Control Panel
+- Guest management
+- Verification workflows
+- Check-in / check-out execution
+- Issue visibility and resolution
+- WhatsApp-assisted operational actions
 
-Create a Supabase project, then apply:
+### Financial & Operational Tracking
+- Expenses (financial truth layer)
+- Maintenance logs (operational cost tracking)
+- Audit logs for administrative actions
 
-```bash
-supabase db push
-```
+### Analytics & Reporting
+- Revenue (paid vs expected)
+- Outstanding balances
+- Booking source breakdown
+- Room-level performance metrics
+- New vs repeat guest tracking
+- CSV export (date-range based)
 
-If you are not using the Supabase CLI yet, paste the SQL from:
+---
 
-```text
-supabase/migrations/20260429000000_phase_1_foundation.sql
-```
+## 🧱 System Architecture
 
-into the Supabase SQL editor and run it once.
+- **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS  
+- **Backend:** Supabase (Postgres, Auth, Storage)  
+- **Access Control:** Row-Level Security (RLS)  
+- **Deployment:** Vercel  
 
-The migration creates:
+Designed as a lightweight, extensible foundation for future integrations.
 
-- `users_profile`
-- `rooms`
-- `guest_checkins`
-- `guest_documents`
-- `expenses`
-- `room_maintenance_logs`
-- `audit_logs`
-- private storage buckets: `guest-documents`, `expense-receipts`
-- room seed data for Economy, Executive, Deluxe, Studio, and Full Apartment
-- RLS policies and guard triggers
+---
 
-## Roles
+## ⚠️ Real-World Trade-offs
 
-Supported roles:
+This system intentionally:
 
-- `guest`
-- `manager`
-- `admin`
-- `super_admin`
+- Does **not block check-in** due to missing data  
+- Avoids premature complexity (booking engines, integrations)  
+- Favors **operational continuity over theoretical correctness**
 
-`manager`, `admin`, and `super_admin` are operational management roles. `super_admin` is reserved for the business-owner dashboard, role management, analytics, finance, expenses, reports, and audit logs.
+Instead, it enforces:
 
-## Super Admin Bootstrap
+- Visibility of incomplete or risky states  
+- Structured recovery workflows  
+- Clean data for downstream analytics  
 
-No real credentials are committed. To create a test owner account:
+---
 
-1. Sign up in the app with an email/password.
-2. In the Supabase SQL editor, promote that user:
+## 🚀 What This Demonstrates
 
-```sql
-update public.users_profile
-set role = 'super_admin'
-where email = 'owner@example.com';
-```
+- End-to-end system design (frontend, backend, data model)
+- Translating messy real-world operations into structured systems
+- Building for non-technical users under time pressure
+- Designing for flexibility without sacrificing data integrity
+- Applying product thinking, not just engineering
 
-3. Sign out and sign back in.
+---
 
-For manager/admin test users, repeat the same flow and set `role = 'manager'` or `role = 'admin'`.
+## 📌 Status
 
-## Security Notes
+**MVP Complete — Phase 5.5D**
 
-- CNIC/passport images and payment proofs are stored in private Supabase Storage buckets.
-- Storage buckets enforce allowed MIME types: `image/jpeg`, `image/png`, `application/pdf`.
-- Storage buckets enforce a 10 MB file-size limit.
-- Future document viewing should use short-lived signed URLs, not public bucket URLs.
-- Guest document paths should use this convention:
+Currently supports:
+- Live check-in workflows  
+- Admin operations  
+- Financial tracking  
+- Operational analytics  
 
-```text
-guest-documents/{user_id}/{checkin_id}/{filename}
-```
+---
 
-- Expense receipt paths should use:
+## 📍 Deployment
 
-```text
-expense-receipts/{user_id}/{expense_id}/{filename}
-```
+https://greenlux-ops.vercel.app
 
-- Guests cannot read other guests' profiles, check-ins, or documents.
-- Guests read their own check-in records through `guest_checkins_guest_view`, which excludes internal notes, guest tags, agreed rate, and amount-paid management fields.
-- Direct `guest_checkins` table reads are management-only through RLS.
-- A trigger blocks guests from changing internal management fields such as assigned room, agreed rate, payment status, internal notes, verification flags, and guest tag.
-- A trigger blocks role changes unless the actor is a `super_admin`, the SQL editor/postgres owner, or the service role.
-- Audit logs are available to `super_admin`; automatic audit triggers are intentionally not enabled yet to avoid duplicating sensitive CNIC/payment metadata.
+---
 
-## Verification
+## 👤 Author
 
-These checks passed during Phase 1:
-
-```bash
-node node_modules/typescript/bin/tsc --noEmit
-node node_modules/eslint/bin/eslint.js .
-NEXT_PUBLIC_SITE_URL=http://localhost:3000 \
-NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co \
-NEXT_PUBLIC_SUPABASE_ANON_KEY=test-anon-key \
-node node_modules/next/dist/bin/next build --webpack
-```
-
-In the Codex Windows shell, direct `pnpm typecheck` hit a local shim execution permission issue, so the underlying tools were run through Node directly.
-
-## Proposed Next Tasks
-
-1. Phase 2: Build the public GreenLux website: home, rooms, room detail, about, contact, privacy, and terms.
-2. Phase 3: Build guest profile and check-in flow with CNIC/payment-proof uploads and consent.
-3. Phase 4: Build management dashboard: records table, detail/edit, room management, CSV export, WhatsApp template.
-4. Phase 5: Build super admin analytics, expenses, maintenance, reports, and business intelligence charts.
-5. Add focused integration tests around auth guards, upload validation, and RLS-sensitive data access.
-
+Mustafa Chaudry  
+MSc Computer Science (Artificial Intelligence)  
+Sheffield, UK  
