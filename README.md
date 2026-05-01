@@ -79,16 +79,41 @@ Key design principles:
 
 ---
 
-## 🧱 System Architecture
+## 🏗️ System Architecture
 
-- **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS  
-- **Backend:** Supabase (Postgres, Auth, Storage)  
-- **Access Control:** Row-Level Security (RLS)  
-- **Deployment:** Vercel  
+![GreenLux Architecture](./architecture.png)
 
-Designed as a lightweight, extensible foundation for future integrations.
+This architecture represents a production-grade operations system designed for real-world hospitality environments.
+
+It prioritises:
+- flexibility over rigid workflows
+- auditability over restriction
+- admin control under operational pressure
 
 ---
+
+## 🔄 Operational Transformation
+
+### Before
+
+- Bookings scattered across WhatsApp and platforms  
+- No structured guest records  
+- Manual check-in coordination  
+- Missing or inconsistent ID/payment tracking  
+- No visibility on revenue or outstanding balances  
+
+### After
+
+- Centralised guest management system  
+- Structured check-in workflows (self + admin-assisted)  
+- Document and payment verification tracking  
+- Controlled override system for real-world flexibility  
+- Real-time visibility on revenue, occupancy, and operations  
+
+---
+
+This system transforms a fragmented, reactive operation into a structured, auditable, and decision-ready workflow layer.
+
 
 ## ⚠️ Real-World Trade-offs
 
