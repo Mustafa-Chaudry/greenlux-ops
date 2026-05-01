@@ -81,7 +81,7 @@ Key design principles:
 
 ## 🏗️ System Architecture
 
-![GreenLux Architecture](./architecture.png)
+![GreenLux Architecture](./Architecture.png)
 
 This architecture represents a production-grade operations system designed for real-world hospitality environments.
 
