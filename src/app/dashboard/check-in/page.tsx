@@ -29,8 +29,7 @@ export default async function CheckInPage() {
             Complete your arrival details.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Your information is securely stored and used only for booking and verification purposes. Your documents are stored privately and reviewed
-            only by authorised GreenLux management.
+            Your information is securely stored and used only for booking and verification purposes.
           </p>
         </header>
 

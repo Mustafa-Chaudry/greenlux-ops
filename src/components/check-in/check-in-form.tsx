@@ -232,7 +232,7 @@ export function CheckInForm({ profile }: CheckInFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Identity verification</CardTitle>
-          <CardDescription>Upload CNIC/passport documents for booking verification and security records.</CardDescription>
+          <CardDescription>Upload a valid CNIC or passport for booking verification.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="space-y-2">
