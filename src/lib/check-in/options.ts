@@ -9,6 +9,16 @@ export type GuestType = Database["public"]["Enums"]["guest_type"];
 export type GuestTag = Database["public"]["Enums"]["guest_tag"];
 export type DocumentStatus = Database["public"]["Tables"]["guest_documents"]["Row"]["document_status"];
 export type IssueType = NonNullable<Database["public"]["Tables"]["guest_checkins"]["Row"]["issue_type"]>;
+export type GuestChargeType =
+  | "breakfast"
+  | "tea"
+  | "extra_bed"
+  | "additional_mattress"
+  | "late_checkout"
+  | "laundry"
+  | "room_service"
+  | "damage"
+  | "other";
 export type RoomStatus = Database["public"]["Enums"]["room_status"];
 export type ExpenseCategory = Database["public"]["Enums"]["expense_category"];
 export type MaintenanceStatus = Database["public"]["Enums"]["maintenance_status"];
@@ -108,6 +118,18 @@ export const exceptionReasonOptions = [
 
 export type ExceptionReason = (typeof exceptionReasonOptions)[number]["value"];
 
+export const guestChargeOptions: Array<{ value: GuestChargeType; label: string }> = [
+  { value: "breakfast", label: "Breakfast" },
+  { value: "tea", label: "Tea" },
+  { value: "extra_bed", label: "Extra bed" },
+  { value: "additional_mattress", label: "Additional mattress" },
+  { value: "late_checkout", label: "Late checkout" },
+  { value: "laundry", label: "Laundry" },
+  { value: "room_service", label: "Room service" },
+  { value: "damage", label: "Damage charge" },
+  { value: "other", label: "Other" },
+];
+
 export const roomStatusOptions: Array<{ value: RoomStatus; label: string }> = [
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
@@ -176,6 +198,38 @@ export function getBalanceDue(checkin: {
   return Math.max(expected - (checkin.amount_paid_pkr ?? 0), 0);
 }
 
+export function getGuestFinancialSummary({
+  checkin,
+  charges,
+}: {
+  checkin: {
+    total_expected_amount_pkr: number | null;
+    agreed_room_rate_pkr: number | null;
+    amount_paid_pkr: number | null;
+  };
+  charges: Array<{
+    total_amount_pkr: number;
+    is_paid: boolean;
+  }>;
+}) {
+  const baseExpected = getExpectedAmount(checkin) ?? 0;
+  const basePaid = checkin.amount_paid_pkr ?? 0;
+  const chargesTotal = charges.reduce((sum, charge) => sum + charge.total_amount_pkr, 0);
+  const paidCharges = charges.reduce((sum, charge) => sum + (charge.is_paid ? charge.total_amount_pkr : 0), 0);
+  const totalExpected = baseExpected + chargesTotal;
+  const totalPaid = basePaid + paidCharges;
+
+  return {
+    baseExpected,
+    basePaid,
+    chargesTotal,
+    paidCharges,
+    totalExpected,
+    totalPaid,
+    outstanding: Math.max(totalExpected - totalPaid, 0),
+  };
+}
+
 export function maskSensitiveId(value: string | null | undefined) {
   const trimmed = value?.trim() ?? "";
 
@@ -222,6 +276,10 @@ export function getIssueTypeLabel(issueType: IssueType | string | null | undefin
 
 export function getExceptionReasonLabel(reason: ExceptionReason) {
   return exceptionReasonOptions.find((option) => option.value === reason)?.label ?? formatEnumLabel(reason);
+}
+
+export function getGuestChargeLabel(chargeType: GuestChargeType | string) {
+  return guestChargeOptions.find((option) => option.value === chargeType)?.label ?? formatEnumLabel(chargeType);
 }
 
 export function mapExceptionReasonToIssueType(reason: ExceptionReason): IssueType {

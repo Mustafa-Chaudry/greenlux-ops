@@ -23,11 +23,13 @@ type PageProps = {
 export default async function ExpensesPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const { supabase } = await requireRole(superAdminRoles);
-  const [{ data: expenses, error }, { data: rooms }] = await Promise.all([
+  const [{ data: expenses, error }, { data: rooms }, { data: maintenanceLinks }] = await Promise.all([
     supabase.from("expenses").select("*").order("expense_date", { ascending: false }),
     supabase.from("rooms").select("id,name").order("name"),
+    supabase.from("room_maintenance_logs").select("linked_expense_id,issue_title").not("linked_expense_id", "is", null),
   ]);
   const roomNames = new Map((rooms ?? []).map((room) => [room.id, room.name]));
+  const maintenanceExpenseTitles = new Map((maintenanceLinks ?? []).map((log) => [log.linked_expense_id, log.issue_title]));
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -126,7 +128,10 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                         {expense.expense_date} - {expense.paid_to} - {formatPkr(expense.amount_pkr)}
                       </p>
                     </div>
-                    {expense.receipt_file_path ? <Badge tone="info">Receipt stored</Badge> : <Badge>No receipt</Badge>}
+                    <div className="flex flex-wrap gap-2">
+                      {maintenanceExpenseTitles.has(expense.id) ? <Badge tone="success">Maintenance linked</Badge> : null}
+                      {expense.receipt_file_path ? <Badge tone="info">Receipt stored</Badge> : <Badge>No receipt</Badge>}
+                    </div>
                   </div>
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <Select name="category" defaultValue={expense.category} aria-label="Category">
@@ -153,6 +158,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                   </div>
                   <p className="mt-3 text-xs text-slate-500">
                     Room: {expense.related_room_id ? roomNames.get(expense.related_room_id) ?? "Assigned room" : "None"}
+                    {maintenanceExpenseTitles.has(expense.id) ? ` - Linked maintenance: ${maintenanceExpenseTitles.get(expense.id)}` : ""}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button type="submit" size="sm">Save</Button>

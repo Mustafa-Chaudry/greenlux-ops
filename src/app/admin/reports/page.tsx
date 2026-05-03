@@ -126,13 +126,17 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
   const hasNoActivity =
     report.kpis.totalBookings === 0 &&
     report.kpis.totalRevenue === 0 &&
+    report.kpis.guestChargesTotal === 0 &&
     report.kpis.totalExpenses === 0 &&
     report.maintenance.openIssues === 0 &&
     report.maintenance.inProgressIssues === 0 &&
     report.maintenance.resolvedIssues === 0;
 
   const kpiCards = [
-    { label: "Total Revenue", value: formatPkr(report.kpis.totalRevenue), hint: "Paid or partially paid stays" },
+    { label: "Total Revenue", value: formatPkr(report.kpis.totalRevenue), hint: "Base stay paid + paid guest charges" },
+    { label: "Guest Charges", value: formatPkr(report.kpis.guestChargesTotal), hint: "Additional services and folio items" },
+    { label: "Paid Guest Charges", value: formatPkr(report.kpis.paidGuestCharges), hint: "Paid breakfast, laundry, late checkout, and other folio items" },
+    { label: "Unpaid Guest Charges", value: formatPkr(report.kpis.unpaidGuestCharges), hint: "Outstanding folio items" },
     { label: "Total Expenses", value: formatPkr(report.kpis.totalExpenses), hint: "Recorded operating spend" },
     { label: "Net Profit", value: formatPkr(report.kpis.netProfit), hint: "Revenue minus recorded expenses" },
     { label: "Outstanding Balance", value: formatPkr(report.kpis.outstandingTotal), hint: "Expected minus paid" },
@@ -269,12 +273,28 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
           ))}
         </DataTable>
 
+        <DataTable
+          title="Guest Charges Breakdown"
+          description="Additional guest services are revenue and are not mixed with expenses."
+          headers={["Charge type", "Count", "Total", "Paid", "Unpaid"]}
+        >
+          {report.chargeRows.map((row) => (
+            <tr key={row.key} className="bg-white">
+              <td className="px-4 py-3 font-medium text-brand-deep">{row.label}</td>
+              <td className="px-4 py-3">{row.count}</td>
+              <td className="px-4 py-3">{formatPkr(row.totalAmount)}</td>
+              <td className="px-4 py-3">{formatPkr(row.paidAmount)}</td>
+              <td className="px-4 py-3">{formatPkr(row.unpaidAmount)}</td>
+            </tr>
+          ))}
+        </DataTable>
+
         <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
           <Card>
             <CardHeader>
               <CardTitle>Maintenance Summary</CardTitle>
               <CardDescription>
-                Open repair burden and maintenance log cost. Profit/loss uses Expenses only.
+                Open repair burden and expense-linked maintenance costs. Profit/loss uses Expenses only.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -282,27 +302,28 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
                 <MiniMetric label="Open issues" value={String(report.maintenance.openIssues)} />
                 <MiniMetric label="In progress" value={String(report.maintenance.inProgressIssues)} />
                 <MiniMetric label="Resolved" value={String(report.maintenance.resolvedIssues)} />
-                <MiniMetric label="Maintenance log cost" value={formatPkr(report.maintenance.costTotal)} />
+                <MiniMetric label="Recorded maintenance expenses" value={formatPkr(report.maintenance.recordedExpenseTotal)} />
+                <MiniMetric label="Maintenance log estimate" value={formatPkr(report.maintenance.costTotal)} />
               </div>
             </CardContent>
           </Card>
 
           <DataTable
-            title="Maintenance Log Cost by Room"
-            headers={["Room", "Issues", "Log cost"]}
+            title="Maintenance Expenses by Room"
+            headers={["Room", "Expense entries", "Recorded expenses"]}
             minWidth={480}
           >
-            {report.maintenance.costByRoomRows.length ? (
-              report.maintenance.costByRoomRows.map((row) => (
+            {report.maintenance.expenseByRoomRows.length ? (
+              report.maintenance.expenseByRoomRows.map((row) => (
                 <tr key={row.key} className="bg-white">
                   <td className="px-4 py-3 font-medium text-brand-deep">{row.label}</td>
-                  <td className="px-4 py-3">{row.issueCount}</td>
+                  <td className="px-4 py-3">{row.expenseCount}</td>
                   <td className="px-4 py-3">{formatPkr(row.totalCost)}</td>
                 </tr>
               ))
             ) : (
               <tr className="bg-white">
-                <td className="px-4 py-3 text-slate-600" colSpan={3}>No maintenance log costs recorded.</td>
+                <td className="px-4 py-3 text-slate-600" colSpan={3}>No room-linked maintenance expenses recorded.</td>
               </tr>
             )}
           </DataTable>

@@ -39,6 +39,13 @@ const adminAreas = [
     icon: BarChart3,
     ownerOnly: true,
   },
+  {
+    title: "Users / Roles",
+    description: "Create staff users and manage manager, admin, and super admin access.",
+    href: "/admin/users",
+    icon: UserCheck,
+    ownerOnly: true,
+  },
 ];
 
 export default async function AdminPage() {

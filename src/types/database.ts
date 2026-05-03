@@ -141,6 +141,30 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["guest_documents"]["Insert"]>;
         Relationships: [];
       };
+      guest_charges: {
+        Row: {
+          id: string;
+          guest_checkin_id: string;
+          charge_type: string;
+          description: string | null;
+          amount_pkr: number;
+          quantity: number;
+          total_amount_pkr: number;
+          is_paid: boolean;
+          payment_method: Database["public"]["Enums"]["payment_method"] | null;
+          charged_at: string;
+          created_by: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["guest_charges"]["Row"]> & {
+          guest_checkin_id: string;
+          charge_type: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["guest_charges"]["Row"]>;
+        Relationships: [];
+      };
       expenses: {
         Row: {
           id: string;
@@ -175,6 +199,10 @@ export type Database = {
           issue_description: string | null;
           status: Database["public"]["Enums"]["maintenance_status"];
           cost_pkr: number | null;
+          actual_cost_pkr: number | null;
+          vendor_paid_to: string | null;
+          payment_method: Database["public"]["Enums"]["payment_method"] | null;
+          linked_expense_id: string | null;
           reported_date: string;
           resolved_date: string | null;
           notes: string | null;

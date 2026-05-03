@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { requireRole } from "@/lib/auth/guards";
-import { managementRoles } from "@/lib/auth/roles";
-import { formatEnumLabel, formatPkr, getBusinessTodayDate, maintenanceStatusOptions } from "@/lib/check-in/options";
+import { hasAllowedRole, managementRoles, superAdminRoles } from "@/lib/auth/roles";
+import { formatEnumLabel, formatPkr, getBusinessTodayDate, maintenanceStatusOptions, paymentMethodOptions } from "@/lib/check-in/options";
 import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -25,6 +25,9 @@ type PageProps = {
     issue_title_error?: string;
     status_error?: string;
     cost_pkr_error?: string;
+    actual_cost_pkr_error?: string;
+    vendor_paid_to_error?: string;
+    payment_method_error?: string;
     reported_date_error?: string;
     resolved_date_error?: string;
   }>;
@@ -65,7 +68,8 @@ function fieldError(params: Awaited<PageProps["searchParams"]>, field: string, i
 export default async function MaintenancePage({ searchParams }: PageProps) {
   const params = await searchParams;
   const today = getBusinessTodayDate();
-  const { supabase } = await requireRole(managementRoles);
+  const { supabase, profile } = await requireRole(managementRoles);
+  const canLinkExpenses = hasAllowedRole(profile.role, superAdminRoles);
   const [{ data: logs, error }, { data: rooms }] = await Promise.all([
     supabase.from("room_maintenance_logs").select("*").order("reported_date", { ascending: false }),
     supabase.from("rooms").select("id,name,status").order("name"),
@@ -94,8 +98,8 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
           <CardHeader>
             <CardTitle>Create maintenance issue</CardTitle>
             <CardDescription>
-              Room, issue title, reported date, and status are required. Cost here is for maintenance tracking. To
-              affect profit/loss, record the actual payment in Expenses.
+              Room, issue title, reported date, and status are required. Estimated cost is not included in profit.
+              Super admins can record an actual paid cost to create one linked expense.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -142,6 +146,31 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                 <Input id="resolved_date" name="resolved_date" type="date" />
                 <FieldError message={fieldError(params, "resolved_date")} />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="actual_cost_pkr">Actual Cost PKR (creates linked expense)</Label>
+                <Input id="actual_cost_pkr" name="actual_cost_pkr" type="number" min={0} disabled={!canLinkExpenses} />
+                <p className="text-xs text-slate-500">Super admin only. Counted in profit/loss through Expenses.</p>
+                <FieldError message={fieldError(params, "actual_cost_pkr")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vendor_paid_to">Paid to</Label>
+                <Input id="vendor_paid_to" name="vendor_paid_to" disabled={!canLinkExpenses} />
+                <FieldError message={fieldError(params, "vendor_paid_to")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment_method">Payment method</Label>
+                <Select id="payment_method" name="payment_method" defaultValue="" disabled={!canLinkExpenses}>
+                  <option value="">Select if paid</option>
+                  {paymentMethodOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </Select>
+                <FieldError message={fieldError(params, "payment_method")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="receipt">Receipt upload</Label>
+                <Input id="receipt" name="receipt" type="file" accept=".jpg,.jpeg,.png,.pdf" disabled={!canLinkExpenses} />
+              </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="issue_description">Issue description</Label>
                 <Textarea id="issue_description" name="issue_description" />
@@ -177,9 +206,19 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                         {roomNames.get(log.room_id) ?? "Assigned room"} - reported {log.reported_date}
                       </p>
                     </div>
-                    <Badge tone={maintenanceTone(log.status)}>{formatEnumLabel(log.status)}</Badge>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge tone={maintenanceTone(log.status)}>{formatEnumLabel(log.status)}</Badge>
+                      {log.linked_expense_id ? <Badge tone="success">Linked expense</Badge> : <Badge tone="neutral">No linked expense</Badge>}
+                    </div>
                   </div>
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {!canLinkExpenses || log.linked_expense_id ? (
+                      <>
+                        <input type="hidden" name="actual_cost_pkr" value={log.actual_cost_pkr ?? ""} />
+                        <input type="hidden" name="vendor_paid_to" value={log.vendor_paid_to ?? ""} />
+                        <input type="hidden" name="payment_method" value={log.payment_method ?? ""} />
+                      </>
+                    ) : null}
                     <div>
                       <Select name="room_id" defaultValue={log.room_id} aria-label="Room">
                         {(rooms ?? []).map((room) => (
@@ -211,6 +250,49 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                       <FieldError message={fieldError(params, "cost_pkr", log.id)} />
                     </div>
                     <div>
+                      <Input
+                        name="actual_cost_pkr"
+                        type="number"
+                        min={0}
+                        defaultValue={log.actual_cost_pkr ?? ""}
+                        aria-label="Actual cost counted through linked expense"
+                        disabled={!canLinkExpenses || Boolean(log.linked_expense_id)}
+                      />
+                      <FieldError message={fieldError(params, "actual_cost_pkr", log.id)} />
+                    </div>
+                    <div>
+                      <Input
+                        name="vendor_paid_to"
+                        defaultValue={log.vendor_paid_to ?? ""}
+                        aria-label="Paid to"
+                        disabled={!canLinkExpenses || Boolean(log.linked_expense_id)}
+                      />
+                      <FieldError message={fieldError(params, "vendor_paid_to", log.id)} />
+                    </div>
+                    <div>
+                      <Select
+                        name="payment_method"
+                        defaultValue={log.payment_method ?? ""}
+                        aria-label="Payment method"
+                        disabled={!canLinkExpenses || Boolean(log.linked_expense_id)}
+                      >
+                        <option value="">No actual payment</option>
+                        {paymentMethodOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </Select>
+                      <FieldError message={fieldError(params, "payment_method", log.id)} />
+                    </div>
+                    <div>
+                      <Input
+                        name="receipt"
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        aria-label="Receipt upload"
+                        disabled={!canLinkExpenses || Boolean(log.linked_expense_id)}
+                      />
+                    </div>
+                    <div>
                       <Input name="reported_date" type="date" defaultValue={log.reported_date} aria-label="Reported date" />
                       <FieldError message={fieldError(params, "reported_date", log.id)} />
                     </div>
@@ -222,7 +304,8 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                     <Textarea name="notes" defaultValue={log.notes ?? ""} aria-label="Notes" />
                   </div>
                   <p className="mt-3 text-xs text-slate-500">
-                    Maintenance tracking cost: {formatPkr(log.cost_pkr)}. Profit/loss only uses records entered in Expenses.
+                    Estimated maintenance cost: {formatPkr(log.cost_pkr)}. Actual expense: {formatPkr(log.actual_cost_pkr)}.
+                    Profit/loss uses the linked Expenses row only.
                   </p>
                   <div className="mt-4">
                     <Button type="submit" size="sm">Save issue</Button>

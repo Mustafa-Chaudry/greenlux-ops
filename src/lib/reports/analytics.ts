@@ -4,9 +4,9 @@ import {
   checkinStatusOptions,
   expenseCategoryOptions,
   formatEnumLabel,
-  getBalanceDue,
   getBusinessTodayDate,
   getExpectedAmount,
+  guestChargeOptions,
   paymentStatusOptions,
   purposeOptions,
 } from "@/lib/check-in/options";
@@ -15,6 +15,7 @@ import type { Database } from "@/types/database";
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 type CheckinRow = Database["public"]["Tables"]["guest_checkins"]["Row"];
 type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"];
+type ChargeRow = Database["public"]["Tables"]["guest_charges"]["Row"];
 type MaintenanceRow = Database["public"]["Tables"]["room_maintenance_logs"]["Row"];
 type RoomRow = Database["public"]["Tables"]["rooms"]["Row"];
 
@@ -33,6 +34,7 @@ export type ReportCheckin = Pick<
 >;
 
 export type ReportExpense = Pick<ExpenseRow, "id" | "category" | "amount_pkr" | "related_room_id">;
+export type ReportCharge = Pick<ChargeRow, "id" | "guest_checkin_id" | "charge_type" | "total_amount_pkr" | "is_paid">;
 export type ReportMaintenanceLog = Pick<MaintenanceRow, "id" | "room_id" | "status" | "cost_pkr">;
 export type ReportRoom = Pick<RoomRow, "id" | "name">;
 
@@ -52,6 +54,11 @@ type MoneyRow = {
   expectedRevenue: number;
   paidRevenue: number;
   outstandingBalance: number;
+};
+
+type ChargeSummary = {
+  total: number;
+  paid: number;
 };
 
 export const reportPresetOptions: Array<{ value: ReportDateRangePreset; label: string }> = [
@@ -168,8 +175,37 @@ function expectedRevenue(checkin: ReportCheckin) {
   return getExpectedAmount(checkin) ?? 0;
 }
 
-function outstandingBalance(checkin: ReportCheckin) {
-  return getBalanceDue(checkin) ?? 0;
+function makeChargeSummary(): ChargeSummary {
+  return { total: 0, paid: 0 };
+}
+
+function buildChargeSummaryByCheckin(charges: ReportCharge[]) {
+  const summaries = new Map<string, ChargeSummary>();
+
+  charges.forEach((charge) => {
+    const summary = summaries.get(charge.guest_checkin_id) ?? makeChargeSummary();
+    summary.total += charge.total_amount_pkr;
+
+    if (charge.is_paid) {
+      summary.paid += charge.total_amount_pkr;
+    }
+
+    summaries.set(charge.guest_checkin_id, summary);
+  });
+
+  return summaries;
+}
+
+function checkinExpectedWithCharges(checkin: ReportCheckin, charges: ChargeSummary) {
+  return expectedRevenue(checkin) + charges.total;
+}
+
+function checkinPaidWithCharges(checkin: ReportCheckin, charges: ChargeSummary) {
+  return paidRevenue(checkin) + charges.paid;
+}
+
+function checkinOutstandingWithCharges(checkin: ReportCheckin, charges: ChargeSummary) {
+  return Math.max(checkinExpectedWithCharges(checkin, charges) - checkinPaidWithCharges(checkin, charges), 0);
 }
 
 function makeMoneyRow(key: string, label: string): MoneyRow {
@@ -183,11 +219,11 @@ function makeMoneyRow(key: string, label: string): MoneyRow {
   };
 }
 
-function addCheckinToMoneyRow(row: MoneyRow, checkin: ReportCheckin) {
+function addCheckinToMoneyRow(row: MoneyRow, checkin: ReportCheckin, charges: ChargeSummary) {
   row.bookings += 1;
-  row.expectedRevenue += expectedRevenue(checkin);
-  row.paidRevenue += paidRevenue(checkin);
-  row.outstandingBalance += outstandingBalance(checkin);
+  row.expectedRevenue += checkinExpectedWithCharges(checkin, charges);
+  row.paidRevenue += checkinPaidWithCharges(checkin, charges);
+  row.outstandingBalance += checkinOutstandingWithCharges(checkin, charges);
 }
 
 export async function fetchReportInputs(supabase: SupabaseServerClient, range: ReportDateRange) {
@@ -211,13 +247,21 @@ export async function fetchReportInputs(supabase: SupabaseServerClient, range: R
       .lte("reported_date", range.endDate),
     supabase.from("rooms").select("id,name").order("name"),
   ]);
+  const checkinIds = (checkinsResult.data ?? []).map((checkin) => checkin.id);
+  const chargesResult = checkinIds.length
+    ? await supabase
+        .from("guest_charges")
+        .select("id,guest_checkin_id,charge_type,total_amount_pkr,is_paid")
+        .in("guest_checkin_id", checkinIds)
+    : { data: [], error: null };
 
   return {
     checkins: (checkinsResult.data ?? []) as ReportCheckin[],
     expenses: (expensesResult.data ?? []) as ReportExpense[],
+    guestCharges: (chargesResult.data ?? []) as ReportCharge[],
     maintenanceLogs: (maintenanceResult.data ?? []) as ReportMaintenanceLog[],
     rooms: (roomsResult.data ?? []) as ReportRoom[],
-    errors: [checkinsResult.error, expensesResult.error, maintenanceResult.error, roomsResult.error]
+    errors: [checkinsResult.error, expensesResult.error, chargesResult.error, maintenanceResult.error, roomsResult.error]
       .filter((error): error is NonNullable<typeof error> => Boolean(error))
       .map((error) => error.message),
   };
@@ -226,33 +270,42 @@ export async function fetchReportInputs(supabase: SupabaseServerClient, range: R
 export function buildBusinessReport({
   checkins,
   expenses,
+  guestCharges,
   maintenanceLogs,
   rooms,
 }: {
   checkins: ReportCheckin[];
   expenses: ReportExpense[];
+  guestCharges: ReportCharge[];
   maintenanceLogs: ReportMaintenanceLog[];
   rooms: ReportRoom[];
 }) {
   const roomNames = new Map(rooms.map((room) => [room.id, room.name]));
-  const totalRevenue = checkins.reduce((sum, checkin) => sum + paidRevenue(checkin), 0);
-  const expectedTotal = checkins.reduce((sum, checkin) => sum + expectedRevenue(checkin), 0);
-  const outstandingTotal = checkins.reduce((sum, checkin) => sum + outstandingBalance(checkin), 0);
+  const chargeSummaryByCheckin = buildChargeSummaryByCheckin(guestCharges);
+  const getCheckinCharges = (checkin: ReportCheckin) => chargeSummaryByCheckin.get(checkin.id) ?? makeChargeSummary();
+  const basePaidRevenue = checkins.reduce((sum, checkin) => sum + paidRevenue(checkin), 0);
+  const baseExpectedRevenue = checkins.reduce((sum, checkin) => sum + expectedRevenue(checkin), 0);
+  const guestChargesTotal = guestCharges.reduce((sum, charge) => sum + charge.total_amount_pkr, 0);
+  const paidGuestCharges = guestCharges.reduce((sum, charge) => sum + (charge.is_paid ? charge.total_amount_pkr : 0), 0);
+  const unpaidGuestCharges = Math.max(guestChargesTotal - paidGuestCharges, 0);
+  const totalRevenue = basePaidRevenue + paidGuestCharges;
+  const expectedTotal = baseExpectedRevenue + guestChargesTotal;
+  const outstandingTotal = Math.max(expectedTotal - totalRevenue, 0);
   // Financial source of truth: net profit subtracts only rows from expenses.
   // room_maintenance_logs.cost_pkr is operational tracking and must not be double-counted as cash spend.
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount_pkr, 0);
   const directBookingRevenue = checkins
     .filter((checkin) => checkin.booking_source === "direct_whatsapp_call")
-    .reduce((sum, checkin) => sum + paidRevenue(checkin), 0);
+    .reduce((sum, checkin) => sum + checkinPaidWithCharges(checkin, getCheckinCharges(checkin)), 0);
   const platformBookingRevenue = checkins
     .filter((checkin) => checkin.booking_source === "booking_com" || checkin.booking_source === "airbnb")
-    .reduce((sum, checkin) => sum + paidRevenue(checkin), 0);
+    .reduce((sum, checkin) => sum + checkinPaidWithCharges(checkin, getCheckinCharges(checkin)), 0);
 
   const bookingSourceRows = bookingSourceOptions.map((option) => makeMoneyRow(option.value, option.label));
   const bookingSourceMap = new Map(bookingSourceRows.map((row) => [row.key, row]));
   checkins.forEach((checkin) => {
     const row = bookingSourceMap.get(checkin.booking_source) ?? makeMoneyRow(checkin.booking_source, formatEnumLabel(checkin.booking_source));
-    addCheckinToMoneyRow(row, checkin);
+    addCheckinToMoneyRow(row, checkin, getCheckinCharges(checkin));
 
     if (!bookingSourceMap.has(checkin.booking_source)) {
       bookingSourceMap.set(checkin.booking_source, row);
@@ -285,7 +338,7 @@ export function buildBusinessReport({
       roomRows.push(row);
     }
 
-    addCheckinToMoneyRow(row, checkin);
+    addCheckinToMoneyRow(row, checkin, getCheckinCharges(checkin));
 
     if (checkin.status === "checked_in") {
       row.activeStays += 1;
@@ -331,6 +384,49 @@ export function buildBusinessReport({
     row.percentageOfTotal = percent(row.totalAmount, totalExpenses);
   });
 
+  const chargeRows: Array<{
+    key: string;
+    label: string;
+    count: number;
+    totalAmount: number;
+    paidAmount: number;
+    unpaidAmount: number;
+  }> = guestChargeOptions.map((option) => ({
+    key: option.value,
+    label: option.label,
+    count: 0,
+    totalAmount: 0,
+    paidAmount: 0,
+    unpaidAmount: 0,
+  }));
+  const chargeMap = new Map(chargeRows.map((row) => [row.key, row]));
+  guestCharges.forEach((charge) => {
+    const row =
+      chargeMap.get(charge.charge_type) ??
+      {
+        key: charge.charge_type,
+        label: formatEnumLabel(charge.charge_type),
+        count: 0,
+        totalAmount: 0,
+        paidAmount: 0,
+        unpaidAmount: 0,
+      };
+
+    row.count += 1;
+    row.totalAmount += charge.total_amount_pkr;
+
+    if (charge.is_paid) {
+      row.paidAmount += charge.total_amount_pkr;
+    } else {
+      row.unpaidAmount += charge.total_amount_pkr;
+    }
+
+    if (!chargeMap.has(charge.charge_type)) {
+      chargeMap.set(charge.charge_type, row);
+      chargeRows.push(row);
+    }
+  });
+
   const maintenanceCostByRoom = new Map<string, { key: string; label: string; totalCost: number; issueCount: number }>();
   maintenanceLogs.forEach((log) => {
     const row =
@@ -346,6 +442,27 @@ export function buildBusinessReport({
     row.totalCost += log.cost_pkr ?? 0;
     maintenanceCostByRoom.set(log.room_id, row);
   });
+  const maintenanceExpenseTotal = expenses
+    .filter((expense) => expense.category === "maintenance" || expense.category === "repairs")
+    .reduce((sum, expense) => sum + expense.amount_pkr, 0);
+  const maintenanceExpenseByRoom = new Map<string, { key: string; label: string; totalCost: number; expenseCount: number }>();
+  expenses
+    .filter((expense) => (expense.category === "maintenance" || expense.category === "repairs") && expense.related_room_id)
+    .forEach((expense) => {
+      const roomId = expense.related_room_id as string;
+      const row =
+        maintenanceExpenseByRoom.get(roomId) ??
+        {
+          key: roomId,
+          label: roomNames.get(roomId) ?? "Assigned room",
+          totalCost: 0,
+          expenseCount: 0,
+        };
+
+      row.expenseCount += 1;
+      row.totalCost += expense.amount_pkr;
+      maintenanceExpenseByRoom.set(roomId, row);
+    });
 
   const repeatGuestRows = [
     { key: "new", label: "New guests", count: checkins.filter((checkin) => !checkin.has_stayed_before).length },
@@ -385,6 +502,11 @@ export function buildBusinessReport({
     kpis: {
       totalRevenue,
       expectedTotal,
+      basePaidRevenue,
+      baseExpectedRevenue,
+      guestChargesTotal,
+      paidGuestCharges,
+      unpaidGuestCharges,
       totalExpenses,
       netProfit: totalRevenue - totalExpenses,
       outstandingTotal,
@@ -396,13 +518,16 @@ export function buildBusinessReport({
     bookingSourceRows,
     roomRows,
     expenseRows,
+    chargeRows,
     maintenance: {
       openIssues: maintenanceLogs.filter((log) => log.status === "reported").length,
       inProgressIssues: maintenanceLogs.filter((log) => log.status === "in_progress").length,
       resolvedIssues: maintenanceLogs.filter((log) => log.status === "resolved").length,
+      recordedExpenseTotal: maintenanceExpenseTotal,
       // Operational estimate/repair tracking only. Actual profit/loss impact comes from expenses.
       costTotal: maintenanceLogs.reduce((sum, log) => sum + (log.cost_pkr ?? 0), 0),
       costByRoomRows: Array.from(maintenanceCostByRoom.values()).sort((a, b) => b.totalCost - a.totalCost),
+      expenseByRoomRows: Array.from(maintenanceExpenseByRoom.values()).sort((a, b) => b.totalCost - a.totalCost),
     },
     operations: {
       repeatGuestRows,
@@ -444,6 +569,11 @@ export function createBusinessReportCsv({
     [],
     ["KPI", "Value"],
     ["Total Revenue", report.kpis.totalRevenue],
+    ["Base Stay Paid Revenue", report.kpis.basePaidRevenue],
+    ["Paid Guest Charges", report.kpis.paidGuestCharges],
+    ["Total Expected Revenue", report.kpis.expectedTotal],
+    ["Guest Charges Total", report.kpis.guestChargesTotal],
+    ["Unpaid Guest Charges", report.kpis.unpaidGuestCharges],
     ["Total Expenses", report.kpis.totalExpenses],
     ["Net Profit", report.kpis.netProfit],
     ["Outstanding Balance", report.kpis.outstandingTotal],
@@ -471,6 +601,14 @@ export function createBusinessReportCsv({
     ["Expense Breakdown"],
     ["Expense category", "Count", "Total amount", "Percent of expenses"],
     ...report.expenseRows.map((row) => [row.label, row.count, row.totalAmount, formatPercent(row.percentageOfTotal)]),
+    [],
+    ["Guest Charges Breakdown"],
+    ["Charge type", "Count", "Total amount", "Paid amount", "Unpaid amount"],
+    ...report.chargeRows.map((row) => [row.label, row.count, row.totalAmount, row.paidAmount, row.unpaidAmount]),
+    [],
+    ["Maintenance Expenses by Room"],
+    ["Room", "Expense entries", "Recorded expenses"],
+    ...report.maintenance.expenseByRoomRows.map((row) => [row.label, row.expenseCount, row.totalCost]),
   ];
 
   return rows.map((row) => row.map(csvEscape).join(",")).join("\n");

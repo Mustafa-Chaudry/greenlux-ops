@@ -12,11 +12,14 @@ import {
   getApprovalMissingRequirements,
   getCheckinStatusLabel,
   getExceptionReasonLabel,
+  getGuestChargeLabel,
   guestTagOptions,
+  guestChargeOptions,
   issueTypeOptions,
   isReadyForCheckin,
   isReadyToApprove,
   mapExceptionReasonToIssueType,
+  paymentMethodOptions,
   paymentStatusOptions,
 } from "@/lib/check-in/options";
 import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/uploads";
@@ -111,6 +114,10 @@ async function hasVerifiedDocument(supabase: SupabaseClient, checkinId: string, 
 
 function appendInternalNote(existing: string | null, note: string) {
   return [existing?.trim(), note].filter(Boolean).join("\n");
+}
+
+function formatNoteAmount(value: number | null | undefined) {
+  return value === null || value === undefined ? "0" : new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(value);
 }
 
 const updateGuestRecordSchema = z.object({
@@ -465,4 +472,168 @@ export async function updateGuestDocumentStatus(formData: FormData) {
   revalidatePath("/admin/guest-records");
   revalidatePath(`/admin/guest-records/${checkin_id}`);
   redirect(`/admin/guest-records/${checkin_id}?message=${encodeURIComponent("Document status updated.")}`);
+}
+
+const guestChargeSchema = z
+  .object({
+    guest_checkin_id: z.uuid(),
+    charge_type: z.enum(guestChargeOptions.map((option) => option.value)),
+    description: z.string().nullable(),
+    amount_pkr: z.number().min(0),
+    quantity: z.number().int().min(1),
+    is_paid: z.boolean(),
+    payment_method: z.enum(paymentMethodOptions.map((option) => option.value)).nullable(),
+    notes: z.string().nullable(),
+  })
+  .superRefine((values, context) => {
+    if (values.is_paid && !values.payment_method) {
+      context.addIssue({
+        code: "custom",
+        path: ["payment_method"],
+        message: "Payment method is required for paid charges.",
+      });
+    }
+  });
+
+export async function createGuestCharge(formData: FormData) {
+  const { supabase, profile } = await requireRole(managementRoles);
+  const parsed = guestChargeSchema.safeParse({
+    guest_checkin_id: formData.get("guest_checkin_id"),
+    charge_type: formData.get("charge_type"),
+    description: nullableString(formData.get("description")),
+    amount_pkr: nullableNumber(formData.get("amount_pkr")),
+    quantity: Number(formData.get("quantity") || 1),
+    is_paid: formData.get("is_paid") === "on",
+    payment_method: nullableString(formData.get("payment_method")),
+    notes: nullableString(formData.get("notes")),
+  });
+
+  if (!parsed.success) {
+    redirect(`/admin/guest-records?message=${encodeURIComponent("Invalid guest charge details.")}`);
+  }
+
+  const values = parsed.data;
+  const { data: record, error: recordError } = await supabase
+    .from("guest_checkins")
+    .select("id,internal_notes")
+    .eq("id", values.guest_checkin_id)
+    .single();
+
+  if (recordError || !record) {
+    redirect(`/admin/guest-records?message=${encodeURIComponent(recordError?.message ?? "Guest record not found.")}`);
+  }
+
+  const { error } = await supabase.from("guest_charges").insert({
+    guest_checkin_id: values.guest_checkin_id,
+    charge_type: values.charge_type,
+    description: values.description,
+    amount_pkr: values.amount_pkr,
+    quantity: values.quantity,
+    is_paid: values.is_paid,
+    payment_method: values.is_paid ? values.payment_method : null,
+    notes: values.notes,
+    created_by: profile.id,
+  });
+
+  if (error) {
+    redirect(`/admin/guest-records/${values.guest_checkin_id}?message=${encodeURIComponent(error.message)}`);
+  }
+
+  const note = `Added charge: ${getGuestChargeLabel(values.charge_type)} - ${values.quantity} x ${formatNoteAmount(values.amount_pkr)} PKR`;
+  await supabase
+    .from("guest_checkins")
+    .update({ internal_notes: appendInternalNote(record.internal_notes, note) })
+    .eq("id", values.guest_checkin_id);
+
+  revalidatePath("/admin/guest-records");
+  revalidatePath(`/admin/guest-records/${values.guest_checkin_id}`);
+  redirect(`/admin/guest-records/${values.guest_checkin_id}?message=${encodeURIComponent("Guest charge added.")}`);
+}
+
+const extendStaySchema = z.object({
+  id: z.uuid(),
+  new_check_out_date: z.string().min(1),
+  additional_expected_amount_pkr: z.number().min(0).nullable(),
+  additional_payment_received_pkr: z.number().min(0).nullable(),
+  payment_method: z.enum(paymentMethodOptions.map((option) => option.value)).nullable(),
+  reason: z.string().nullable(),
+});
+
+export async function extendGuestStay(formData: FormData) {
+  const { supabase, profile } = await requireRole(managementRoles);
+  const parsed = extendStaySchema.safeParse({
+    id: formData.get("id"),
+    new_check_out_date: formData.get("new_check_out_date"),
+    additional_expected_amount_pkr: nullableNumber(formData.get("additional_expected_amount_pkr")),
+    additional_payment_received_pkr: nullableNumber(formData.get("additional_payment_received_pkr")),
+    payment_method: nullableString(formData.get("payment_method")),
+    reason: nullableString(formData.get("reason")),
+  });
+
+  if (!parsed.success) {
+    redirect(`/admin/guest-records?message=${encodeURIComponent("Invalid stay extension details.")}`);
+  }
+
+  const values = parsed.data;
+  const { data: record, error: recordError } = await supabase
+    .from("guest_checkins")
+    .select("check_out_date,total_expected_amount_pkr,agreed_room_rate_pkr,amount_paid_pkr,internal_notes,payment_verified")
+    .eq("id", values.id)
+    .single();
+
+  if (recordError || !record) {
+    redirect(`/admin/guest-records/${values.id}?message=${encodeURIComponent(recordError?.message ?? "Guest record not found.")}`);
+  }
+
+  if (values.new_check_out_date <= record.check_out_date) {
+    redirect(`/admin/guest-records/${values.id}?message=${encodeURIComponent("New check-out date must be after the current check-out date.")}`);
+  }
+
+  const currentExpected = record.total_expected_amount_pkr ?? record.agreed_room_rate_pkr ?? 0;
+  const additionalExpected = values.additional_expected_amount_pkr ?? 0;
+  const additionalPayment = values.additional_payment_received_pkr ?? 0;
+  const nextExpected = currentExpected + additionalExpected;
+  const nextPaid = (record.amount_paid_pkr ?? 0) + additionalPayment;
+  const nextPaymentStatus = nextPaid >= nextExpected && nextExpected > 0 ? "paid" : nextPaid > 0 ? "partial" : "pending";
+  const note = [
+    `Stay extended from ${record.check_out_date} to ${values.new_check_out_date}.`,
+    `Additional expected: ${formatNoteAmount(additionalExpected)} PKR.`,
+    `Payment received: ${formatNoteAmount(additionalPayment)} PKR.`,
+    values.reason ? `Reason: ${values.reason}.` : null,
+  ].filter(Boolean).join(" ");
+
+  const { error } = await supabase
+    .from("guest_checkins")
+    .update({
+      check_out_date: values.new_check_out_date,
+      total_expected_amount_pkr: nextExpected,
+      amount_paid_pkr: nextPaid,
+      payment_status: nextPaymentStatus,
+      payment_verified: nextPaymentStatus === "paid" ? true : record.payment_verified,
+      internal_notes: appendInternalNote(record.internal_notes, note),
+    })
+    .eq("id", values.id);
+
+  if (error) {
+    redirect(`/admin/guest-records/${values.id}?message=${encodeURIComponent(error.message)}`);
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_user_id: profile.id,
+    action: "extend_stay",
+    entity_type: "guest_checkins",
+    entity_id: values.id,
+    metadata: {
+      old_check_out_date: record.check_out_date,
+      new_check_out_date: values.new_check_out_date,
+      additional_expected_amount_pkr: additionalExpected,
+      additional_payment_received_pkr: additionalPayment,
+      payment_method: values.payment_method,
+      reason: values.reason,
+    },
+  });
+
+  revalidatePath("/admin/guest-records");
+  revalidatePath(`/admin/guest-records/${values.id}`);
+  redirect(`/admin/guest-records/${values.id}?message=${encodeURIComponent("Stay extended.")}`);
 }

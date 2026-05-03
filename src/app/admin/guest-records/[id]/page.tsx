@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ExternalLink, LogIn, LogOut, MessageCircle, TriangleAlert } from "lucide-react";
 import {
+  createGuestCharge,
+  extendGuestStay,
   updateCheckinStatus,
   updateGuestDocumentStatus,
   updateGuestRecord,
@@ -25,12 +27,13 @@ import {
   formatEnumLabel,
   formatPkr,
   getApprovalMissingRequirements,
-  getBalanceDue,
   getCheckinStatusLabel,
   getDocumentStatusLabel,
-  getExpectedAmount,
+  getGuestChargeLabel,
+  getGuestFinancialSummary,
   getIssueTypeLabel,
   getWhatsAppGuestHref,
+  guestChargeOptions,
   guestTagOptions,
   guestTypeOptions,
   issueTypeOptions,
@@ -55,6 +58,7 @@ type PageProps = {
 type GuestDocument = Database["public"]["Tables"]["guest_documents"]["Row"] & {
   signedUrl: string | null;
 };
+type GuestCharge = Database["public"]["Tables"]["guest_charges"]["Row"];
 
 function findLabel<T extends string>(options: Array<{ value: T; label: string }>, value: T) {
   return options.find((option) => option.value === value)?.label ?? formatEnumLabel(value);
@@ -145,10 +149,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const queryParams = await searchParams;
   const { supabase } = await requireRole(managementRoles);
 
-  const [{ data: record, error: recordError }, { data: rooms }, { data: documents }] = await Promise.all([
+  const [{ data: record, error: recordError }, { data: rooms }, { data: documents }, { data: charges }] = await Promise.all([
     supabase.from("guest_checkins").select("*").eq("id", id).single(),
     supabase.from("rooms").select("id,name,status,base_price_pkr").order("name"),
     supabase.from("guest_documents").select("*").eq("checkin_id", id).order("created_at", { ascending: false }),
+    supabase.from("guest_charges").select("*").eq("guest_checkin_id", id).order("charged_at", { ascending: false }),
   ]);
 
   if (recordError || !record) {
@@ -181,6 +186,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const primaryDocuments = documentsWithUrls.filter((document) => document.document_type === "primary_cnic");
   const additionalDocuments = documentsWithUrls.filter((document) => document.document_type === "additional_guest_cnic");
   const paymentDocuments = documentsWithUrls.filter((document) => document.document_type === "payment_proof");
+  const guestCharges: GuestCharge[] = charges ?? [];
   const guestTypeLabel = guestTypeOptions.find((option) => option.value === record.guest_type)?.label ?? formatEnumLabel(record.guest_type);
   const missingApprovalRequirements = getApprovalMissingRequirements(record);
   const canApprove = isReadyToApprove(record);
@@ -192,8 +198,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const showIssueAction = record.status !== "issue" && record.status !== "checked_out";
   const assignedRoom = record.assigned_room_id ? rooms?.find((room) => room.id === record.assigned_room_id) : null;
   const roomName = assignedRoom?.name ?? "To be assigned";
-  const expectedAmount = getExpectedAmount(record);
-  const balanceDue = getBalanceDue(record);
+  const financialSummary = getGuestFinancialSummary({ checkin: record, charges: guestCharges });
   const requirements = [
     { label: "Room assigned", complete: Boolean(record.assigned_room_id), missing: "Room not assigned" },
     { label: "CNIC verified", complete: record.cnic_verified, missing: "CNIC not verified" },
@@ -284,11 +289,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
             <Card className="print-summary">
               <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <CardTitle>Printable guest summary</CardTitle>
-                  <CardDescription>Admin-only operational summary for front desk or stay records.</CardDescription>
+                  <CardTitle>Printable guest receipt</CardTitle>
+                  <CardDescription>GreenLux Residency stay receipt for front desk or guest records.</CardDescription>
                 </div>
                 <div className="no-print">
-                  <PrintButton />
+                  <PrintButton label="Print receipt" />
                 </div>
               </CardHeader>
               <CardContent>
@@ -298,12 +303,48 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   <InfoRow label="CNIC / passport" value={maskSensitiveId(record.cnic_passport_number)} />
                   <InfoRow label="Stay dates" value={`${record.check_in_date} to ${record.check_out_date}`} />
                   <InfoRow label="Room" value={roomName} />
-                  <InfoRow label="Expected total" value={formatPkr(expectedAmount)} />
-                  <InfoRow label="Paid amount" value={formatPkr(record.amount_paid_pkr)} />
-                  <InfoRow label="Balance due" value={formatPkr(balanceDue)} />
+                  <InfoRow label="Base stay expected" value={formatPkr(financialSummary.baseExpected)} />
+                  <InfoRow label="Base stay paid" value={formatPkr(financialSummary.basePaid)} />
+                  <InfoRow label="Guest charges total" value={formatPkr(financialSummary.chargesTotal)} />
+                  <InfoRow label="Paid guest charges" value={formatPkr(financialSummary.paidCharges)} />
+                  <InfoRow label="Total expected" value={formatPkr(financialSummary.totalExpected)} />
+                  <InfoRow label="Total paid" value={formatPkr(financialSummary.totalPaid)} />
+                  <InfoRow label="Outstanding balance" value={formatPkr(financialSummary.outstanding)} />
+                  <InfoRow label="Generated date" value={new Date().toLocaleDateString()} />
                   <InfoRow label="CNIC verified" value={record.cnic_verified ? "Yes" : "No"} />
                   <InfoRow label="Payment verified" value={record.payment_verified ? "Yes" : "No"} />
                 </dl>
+                <div className="mt-4 rounded-lg border border-brand-sage bg-white p-3">
+                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Additional charges</dt>
+                  {guestCharges.length ? (
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full min-w-[520px] text-left text-sm">
+                        <thead className="border-b border-brand-sage text-xs uppercase tracking-[0.12em] text-brand-deep">
+                          <tr>
+                            <th className="py-2 pr-3">Type</th>
+                            <th className="py-2 pr-3">Description</th>
+                            <th className="py-2 pr-3">Qty</th>
+                            <th className="py-2 pr-3">Total</th>
+                            <th className="py-2 pr-3">Paid</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-sage/70">
+                          {guestCharges.map((charge) => (
+                            <tr key={charge.id}>
+                              <td className="py-2 pr-3 font-medium text-brand-deep">{getGuestChargeLabel(charge.charge_type)}</td>
+                              <td className="py-2 pr-3">{charge.description || "Not provided"}</td>
+                              <td className="py-2 pr-3">{charge.quantity}</td>
+                              <td className="py-2 pr-3">{formatPkr(charge.total_amount_pkr)}</td>
+                              <td className="py-2 pr-3">{charge.is_paid ? "Yes" : "No"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <dd className="mt-1 text-sm text-slate-600">No additional charges.</dd>
+                  )}
+                </div>
                 <div className="mt-3 rounded-lg bg-brand-ivory p-3">
                   <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Internal notes</dt>
                   <dd className="mt-1 text-sm leading-6 text-brand-deep">{record.internal_notes || "None"}</dd>
@@ -352,6 +393,108 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     </a>
                   </Button>
                 ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Guest Folio / Additional Charges</CardTitle>
+                <CardDescription>
+                  Operational charges for services like breakfast, tea, laundry, late checkout, extra bedding, or damages.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <InfoRow label="Guest charges total" value={formatPkr(financialSummary.chargesTotal)} />
+                  <InfoRow label="Paid guest charges" value={formatPkr(financialSummary.paidCharges)} />
+                  <InfoRow label="Total expected" value={formatPkr(financialSummary.totalExpected)} />
+                  <InfoRow label="Outstanding balance" value={formatPkr(financialSummary.outstanding)} />
+                </div>
+
+                {guestCharges.length ? (
+                  <div className="overflow-x-auto rounded-lg border border-brand-sage">
+                    <table className="w-full min-w-[760px] text-left text-sm">
+                      <thead className="border-b border-brand-sage bg-brand-ivory text-xs uppercase tracking-[0.12em] text-brand-deep">
+                        <tr>
+                          <th className="px-4 py-3">Type</th>
+                          <th className="px-4 py-3">Description</th>
+                          <th className="px-4 py-3">Qty</th>
+                          <th className="px-4 py-3">Unit amount</th>
+                          <th className="px-4 py-3">Total</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">Charged</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-brand-sage/70">
+                        {guestCharges.map((charge) => (
+                          <tr key={charge.id} className="bg-white">
+                            <td className="px-4 py-3 font-medium text-brand-deep">{getGuestChargeLabel(charge.charge_type)}</td>
+                            <td className="px-4 py-3">{charge.description || "Not provided"}</td>
+                            <td className="px-4 py-3">{charge.quantity}</td>
+                            <td className="px-4 py-3">{formatPkr(charge.amount_pkr)}</td>
+                            <td className="px-4 py-3">{formatPkr(charge.total_amount_pkr)}</td>
+                            <td className="px-4 py-3">
+                              <Badge tone={charge.is_paid ? "success" : "warning"}>{charge.is_paid ? "Paid" : "Unpaid"}</Badge>
+                            </td>
+                            <td className="px-4 py-3">{new Date(charge.charged_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm text-slate-600">
+                    No additional charges have been added for this stay.
+                  </p>
+                )}
+
+                <form action={createGuestCharge} className="grid gap-4 rounded-lg border border-brand-sage bg-brand-ivory p-4 md:grid-cols-2">
+                  <input type="hidden" name="guest_checkin_id" value={record.id} />
+                  <div className="space-y-2">
+                    <Label htmlFor="charge_type">Charge type</Label>
+                    <Select id="charge_type" name="charge_type" required>
+                      {guestChargeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="charge_description">Description optional</Label>
+                    <Input id="charge_description" name="description" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="charge_quantity">Quantity</Label>
+                    <Input id="charge_quantity" name="quantity" type="number" min={1} defaultValue={1} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="charge_amount_pkr">Unit amount PKR</Label>
+                    <Input id="charge_amount_pkr" name="amount_pkr" type="number" min={0} required />
+                  </div>
+                  <label className="flex items-center gap-3 text-sm font-medium text-brand-deep">
+                    <input type="checkbox" name="is_paid" className="h-4 w-4 accent-brand-fresh" />
+                    Paid now
+                  </label>
+                  <div className="space-y-2">
+                    <Label htmlFor="charge_payment_method">Payment method if paid</Label>
+                    <Select id="charge_payment_method" name="payment_method" defaultValue="">
+                      <option value="">Not paid yet</option>
+                      {paymentMethodOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="charge_notes">Notes optional</Label>
+                    <Textarea id="charge_notes" name="notes" rows={3} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button type="submit">+ Add Charge</Button>
+                  </div>
+                </form>
               </CardContent>
             </Card>
 
@@ -409,10 +552,14 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
               <CardDescription>Assign room, confirm payment, verify documents, and add internal notes.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-5 grid gap-3 rounded-lg border border-brand-sage bg-white p-4 sm:grid-cols-3">
-                <InfoRow label="Expected total" value={formatPkr(expectedAmount)} />
-                <InfoRow label="Paid amount" value={formatPkr(record.amount_paid_pkr)} />
-                <InfoRow label="Balance due" value={formatPkr(balanceDue)} />
+              <div className="mb-5 grid gap-3 rounded-lg border border-brand-sage bg-white p-4 sm:grid-cols-2">
+                <InfoRow label="Base stay expected" value={formatPkr(financialSummary.baseExpected)} />
+                <InfoRow label="Base stay paid" value={formatPkr(financialSummary.basePaid)} />
+                <InfoRow label="Guest charges total" value={formatPkr(financialSummary.chargesTotal)} />
+                <InfoRow label="Paid guest charges" value={formatPkr(financialSummary.paidCharges)} />
+                <InfoRow label="Total expected" value={formatPkr(financialSummary.totalExpected)} />
+                <InfoRow label="Total paid" value={formatPkr(financialSummary.totalPaid)} />
+                <InfoRow label="Outstanding balance" value={formatPkr(financialSummary.outstanding)} />
               </div>
 
               <div className="mb-5 space-y-4 rounded-lg border border-brand-sage bg-brand-ivory p-4">
@@ -521,6 +668,46 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   </form>
                 ) : null}
               </div>
+
+              <form action={extendGuestStay} className="mb-5 grid gap-4 rounded-lg border border-brand-sage bg-white p-4 md:grid-cols-2">
+                <input type="hidden" name="id" value={record.id} />
+                <div className="md:col-span-2">
+                  <p className="text-sm font-semibold text-brand-deep">Extend Stay</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Extend the current record without creating a new booking. Payment can be added later if needed.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new_check_out_date">New check-out date</Label>
+                  <Input id="new_check_out_date" name="new_check_out_date" type="date" min={record.check_out_date} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extend_reason">Reason optional</Label>
+                  <Input id="extend_reason" name="reason" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="additional_expected_amount_pkr">Additional expected PKR optional</Label>
+                  <Input id="additional_expected_amount_pkr" name="additional_expected_amount_pkr" type="number" min={0} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="additional_payment_received_pkr">Additional payment received PKR optional</Label>
+                  <Input id="additional_payment_received_pkr" name="additional_payment_received_pkr" type="number" min={0} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extend_payment_method">Payment method optional</Label>
+                  <Select id="extend_payment_method" name="payment_method" defaultValue="">
+                    <option value="">No payment received</option>
+                    {paymentMethodOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" variant="secondary">Extend Stay</Button>
+                </div>
+              </form>
 
               <form action={updateGuestRecord} className="space-y-4">
                 <input type="hidden" name="id" value={record.id} />
