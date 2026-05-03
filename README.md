@@ -77,6 +77,27 @@ Key design principles:
 - New vs repeat guest tracking
 - CSV export (date-range based)
 
+### 🧾 Guest Folio & Additional Charges
+- Add and track value-added services (breakfast, tea, extra bed, etc.)
+- Paid vs unpaid charge tracking
+- Included in total guest revenue and outstanding balance
+- Printable guest receipt with full folio breakdown
+
+### 🔁 Extend Stay Workflow
+- Extend guest stay directly from guest record
+- Adjust expected revenue and optional payment
+- Automatic audit note for traceability
+
+### 🔧 Maintenance & Expense Integration
+- Maintenance logs for operational tracking
+- Expenses as financial source of truth
+- Actual maintenance costs linked to expenses (no double counting)
+
+### 🔐 Role-Based Access Control
+- Manager: operational access (no financial visibility)
+- Admin: extended operations
+- Super Admin: full financial and system control
+
 ---
 
 ## 🏗️ System Architecture
@@ -108,7 +129,8 @@ It prioritises:
 - Structured check-in workflows (self + admin-assisted)  
 - Document and payment verification tracking  
 - Controlled override system for real-world flexibility  
-- Real-time visibility on revenue, occupancy, and operations  
+- Real-time visibility on revenue, occupancy, and operations 
+- Full guest folio with additional services and revenue tracking 
 
 ---
 
@@ -143,13 +165,16 @@ Instead, it enforces:
 
 ## 📌 Status
 
-**MVP Complete — Phase 5.5D**
+**Production MVP — Phase 5.6 (Live System, Actively Evolving)**
 
-Currently supports:
-- Live check-in workflows  
-- Admin operations  
-- Financial tracking  
-- Operational analytics  
+Recent upgrades:
+- Guest folio / service-level revenue tracking
+- Extend stay workflow
+- Maintenance-to-expense financial integration
+- Role-based access control
+- Corrected verification vs readiness logic
+
+Built and iterated against real-world hospitality operations.
 
 ---
 
