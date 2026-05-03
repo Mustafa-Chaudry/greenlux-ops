@@ -1,4 +1,4 @@
-# GreenLux Residency — Operations Intelligence System (MVP v5.5D)
+# GreenLux Residency — Operations Intelligence System (MVP v5.6)
 
 A production-grade internal operations platform designed for a real-world serviced accommodation business.
 
