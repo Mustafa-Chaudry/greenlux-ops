@@ -193,6 +193,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const canApprove = isReadyToApprove(record);
   const showApproveAction = record.status === "submitted" || record.status === "under_review";
   const readyForCheckin = isReadyForCheckin(record);
+  const fullyVerified = Boolean(record.assigned_room_id) && record.cnic_verified && record.payment_verified;
   const showCheckInAction = record.status !== "checked_in" && record.status !== "checked_out";
   const showCheckOutAction = record.status === "checked_in";
   const isCompleted = record.status === "checked_out";
@@ -271,7 +272,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           <div className="rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm text-brand-deep">{queryParams.message}</div>
         ) : null}
 
-        {!readyForCheckin ? (
+        {!fullyVerified ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
             <p className="flex items-center gap-2 font-semibold">
               <TriangleAlert className="h-4 w-4" aria-hidden="true" />
