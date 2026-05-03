@@ -550,6 +550,75 @@ export async function createGuestCharge(formData: FormData) {
   redirect(`/admin/guest-records/${values.guest_checkin_id}?message=${encodeURIComponent("Guest charge added.")}`);
 }
 
+const markGuestChargePaidSchema = z.object({
+  id: z.uuid(),
+  guest_checkin_id: z.uuid(),
+  payment_method: z.enum(paymentMethodOptions.map((option) => option.value)),
+});
+
+export async function markGuestChargePaid(formData: FormData) {
+  const { supabase } = await requireRole(managementRoles);
+  const parsed = markGuestChargePaidSchema.safeParse({
+    id: formData.get("id"),
+    guest_checkin_id: formData.get("guest_checkin_id"),
+    payment_method: formData.get("payment_method"),
+  });
+
+  if (!parsed.success) {
+    redirect(`/admin/guest-records?message=${encodeURIComponent("Invalid guest charge payment details.")}`);
+  }
+
+  const values = parsed.data;
+  const { data: charge, error: chargeError } = await supabase
+    .from("guest_charges")
+    .select("id,guest_checkin_id,charge_type,total_amount_pkr,is_paid")
+    .eq("id", values.id)
+    .eq("guest_checkin_id", values.guest_checkin_id)
+    .single();
+
+  if (chargeError || !charge) {
+    redirect(`/admin/guest-records/${values.guest_checkin_id}?message=${encodeURIComponent(chargeError?.message ?? "Guest charge not found.")}`);
+  }
+
+  if (charge.is_paid) {
+    redirect(`/admin/guest-records/${values.guest_checkin_id}?message=${encodeURIComponent("This guest charge is already marked paid.")}`);
+  }
+
+  const { data: record, error: recordError } = await supabase
+    .from("guest_checkins")
+    .select("id,internal_notes")
+    .eq("id", values.guest_checkin_id)
+    .single();
+
+  if (recordError || !record) {
+    redirect(`/admin/guest-records/${values.guest_checkin_id}?message=${encodeURIComponent(recordError?.message ?? "Guest record not found.")}`);
+  }
+
+  const { error } = await supabase
+    .from("guest_charges")
+    .update({
+      is_paid: true,
+      payment_method: values.payment_method,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", values.id);
+
+  if (error) {
+    redirect(`/admin/guest-records/${values.guest_checkin_id}?message=${encodeURIComponent(error.message)}`);
+  }
+
+  const paymentMethodLabel = paymentMethodOptions.find((option) => option.value === values.payment_method)?.label ?? values.payment_method;
+  const note = `Charge marked paid: ${getGuestChargeLabel(charge.charge_type)} - Rs ${formatNoteAmount(charge.total_amount_pkr)} via ${paymentMethodLabel}.`;
+  await supabase
+    .from("guest_checkins")
+    .update({ internal_notes: appendInternalNote(record.internal_notes, note) })
+    .eq("id", values.guest_checkin_id);
+
+  revalidatePath("/admin/guest-records");
+  revalidatePath(`/admin/guest-records/${values.guest_checkin_id}`);
+  redirect(`/admin/guest-records/${values.guest_checkin_id}?message=${encodeURIComponent("Guest charge marked paid.")}`);
+}
+
 const extendStaySchema = z.object({
   id: z.uuid(),
   new_check_out_date: z.string().min(1),

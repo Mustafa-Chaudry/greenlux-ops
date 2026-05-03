@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, ExternalLink, LogIn, LogOut, MessageCircle, Tr
 import {
   createGuestCharge,
   extendGuestStay,
+  markGuestChargePaid,
   updateCheckinStatus,
   updateGuestDocumentStatus,
   updateGuestRecord,
@@ -413,7 +414,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
                 {guestCharges.length ? (
                   <div className="overflow-x-auto rounded-lg border border-brand-sage">
-                    <table className="w-full min-w-[760px] text-left text-sm">
+                    <table className="w-full min-w-[860px] text-left text-sm">
                       <thead className="border-b border-brand-sage bg-brand-ivory text-xs uppercase tracking-[0.12em] text-brand-deep">
                         <tr>
                           <th className="px-4 py-3">Type</th>
@@ -434,7 +435,27 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                             <td className="px-4 py-3">{formatPkr(charge.amount_pkr)}</td>
                             <td className="px-4 py-3">{formatPkr(charge.total_amount_pkr)}</td>
                             <td className="px-4 py-3">
-                              <Badge tone={charge.is_paid ? "success" : "warning"}>{charge.is_paid ? "Paid" : "Unpaid"}</Badge>
+                              {charge.is_paid ? (
+                                <Badge tone="success">Paid</Badge>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Badge tone="warning">Unpaid</Badge>
+                                  <form action={markGuestChargePaid} className="flex flex-wrap gap-2">
+                                    <input type="hidden" name="id" value={charge.id} />
+                                    <input type="hidden" name="guest_checkin_id" value={record.id} />
+                                    <Select name="payment_method" defaultValue="cash" aria-label="Folio charge payment method" className="h-9 w-36">
+                                      {paymentMethodOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </Select>
+                                    <Button type="submit" size="sm" variant="secondary">
+                                      Mark paid
+                                    </Button>
+                                  </form>
+                                </div>
+                              )}
                             </td>
                             <td className="px-4 py-3">{new Date(charge.charged_at).toLocaleDateString()}</td>
                           </tr>
