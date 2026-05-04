@@ -8,16 +8,18 @@ import { Button } from "@/components/ui/button";
 type RoomGalleryProps = {
   images: string[];
   alt: string;
+  captions?: string[];
   priority?: boolean;
 };
 
-export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps) {
+export function RoomGallery({ images, alt, captions = [], priority = false }: RoomGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const selectedImage = images[activeIndex] ?? images[0];
   const photoCount = images.length;
+  const activeCaption = captions[activeIndex] ?? "Room photo";
 
-  const photoLabel = useMemo(() => `${activeIndex + 1} of ${photoCount}`, [activeIndex, photoCount]);
+  const photoLabel = useMemo(() => `${activeIndex + 1} / ${photoCount}`, [activeIndex, photoCount]);
 
   useEffect(() => {
     if (!lightboxOpen) {
@@ -61,11 +63,11 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[1.75rem] border border-brand-deep/10 bg-white shadow-soft">
+      <div className="overflow-hidden rounded-[1.75rem] border border-brand-deep/10 bg-white shadow-[0_28px_80px_rgba(15,61,46,0.12)]">
         <button
           type="button"
           onClick={() => setLightboxOpen(true)}
-          className="group relative block aspect-[4/3] w-full bg-brand-ivory text-left lg:aspect-[16/10]"
+          className="group relative block aspect-[4/3] w-full bg-[#f7f1e6] text-left lg:aspect-[16/9]"
           aria-label={`Open photo gallery for ${alt}`}
         >
           <Image
@@ -74,8 +76,11 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
             fill
             priority={priority}
             sizes="(min-width: 1024px) 1180px, 100vw"
-            className="object-contain p-2 transition duration-300 group-hover:scale-[1.01] sm:p-3"
+            className="object-contain transition duration-300 group-hover:scale-[1.01]"
           />
+          <span className="absolute left-4 top-4 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-brand-deep shadow-sm">
+            {activeCaption}
+          </span>
           <span className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-brand-deep shadow-sm">
             <Images className="h-4 w-4 text-brand-fresh" aria-hidden="true" />
             Click image to enlarge
@@ -87,7 +92,7 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-slate-600">View all photos. Tap any image to make it larger.</p>
+        <p className="text-sm font-medium text-slate-600">View all photos. Tap a thumbnail to preview it, or open the full gallery.</p>
         <Button
           type="button"
           variant="outline"
@@ -98,7 +103,7 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
         {images.map((image, index) => {
           const active = index === activeIndex;
 
@@ -109,7 +114,7 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
               aria-label={`Show ${alt} photo ${index + 1}`}
               aria-pressed={active}
               key={`${image}-${index}`}
-              className={`relative aspect-[4/3] overflow-hidden rounded-2xl border bg-brand-ivory transition ${
+              className={`group relative aspect-[4/3] overflow-hidden rounded-2xl border bg-[#f7f1e6] transition ${
                 active
                   ? "border-brand-gold shadow-[0_12px_30px_rgba(201,162,39,0.24)]"
                   : "border-brand-deep/10 hover:border-brand-gold/70"
@@ -120,8 +125,11 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
                 alt={`${alt} thumbnail ${index + 1}`}
                 fill
                 sizes="(min-width: 1024px) 14vw, (min-width: 640px) 22vw, 32vw"
-                className="object-contain p-1"
+                className="object-contain"
               />
+              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-brand-deep/75 to-transparent px-2 pb-2 pt-8 text-left text-[11px] font-semibold text-white opacity-95">
+                {captions[index] ?? `Photo ${index + 1}`}
+              </span>
             </button>
           );
         })}
@@ -136,7 +144,7 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-white/80">{alt}</p>
+              <p className="text-sm font-semibold text-white/80">{activeCaption}</p>
               <p className="text-xs text-white/55">{photoLabel}</p>
             </div>
             <Button
@@ -154,7 +162,7 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-[1.25rem] bg-black/35">
             <Image
               src={selectedImage}
-              alt={`${alt} enlarged photo ${activeIndex + 1}`}
+              alt={`${alt} enlarged photo ${activeIndex + 1}: ${activeCaption}`}
               fill
               sizes="100vw"
               className="object-contain"
@@ -194,7 +202,7 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
                 aria-label={`Open enlarged ${alt} photo ${index + 1}`}
                 aria-pressed={index === activeIndex}
                 key={`${image}-modal-${index}`}
-                className={`relative h-16 w-24 flex-none overflow-hidden rounded-xl border bg-brand-ivory ${
+                className={`relative h-20 w-28 flex-none overflow-hidden rounded-xl border bg-brand-ivory ${
                   index === activeIndex ? "border-brand-gold" : "border-white/20"
                 }`}
               >
@@ -203,8 +211,9 @@ export function RoomGallery({ images, alt, priority = false }: RoomGalleryProps)
                   alt={`${alt} modal thumbnail ${index + 1}`}
                   fill
                   sizes="96px"
-                  className="object-contain p-1"
+                  className="object-contain"
                 />
+                <span className="sr-only">{captions[index] ?? `Photo ${index + 1}`}</span>
               </button>
             ))}
           </div>

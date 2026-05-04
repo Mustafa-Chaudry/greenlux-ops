@@ -33,6 +33,13 @@ export type GuestReview = {
   source: string;
 };
 
+export type PropertyMoment = {
+  title: string;
+  description: string;
+  image: string;
+  alt: string;
+};
+
 export const trustHighlights = [
   {
     title: "Named rooms",
@@ -121,7 +128,7 @@ export const guestReviews: GuestReview[] = [
 export const directBookingBenefits = [
   {
     title: "Faster response",
-    description: "Message on WhatsApp and get availability without waiting on an app thread.",
+    description: "Send your dates and get a clear reply from the GreenLux team.",
     icon: MessageCircle,
   },
   {
@@ -131,13 +138,34 @@ export const directBookingBenefits = [
   },
   {
     title: "Direct communication",
-    description: "Share arrival time, guest count, and room preference in one chat.",
+    description: "Share arrival time, guest count, and room preference in one WhatsApp chat.",
     icon: HeartHandshake,
   },
   {
     title: "Flexible stays",
     description: "Ask about short stays, family trips, work visits, and longer bookings.",
     icon: CalendarClock,
+  },
+];
+
+export const propertyMoments: PropertyMoment[] = [
+  {
+    title: "Terrace seating",
+    description: "A calm outdoor corner for tea, calls, or a slower evening after travel.",
+    image: "/greenlux/booking/booking-terrace-01.jpg",
+    alt: "GreenLux Residency terrace seating with plants",
+  },
+  {
+    title: "Shared lounge",
+    description: "Extra sitting space for selected rooms, useful when you do not want to stay inside your bedroom.",
+    image: "/greenlux/booking/booking-lounge-01.jpg",
+    alt: "GreenLux Residency shared lounge seating",
+  },
+  {
+    title: "Dining and kitchen access",
+    description: "Practical shared spaces help short stays and longer visits feel easier.",
+    image: "/greenlux/booking/booking-dining-01.jpg",
+    alt: "GreenLux Residency common dining space",
   },
 ];
 
