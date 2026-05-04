@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, UsersRound } from "lucide-react";
 import { AmenityGrid } from "@/components/site/amenity-grid";
 import { CTAButton } from "@/components/site/cta-button";
+import { RoomCard } from "@/components/site/room-card";
+import { RoomGallery } from "@/components/site/room-gallery";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
 import { Button } from "@/components/ui/button";
-import { getWhatsAppHref } from "@/lib/site/config";
-import { formatPricePkr, getRoomBySlug, rooms } from "@/lib/site/rooms";
+import { getRoomWhatsAppHref, siteConfig } from "@/lib/site/config";
+import { formatPricePkr, getRelatedRooms, getRoomBySlug, rooms } from "@/lib/site/rooms";
 
 type RoomDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -43,60 +44,101 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
     notFound();
   }
 
-  const whatsappMessage = `Hello GreenLux Residency, I would like to check availability for ${room.name}.`;
+  const relatedRooms = getRelatedRooms(room);
 
   return (
     <SiteShell>
       <main>
-        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <Button asChild variant="ghost">
-            <Link href="/rooms">
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Back to rooms
-            </Link>
-          </Button>
-
-          <div className="mt-6 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-            <div className="space-y-4">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-brand-sage shadow-soft">
-                <Image
-                  src={room.imageUrl}
-                  alt={room.imageAlt}
-                  fill
-                  priority
-                  sizes="(min-width: 1024px) 56vw, 100vw"
-                  className="object-cover"
-                />
+        <section className="bg-[#05281f] px-4 py-8 text-white sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <Button asChild variant="ghost" className="rounded-full text-white hover:bg-white/10">
+              <Link href="/rooms">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Back to rooms
+              </Link>
+            </Button>
+            <div className="mt-8 grid gap-8 lg:grid-cols-[0.78fr_0.22fr] lg:items-end">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.26em] text-brand-gold">{room.categoryLabel}</p>
+                <h1 className="mt-4 font-serif text-5xl font-semibold leading-[1.02] sm:text-6xl">{room.name}</h1>
+                <p className="mt-5 max-w-3xl text-lg leading-8 text-white/75">{room.shortDescription}</p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-lg border border-brand-sage bg-white p-5">
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-fresh">Common areas</p>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    Rooftop/outdoor sitting and lounge spaces are available depending on stay type and house rules.
-                  </p>
-                </div>
-                <div className="rounded-lg border border-brand-sage bg-white p-5">
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-fresh">Verification</p>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    ID verification is required for a secure, family-friendly check-in experience.
-                  </p>
-                </div>
+              <div className="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">From</p>
+                <p className="mt-1 font-serif text-4xl font-semibold">Rs {formatPricePkr(room.priceFromPkr)}</p>
+                <p className="mt-2 text-sm text-white/70">per night, final rate confirmed by WhatsApp</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <RoomGallery images={room.images} alt={room.imageAlt} priority />
+        </section>
+
+        <section className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
+          <div className="space-y-10">
+            <div className="rounded-[1.75rem] border border-brand-deep/10 bg-white p-6 shadow-sm sm:p-8">
+              <SectionHeading
+                eyebrow="About this stay"
+                title={`${room.name} at GreenLux Residency`}
+                description={room.description}
+              />
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {room.highlights.map((item) => (
+                  <div key={item} className="rounded-2xl bg-brand-sage/40 p-4 text-sm font-semibold text-brand-deep">
+                    <CheckCircle2 className="mb-2 h-5 w-5 text-brand-fresh" aria-hidden="true" />
+                    {item}
+                  </div>
+                ))}
               </div>
             </div>
 
-            <aside className="rounded-lg border border-brand-sage bg-white p-6 shadow-soft" id="book">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-fresh">Room detail</p>
-              <h1 className="mt-3 font-serif text-4xl font-semibold leading-tight text-brand-deep sm:text-5xl">
-                {room.name}
-              </h1>
-              <p className="mt-4 text-lg leading-8 text-slate-700">{room.description}</p>
+            <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+              <SectionHeading
+                eyebrow="Suitable for"
+                title="Who this unit works best for."
+                description="The labels are practical guidance for guests comparing rooms on WhatsApp, Airbnb, or hotel platforms."
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                {room.suitableFor.map((item) => (
+                  <div key={item} className="flex items-center gap-3 rounded-2xl border border-brand-deep/10 bg-white p-4">
+                    <CheckCircle2 className="h-5 w-5 flex-none text-brand-fresh" aria-hidden="true" />
+                    <span className="font-medium text-brand-deep">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-brand-sage/55 p-4">
+            <div className="rounded-[1.75rem] border border-brand-deep/10 bg-white p-6 shadow-sm sm:p-8">
+              <SectionHeading
+                eyebrow="Amenities"
+                title="Included and available amenities"
+                description="Amenity availability can vary by unit and house rules. GreenLux confirms exact details before booking."
+              />
+              <div className="mt-6 flex flex-wrap gap-2">
+                {room.amenities.map((amenity) => (
+                  <span key={amenity} className="rounded-full bg-brand-deep px-3 py-2 text-sm font-medium text-white">
+                    {amenity}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-8">
+                <AmenityGrid compact />
+              </div>
+            </div>
+          </div>
+
+          <aside className="lg:sticky lg:top-28 lg:self-start" id="book">
+            <div className="rounded-[1.75rem] border border-brand-deep/10 bg-white p-6 shadow-soft">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Book this unit</p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold text-brand-deep">{room.name}</h2>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-brand-ivory p-4">
                   <p className="text-xs uppercase text-slate-600">From</p>
                   <p className="mt-1 text-xl font-semibold text-brand-deep">Rs {formatPricePkr(room.priceFromPkr)}</p>
                 </div>
-                <div className="rounded-lg bg-brand-sage/55 p-4">
+                <div className="rounded-2xl bg-brand-ivory p-4">
                   <p className="text-xs uppercase text-slate-600">Guests</p>
                   <p className="mt-1 flex items-center gap-2 text-xl font-semibold text-brand-deep">
                     <UsersRound className="h-5 w-5" aria-hidden="true" />
@@ -104,55 +146,33 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
                   </p>
                 </div>
               </div>
-
               <div className="mt-6 space-y-3">
-                <CTAButton href={getWhatsAppHref(whatsappMessage)} external whatsapp className="w-full">
-                  Check availability
+                <CTAButton href={getRoomWhatsAppHref(room.name)} external whatsapp className="w-full">
+                  WhatsApp Book Now
                 </CTAButton>
-                <CTAButton href="/auth/sign-in" variant="outline" showArrow className="w-full">
-                  Guest Check-In
+                <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" showArrow className="w-full">
+                  Already booked? Complete online check-in
                 </CTAButton>
               </div>
-
               <p className="mt-5 text-xs leading-5 text-slate-500">
-                Final price is confirmed by management based on dates, guest count, room availability, and length of stay.
+                No booking engine or payment gateway is active here. Management confirms availability, rates, and next
+                steps directly.
               </p>
-            </aside>
-          </div>
+            </div>
+          </aside>
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
-          <SectionHeading
-            eyebrow="Best for"
-            title={`${room.name} suits practical, peaceful stays.`}
-            description="Each room type is positioned for guests who value cleanliness, privacy, secure surroundings, and clear communication."
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {room.suitableFor.map((item) => (
-              <div key={item} className="flex items-center gap-3 rounded-lg border border-brand-sage bg-white p-4">
-                <CheckCircle2 className="h-5 w-5 flex-none text-brand-fresh" aria-hidden="true" />
-                <span className="font-medium text-brand-deep">{item}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="bg-white/70 py-14">
+        <section className="bg-white/70 py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
-              eyebrow="Amenities"
-              title="Included and available amenities"
-              description="Exact amenity availability can vary by room type. Management confirms details before booking."
+              eyebrow="Related stays"
+              title="Compare similar GreenLux options."
+              description="If this unit is unavailable, these are nearby alternatives by category or price."
             />
-            <div className="mt-6 flex flex-wrap gap-2">
-              {room.amenities.map((amenity) => (
-                <span key={amenity} className="rounded-lg bg-brand-deep px-3 py-2 text-sm font-medium text-white">
-                  {amenity}
-                </span>
+            <div className="mt-8 grid gap-5 md:grid-cols-3">
+              {relatedRooms.map((relatedRoom) => (
+                <RoomCard key={relatedRoom.slug} room={relatedRoom} />
               ))}
-            </div>
-            <div className="mt-8">
-              <AmenityGrid compact />
             </div>
           </div>
         </section>
@@ -160,4 +180,3 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
     </SiteShell>
   );
 }
-

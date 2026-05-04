@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Mail, MapPin, MessageCircle, Phone, ShieldCheck } from "lucide-react";
 import { ContactInquiryForm } from "@/components/site/contact-inquiry-form";
 import { CTAButton } from "@/components/site/cta-button";
 import { SectionHeading } from "@/components/site/section-heading";
@@ -35,11 +35,11 @@ const contactMethods = [
     external: false,
   },
   {
-    label: "Location",
-    value: siteConfig.location,
-    href: getWhatsAppHref("Hello GreenLux Residency, please share your location details."),
-    icon: MapPin,
-    external: true,
+    label: "Already booked?",
+    value: "Complete online check-in",
+    href: siteConfig.onlineCheckInHref,
+    icon: ShieldCheck,
+    external: false,
   },
 ];
 
@@ -47,61 +47,82 @@ export default function ContactPage() {
   return (
     <SiteShell>
       <main>
-        <section className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8 lg:py-20">
-          <div className="space-y-8">
-            <SectionHeading
-              eyebrow="Contact"
-              title="Check availability before you arrive."
-              description="WhatsApp is the quickest path. Share your dates, number of guests, room preference, and arrival time so management can confirm availability."
-            />
-            <CTAButton href={getWhatsAppHref()} external whatsapp>
-              Book on WhatsApp
-            </CTAButton>
+        <section className="bg-[#05281f] px-4 py-20 text-white sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="space-y-8">
+              <SectionHeading
+                eyebrow="Contact"
+                title="Check availability before you arrive."
+                description="WhatsApp is the quickest path. Share your dates, number of guests, preferred unit, and arrival time so management can confirm availability and the final rate."
+                className="[&_h2]:text-white [&_p]:text-white/75"
+              />
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
+                  WhatsApp Book Now
+                </CTAButton>
+                <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" showArrow className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                  Already booked? Check in
+                </CTAButton>
+              </div>
 
-            <div className="grid gap-3">
-              {contactMethods.map((method) => (
-                <a
-                  key={method.label}
-                  href={method.href}
-                  target={method.external ? "_blank" : undefined}
-                  rel={method.external ? "noreferrer" : undefined}
-                  className="flex items-center gap-4 rounded-lg border border-brand-sage bg-white p-4 shadow-sm transition-shadow hover:shadow-soft"
-                >
-                  <method.icon className="h-5 w-5 flex-none text-brand-fresh" aria-hidden="true" />
-                  <span>
-                    <span className="block text-sm font-semibold text-brand-deep">{method.label}</span>
-                    <span className="block text-sm text-slate-600">{method.value}</span>
-                  </span>
-                </a>
-              ))}
+              <div className="grid gap-3">
+                {contactMethods.map((method) => (
+                  <a
+                    key={method.label}
+                    href={method.href}
+                    target={method.external ? "_blank" : undefined}
+                    rel={method.external ? "noreferrer" : undefined}
+                    className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 p-4 text-white shadow-sm transition-colors hover:bg-white/20"
+                  >
+                    <method.icon className="h-5 w-5 flex-none text-brand-gold" aria-hidden="true" />
+                    <span>
+                      <span className="block text-sm font-semibold">{method.label}</span>
+                      <span className="block text-sm text-white/70">{method.value}</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <Card className="border-brand-sage shadow-soft">
-            <CardHeader>
-              <CardTitle>Send a quick inquiry</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ContactInquiryForm />
-            </CardContent>
-          </Card>
+            <Card className="rounded-[2rem] border-white/20 bg-white text-brand-deep shadow-soft">
+              <CardHeader>
+                <CardTitle className="font-serif text-3xl">Send a quick WhatsApp inquiry</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ContactInquiryForm />
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         <section className="bg-white/70 py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid gap-6 rounded-lg border border-brand-sage bg-brand-ivory p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-fresh">Area</p>
-                <h2 className="mt-3 font-serif text-3xl font-semibold text-brand-deep">Rawalpindi / Islamabad access</h2>
-                <p className="mt-4 leading-7 text-slate-700">
-                  Exact directions are shared with confirmed guests. This protects guest privacy and keeps arrivals
-                  simple for families, business visitors, and longer-stay guests.
+            <div className="grid gap-8 overflow-hidden rounded-[2rem] border border-brand-deep/10 bg-white shadow-soft lg:grid-cols-[0.8fr_1.2fr]">
+              <div className="p-6 sm:p-8 lg:p-10">
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-gold">Area</p>
+                <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight text-brand-deep">
+                  {siteConfig.addressLine}
+                </h2>
+                <p className="mt-5 leading-7 text-slate-700">
+                  GreenLux is positioned for Rawalpindi / Islamabad access. Exact directions are shared with confirmed
+                  guests for privacy and a smoother arrival.
                 </p>
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                  <CTAButton href={getWhatsAppHref("Hi GreenLux Residency, please share location guidance for my stay.")} external whatsapp>
+                    Ask for location
+                  </CTAButton>
+                  <CTAButton href="/rooms" variant="outline" showArrow>
+                    Browse rooms
+                  </CTAButton>
+                </div>
               </div>
-              <div className="grid min-h-64 place-items-center rounded-lg bg-brand-sage/55 p-6 text-center">
-                <MapPin className="h-10 w-10 text-brand-fresh" aria-hidden="true" />
-                <p className="mt-4 font-serif text-2xl font-semibold text-brand-deep">{siteConfig.addressLine}</p>
-                <p className="mt-2 text-sm text-slate-600">Message on WhatsApp for exact arrival guidance.</p>
+              <div className="grid min-h-80 place-items-center bg-brand-sage/50 p-8 text-center">
+                <MapPin className="h-12 w-12 text-brand-fresh" aria-hidden="true" />
+                <p className="mt-5 font-serif text-3xl font-semibold text-brand-deep">{siteConfig.location}</p>
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
+                  Send dates and guest count on WhatsApp. Management will confirm availability, location guidance, and
+                  arrival steps.
+                </p>
               </div>
             </div>
           </div>
@@ -110,4 +131,3 @@ export default function ContactPage() {
     </SiteShell>
   );
 }
-

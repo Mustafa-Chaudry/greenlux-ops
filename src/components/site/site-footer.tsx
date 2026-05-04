@@ -9,30 +9,36 @@ const footerLinks = [
   { href: "/contact", label: "Contact" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
-  { href: "/auth/sign-in", label: "Guest Check-In" },
+  { href: siteConfig.onlineCheckInHref, label: "Online check-in" },
 ];
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-brand-sage/80 bg-brand-deep text-white">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.2fr_0.8fr_0.8fr] lg:px-8">
-        <div className="space-y-4">
-          <Link href="/" className="font-serif text-2xl font-semibold">
+    <footer className="border-t border-brand-gold/20 bg-[#05281f] text-white">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.25fr_0.75fr_0.9fr] lg:px-8">
+        <div className="space-y-5">
+          <Link href="/" className="font-serif text-3xl font-semibold">
             {siteConfig.name}
           </Link>
-          <p className="max-w-md text-sm leading-6 text-white/75">
-            Clean, secure, family-friendly serviced rooms and apartments for Rawalpindi and Islamabad visits.
+          <p className="max-w-md text-sm leading-7 text-white/70">
+            Boutique serviced accommodation for families, business travellers, short stays, and repeat direct bookings
+            across Rawalpindi and Islamabad.
           </p>
-          <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" size="default">
-            Check availability
-          </CTAButton>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" size="default" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
+              Book on WhatsApp
+            </CTAButton>
+            <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" size="default" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+              Online check-in
+            </CTAButton>
+          </div>
         </div>
 
         <div>
-          <h2 className="text-sm font-semibold uppercase text-brand-gold">Explore</h2>
+          <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Explore</h2>
           <div className="mt-4 grid gap-2">
             {footerLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="text-sm text-white/75 hover:text-white">
+              <Link key={link.href} href={link.href} className="text-sm text-white/70 hover:text-white">
                 {link.label}
               </Link>
             ))}
@@ -40,8 +46,8 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <h2 className="text-sm font-semibold uppercase text-brand-gold">Contact</h2>
-          <div className="mt-4 space-y-3 text-sm text-white/75">
+          <h2 className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Contact</h2>
+          <div className="mt-4 space-y-3 text-sm text-white/70">
             <p className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 flex-none text-brand-gold" aria-hidden="true" />
               {siteConfig.location}
@@ -62,9 +68,8 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-white/10 px-4 py-4 text-center text-xs text-white/60">
-        © {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
+        &copy; {new Date().getFullYear()} {siteConfig.name}. Public bookings are confirmed directly by management.
       </div>
     </footer>
   );
 }
-

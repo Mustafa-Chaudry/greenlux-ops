@@ -26,7 +26,7 @@ export function CTAButton({
   const Icon = whatsapp ? MessageCircle : ArrowRight;
 
   return (
-    <Button asChild variant={variant} size={size} className={cn("min-w-0", className)}>
+    <Button asChild variant={variant} size={size} className={cn("min-w-0 rounded-full", className)}>
       <Link href={href} {...externalProps}>
         {whatsapp || showArrow ? <Icon className="h-4 w-4 flex-none" aria-hidden="true" /> : null}
         <span className="truncate">{children}</span>
@@ -34,4 +34,3 @@ export function CTAButton({
     </Button>
   );
 }
-

@@ -12,6 +12,7 @@ import { rooms } from "@/lib/site/rooms";
 export function ContactInquiryForm() {
   const [name, setName] = useState("");
   const [dates, setDates] = useState("");
+  const [guests, setGuests] = useState("");
   const [room, setRoom] = useState("Not sure yet");
   const [message, setMessage] = useState("");
 
@@ -21,6 +22,7 @@ export function ContactInquiryForm() {
       "Hello GreenLux Residency, I would like to check availability.",
       name ? `Name: ${name}` : null,
       dates ? `Dates: ${dates}` : null,
+      guests ? `Guests: ${guests}` : null,
       room ? `Room preference: ${room}` : null,
       message ? `Notes: ${message}` : null,
     ]
@@ -43,6 +45,15 @@ export function ContactInquiryForm() {
           value={dates}
           onChange={(event) => setDates(event.target.value)}
           placeholder="Example: 12 May to 16 May"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="guests">Guests</Label>
+        <Input
+          id="guests"
+          value={guests}
+          onChange={(event) => setGuests(event.target.value)}
+          placeholder="Example: 2 adults, 1 child"
         />
       </div>
       <div className="space-y-2">
