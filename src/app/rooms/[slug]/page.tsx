@@ -66,7 +66,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
               <div className="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">From</p>
                 <p className="mt-1 font-serif text-4xl font-semibold">Rs {formatPricePkr(room.priceFromPkr)}</p>
-                <p className="mt-2 text-sm text-white/70">per night, final rate confirmed by WhatsApp</p>
+                <p className="mt-2 text-sm text-white/70">per night. Ask for your date-specific rate.</p>
               </div>
             </div>
           </div>
@@ -97,8 +97,8 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
             <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
               <SectionHeading
                 eyebrow="Suitable for"
-                title="Who this unit works best for."
-                description="The labels are practical guidance for guests comparing rooms on WhatsApp, Airbnb, or hotel platforms."
+                title="Best for these trips."
+                description="Use this as a quick guide before you message us with your dates."
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 {room.suitableFor.map((item) => (
@@ -113,8 +113,8 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
             <div className="rounded-[1.75rem] border border-brand-deep/10 bg-white p-6 shadow-sm sm:p-8">
               <SectionHeading
                 eyebrow="Amenities"
-                title="Included and available amenities"
-                description="Amenity availability can vary by unit and house rules. GreenLux confirms exact details before booking."
+                title="Comforts included with this stay"
+                description="Amenities vary by room. Ask on WhatsApp if one detail matters for your trip."
               />
               <div className="mt-6 flex flex-wrap gap-2">
                 {room.amenities.map((amenity) => (
@@ -131,7 +131,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
 
           <aside className="lg:sticky lg:top-28 lg:self-start" id="book">
             <div className="rounded-[1.75rem] border border-brand-deep/10 bg-white p-6 shadow-soft">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Book this unit</p>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Book this stay</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold text-brand-deep">{room.name}</h2>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-brand-ivory p-4">
@@ -155,8 +155,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
                 </CTAButton>
               </div>
               <p className="mt-5 text-xs leading-5 text-slate-500">
-                No booking engine or payment gateway is active here. Management confirms availability, rates, and next
-                steps directly.
+                Message on WhatsApp for live availability, your rate, and arrival details.
               </p>
             </div>
           </aside>
@@ -167,7 +166,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
             <SectionHeading
               eyebrow="Related stays"
               title="Compare similar GreenLux options."
-              description="If this unit is unavailable, these are nearby alternatives by category or price."
+              description="If this stay is unavailable, these nearby choices may fit your dates."
             />
             <div className="mt-8 grid gap-5 md:grid-cols-3">
               {relatedRooms.map((relatedRoom) => (

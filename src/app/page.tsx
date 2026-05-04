@@ -9,26 +9,26 @@ import { RoomCard } from "@/components/site/room-card";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
 import { Button } from "@/components/ui/button";
-import { reviewThemes, trustHighlights, whyStayItems } from "@/lib/site/content";
+import { directBookingBenefits, guestReviews, trustHighlights, whyStayItems } from "@/lib/site/content";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
 import { apartmentRooms, featuredRooms, roomTypeLabels } from "@/lib/site/rooms";
 
 const categories = [
   {
     label: roomTypeLabels.club_class,
-    description: "Studio-style privacy with warm interiors and practical kitchen amenities.",
+    description: "Private studios with room to relax and useful kitchen comforts.",
   },
   {
     label: roomTypeLabels.deluxe,
-    description: "Polished private rooms for couples, business guests, and short stays.",
+    description: "Quiet, polished rooms for couples, work trips, and short stays.",
   },
   {
     label: roomTypeLabels.executive,
-    description: "Value-focused private rooms with access to common GreenLux spaces.",
+    description: "Simple private rooms with strong value and shared-space access.",
   },
   {
     label: roomTypeLabels.apartment,
-    description: "Full apartment layouts for families, long stays, and guests needing separation.",
+    description: "Full apartments for families, longer visits, and extra space.",
   },
 ];
 
@@ -56,9 +56,9 @@ export default function HomePage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
             <SectionHeading
-              eyebrow="Accommodation categories"
-              title="Clear choices for short stays, families, business travel, and longer visits."
-              description="GreenLux is easier to understand when the inventory is presented as named units, not generic hotel categories. Guests can compare rooms, studios, and full apartments quickly before messaging on WhatsApp."
+              eyebrow="Choose your stay"
+              title="Find the space that fits your trip."
+              description="Pick a room for a quick visit, a studio for more independence, or an apartment when your family needs space."
             />
             <div className="grid gap-3 sm:grid-cols-2">
               {categories.map((category) => (
@@ -75,9 +75,9 @@ export default function HomePage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <SectionHeading
-                eyebrow="Featured stays"
-                title="Premium spaces guests can book directly."
-                description="A quick look at GreenLux's strongest direct-booking inventory: a club class studio, a full apartment, and a polished deluxe room."
+                eyebrow="Popular choices"
+                title="Stays guests ask for first."
+                description="A private studio, a full apartment, and a polished deluxe room. Message us when one fits your dates."
                 className="max-w-3xl [&_h2]:text-white [&_p]:text-white/70"
               />
               <Button asChild variant="outline" className="rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20">
@@ -99,8 +99,8 @@ export default function HomePage() {
           <div>
             <SectionHeading
               eyebrow="Apartments and studios"
-              title="For guests who need more than a room."
-              description="Families, overseas visitors, and longer-stay guests often need a kitchen, lounge, terrace, or work corner. GreenLux's studios and apartments make that choice obvious."
+              title="More space when a room is not enough."
+              description="Choose a kitchen, lounge, terrace, or work corner when your stay needs a little more breathing room."
             />
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <CTAButton href="/rooms" variant="default" showArrow>
@@ -140,8 +140,8 @@ export default function HomePage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
               eyebrow="Amenities"
-              title="Practical comforts, presented without guesswork."
-              description="Amenities vary by unit, so room pages list the relevant details. These are the recurring GreenLux comforts guests look for before booking."
+              title="Comforts that make the stay easier."
+              description="WiFi, cooling, kitchen access, lounge areas, and in-room comforts vary by stay. Each room page shows what to expect."
               align="center"
             />
             <div className="mt-9">
@@ -154,8 +154,8 @@ export default function HomePage() {
           <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
             <SectionHeading
               eyebrow="Why GreenLux"
-              title="A direct-booking site that supports how guests actually book."
-              description="GreenLux guests often compare on Airbnb or hotel platforms, then want quick human confirmation. The public website now makes the next action clear without pretending to be a booking engine."
+              title="Quiet, clean, fully-managed stays you can rely on."
+              description="You get clear room choices, quick WhatsApp replies, and a calmer place to arrive after a long day."
             />
             <div className="grid gap-4 sm:grid-cols-2">
               {whyStayItems.map((item) => (
@@ -182,18 +182,18 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-brand-deep/80" />
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
-              eyebrow="Guest trust"
-              title="The promise is simple: clean, calm, responsive."
-              description="The public site avoids inflated claims and focuses on what matters operationally: clear rooms, direct confirmation, and check-in readiness."
+              eyebrow="What guests say"
+              title="Short notes from real stays."
+              description="Guests often mention the privacy, helpful host, peaceful setting, and value."
               align="center"
               className="[&_h2]:text-white [&_p]:text-white/75"
             />
             <div className="mt-9 grid gap-4 md:grid-cols-3">
-              {reviewThemes.map((theme) => (
-                <figure key={theme.label} className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur">
-                  <blockquote className="text-lg leading-8 text-white/90">&quot;{theme.quote}&quot;</blockquote>
+              {guestReviews.map((review) => (
+                <figure key={`${review.source}-${review.quote}`} className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur">
+                  <blockquote className="text-lg leading-8 text-white/90">&quot;{review.quote}&quot;</blockquote>
                   <figcaption className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">
-                    {theme.label}
+                    {review.source}
                   </figcaption>
                 </figure>
               ))}
@@ -206,11 +206,11 @@ export default function HomePage() {
             <div className="space-y-5 p-6 sm:p-8 lg:p-10">
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-gold">Location</p>
               <h2 className="font-serif text-4xl font-semibold leading-tight text-brand-deep">
-                A practical base for Rawalpindi and Islamabad visits.
+                A calm base for Rawalpindi and Islamabad visits.
               </h2>
               <p className="leading-7 text-slate-700">
-                GreenLux is positioned for families, business schedules, medical appointments, event travel,
-                tourism, and repeat direct bookings. Exact arrival guidance is shared with confirmed guests.
+                Stay close enough for family visits, work plans, medical appointments, events, and short city trips.
+                Confirmed guests receive clear arrival guidance before they reach.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <CTAButton href={getWhatsAppHref("Hi GreenLux Residency, please share location and availability details.")} external whatsapp>
@@ -260,16 +260,34 @@ export default function HomePage() {
         </section>
 
         <section className="px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-5xl rounded-[2rem] bg-[#05281f] p-8 text-center text-white shadow-soft sm:p-12">
-            <MessageCircle className="mx-auto h-10 w-10 text-brand-gold" aria-hidden="true" />
-            <h2 className="mt-5 font-serif text-4xl font-semibold">Ready to check availability?</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-white/70">
-              Tell GreenLux your dates, guest count, and preferred unit. Management will confirm the final rate and next steps directly.
-            </p>
-            <div className="mt-7 flex justify-center">
-              <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
-                WhatsApp Book Now
-              </CTAButton>
+          <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#05281f] text-white shadow-soft">
+            <div className="grid gap-8 p-8 sm:p-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+              <div>
+                <MessageCircle className="h-10 w-10 text-brand-gold" aria-hidden="true" />
+                <p className="mt-6 text-xs font-bold uppercase tracking-[0.24em] text-brand-gold">
+                  Why guests book direct with GreenLux
+                </p>
+                <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight">
+                  One WhatsApp message can settle the stay.
+                </h2>
+                <p className="mt-4 max-w-xl text-white/70">
+                  Send your dates, guest count, and preferred room. Ask the questions that matter before you confirm.
+                </p>
+                <div className="mt-7">
+                  <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
+                    Check availability on WhatsApp
+                  </CTAButton>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {directBookingBenefits.map((benefit) => (
+                  <div key={benefit.title} className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur">
+                    <benefit.icon className="h-6 w-6 text-brand-gold" aria-hidden="true" />
+                    <h3 className="mt-4 font-serif text-xl font-semibold">{benefit.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/70">{benefit.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>

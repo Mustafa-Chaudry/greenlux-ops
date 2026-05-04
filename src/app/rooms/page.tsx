@@ -30,11 +30,10 @@ export default function RoomsPage() {
           <div className="relative mx-auto max-w-7xl">
             <p className="text-xs font-bold uppercase tracking-[0.26em] text-brand-gold">Rooms and apartments</p>
             <h1 className="mt-5 max-w-4xl font-serif text-5xl font-semibold leading-[1.02] sm:text-6xl">
-              Real GreenLux units, clear prices, one-click WhatsApp booking.
+              Find the right GreenLux stay in minutes.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/75">
-              Browse named studios, apartments, deluxe rooms, executive rooms, and budget options from the current
-              GreenLux public inventory.
+              Compare rooms, studios, and apartments. See prices, capacity, and message us when one fits your trip.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
@@ -70,16 +69,16 @@ export default function RoomsPage() {
         <section className="bg-white/70 py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
-              eyebrow="Inventory guide"
-              title="Rooms, studios, and full apartments are intentionally separated."
-              description="Private rooms are best for short stays and business trips. Studios add kitchen-style independence. Full apartments suit families, longer stays, and guests who need separate lounge or dining space."
+              eyebrow="Which stay fits?"
+              title="Rooms, studios, and apartments serve different trips."
+              description="Private rooms are best for short stays and work trips. Studios add more independence. Full apartments suit families, longer stays, and guests who need lounge or dining space."
             />
             <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               {roomTypes.slice(1).map((type) => (
                 <div key={type.label} id={type.type} className="rounded-2xl border border-brand-deep/10 bg-white p-5 shadow-sm">
                   <p className="font-serif text-xl font-semibold text-brand-deep">{type.label}</p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {rooms.filter((room) => room.type === type.type).length} visible unit
+                    {rooms.filter((room) => room.type === type.type).length} stay
                     {rooms.filter((room) => room.type === type.type).length === 1 ? "" : "s"}
                   </p>
                 </div>
@@ -91,10 +90,9 @@ export default function RoomsPage() {
         <section className="px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-5xl rounded-[2rem] bg-[#05281f] p-8 text-center text-white shadow-soft sm:p-12">
             <MessageCircle className="mx-auto h-10 w-10 text-brand-gold" aria-hidden="true" />
-            <h2 className="mt-5 font-serif text-4xl font-semibold">Need help choosing a unit?</h2>
+            <h2 className="mt-5 font-serif text-4xl font-semibold">Need help choosing?</h2>
             <p className="mx-auto mt-4 max-w-2xl text-white/70">
-              Send your dates, guest count, budget, and whether you prefer a room, studio, or apartment. GreenLux will
-              confirm the best available option.
+              Send your dates, guest count, budget, and preferred stay type. We will suggest the best available option.
             </p>
             <div className="mt-7 flex justify-center">
               <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">

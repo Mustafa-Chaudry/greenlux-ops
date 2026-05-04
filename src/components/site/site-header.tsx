@@ -20,7 +20,7 @@ export function SiteHeader() {
             {siteConfig.name}
           </span>
           <span className="hidden text-[11px] font-bold uppercase tracking-[0.22em] text-brand-gold sm:block">
-            Boutique serviced stays
+            Quiet, clean stays
           </span>
         </Link>
 

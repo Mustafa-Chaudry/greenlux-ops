@@ -6,6 +6,7 @@ export type PublicRoom = {
   type: RoomType;
   categoryLabel: string;
   stayType: "Studio apartment" | "Private room" | "Full apartment";
+  hook: string;
   shortDescription: string;
   description: string;
   priceFromPkr: number;
@@ -43,10 +44,11 @@ export const rooms: PublicRoom[] = [
     type: "club_class",
     categoryLabel: "Club Class Studio",
     stayType: "Studio apartment",
+    hook: "Private terrace studio for longer, calmer stays.",
     shortDescription:
-      "Cedar-toned club class studio with a private terrace garden, kitchen essentials, and generous serviced-apartment comfort.",
+      "A warm studio with terrace garden, kitchen basics, refrigerator, microwave, and a 65 inch Smart TV.",
     description:
-      "Studio 1 is a club class studio apartment for guests who want privacy, warmth, and a more residential stay than a standard hotel room. The current GreenLux room page highlights cedar wood interiors, a private terrace garden, kitchen and dining essentials, microwave, refrigerator, toaster, iron, and a 65 inch Smart TV.",
+      "Choose Studio 1 when you want privacy, outdoor space, and the ease of a small apartment. The terrace garden gives you a quiet corner, while the kitchen basics, refrigerator, microwave, toaster, iron, and Smart TV help longer stays feel settled.",
     priceFromPkr: 8500,
     maxGuests: 3,
     sizeLabel: "Approx. 750 sq ft",
@@ -58,8 +60,8 @@ export const rooms: PublicRoom[] = [
       "Refrigerator",
       "Sound system",
     ],
-    suitableFor: ["Couples", "Business travellers", "Long stays", "Direct WhatsApp bookings"],
-    highlights: ["Private terrace", "Kitchen setup", "Club class privacy"],
+    suitableFor: ["Couples", "Business travellers", "Long stays", "Guests who want a terrace"],
+    highlights: ["Private terrace", "Kitchen basics", "Warm studio layout"],
     images: [
       "/greenlux/rooms/studio-1-01.jpg",
       "/greenlux/rooms/studio-1-02.jpg",
@@ -78,10 +80,11 @@ export const rooms: PublicRoom[] = [
     type: "club_class",
     categoryLabel: "Club Class Studio",
     stayType: "Studio apartment",
+    hook: "Warm studio with garden access and kitchen basics.",
     shortDescription:
-      "A polished studio apartment with warm finishes, practical amenities, and the privacy repeat guests expect.",
+      "A private studio with warm finishes, kitchen essentials, refrigerator, freezer, and terrace access.",
     description:
-      "Studio 2 follows GreenLux's club class studio positioning: a self-contained, comfortable stay with a calm residential feel. It is best for guests comparing Airbnb-style independence with managed hospitality and fast WhatsApp support.",
+      "Studio 2 works well when you want a private room with more independence. It gives you a calm studio feel, useful kitchen essentials, and easy access to shared outdoor space.",
     priceFromPkr: 8500,
     maxGuests: 3,
     amenities: [
@@ -93,7 +96,7 @@ export const rooms: PublicRoom[] = [
       "Common terrace access",
     ],
     suitableFor: ["Couples", "Solo guests", "Business travellers", "Short stays"],
-    highlights: ["Studio layout", "Kitchen essentials", "Warm residential feel"],
+    highlights: ["Studio layout", "Kitchen essentials", "Terrace access"],
     images: [
       "/greenlux/rooms/studio-2-01.jpg",
       "/greenlux/rooms/studio-2-02.jpg",
@@ -112,10 +115,11 @@ export const rooms: PublicRoom[] = [
     type: "apartment",
     categoryLabel: "One-Bed Apartment",
     stayType: "Full apartment",
+    hook: "Best for families who need space to settle.",
     shortDescription:
-      "One-bedroom apartment with independent bedroom, separate lounge and dining, kitchen, walk-in dresser, and two terraces.",
+      "A one-bedroom apartment with separate lounge, dining area, kitchen, walk-in dresser, and two terraces.",
     description:
-      "Apartment 3 is a full-featured one-bedroom apartment for guests who want space and separation. The GreenLux room page notes an independent bedroom, separate TV lounge and dining, kitchen, walk-in dresser, spacious bathroom, and two terraces including one for laundry.",
+      "Apartment 3 is a strong choice for families and longer stays. You get a separate bedroom, TV lounge, dining area, kitchen, walk-in dresser, spacious bathroom, and two terraces, including a laundry terrace.",
     priceFromPkr: 9000,
     maxGuests: 4,
     sizeLabel: "Approx. 850 sq ft",
@@ -128,7 +132,7 @@ export const rooms: PublicRoom[] = [
       "Two terraces",
       "Laundry terrace",
     ],
-    suitableFor: ["Families", "Long stays", "Business travellers", "Guests needing extra space"],
+    suitableFor: ["Families", "Long stays", "Business travellers", "Guests who need extra space"],
     highlights: ["Separate lounge", "Two terraces", "Private kitchen"],
     images: [
       "/greenlux/rooms/apartment-3-02.jpg",
@@ -148,10 +152,11 @@ export const rooms: PublicRoom[] = [
     type: "apartment",
     categoryLabel: "Split-Level Apartment",
     stayType: "Full apartment",
+    hook: "Split-level space for work, rest, and family stays.",
     shortDescription:
-      "Split-level apartment with bedroom, work nook, bathroom, terrace, large private kitchen, and private lounge.",
+      "A split-level apartment with bedroom, work nook, bathroom, terrace, private kitchen, and lounge.",
     description:
-      "Apartment 4 is designed for guests who want a more independent apartment-style stay. The upper level includes the bedroom, small seating or working space, bathroom, and back terrace, while the lower level includes a large private kitchen and private lounge.",
+      "Apartment 4 gives you a bedroom and seating or work corner upstairs, plus a private kitchen and lounge downstairs. It suits families, small groups, and business stays that need more room than a private bedroom.",
     priceFromPkr: 9500,
     maxGuests: 4,
     amenities: [
@@ -182,10 +187,11 @@ export const rooms: PublicRoom[] = [
     type: "deluxe",
     categoryLabel: "Deluxe Room",
     stayType: "Private room",
+    hook: "Polished deluxe room for quiet short stays.",
     shortDescription:
-      "Elegant deluxe room with warm woodwork, a refined grey palette, and access to shared GreenLux spaces.",
+      "A deluxe private room with warm woodwork, a grey palette, and shared lounge, kitchen, and terrace access.",
     description:
-      "Room 5 is a deluxe private room where the current listing highlights crafted wall woodwork and a sleek grey color theme. It is a strong choice for guests who want hotel-style privacy with the softer character of a boutique serviced residence.",
+      "Room 5 is a comfortable private room for guests who want a refined space without booking a full apartment. The warm woodwork, grey finish, and shared lounge access make it practical for short stays.",
     priceFromPkr: 7500,
     maxGuests: 3,
     amenities: [
@@ -195,7 +201,7 @@ export const rooms: PublicRoom[] = [
       "Terrace seating access",
       "Common kitchen access",
     ],
-    suitableFor: ["Couples", "Business travellers", "Short stays", "Repeat direct guests"],
+    suitableFor: ["Couples", "Business travellers", "Short stays", "Repeat guests"],
     highlights: ["Deluxe finish", "Warm woodwork", "Shared lounge access"],
     images: [
       "/greenlux/rooms/room-5-01.jpg",
@@ -214,10 +220,11 @@ export const rooms: PublicRoom[] = [
     type: "deluxe",
     categoryLabel: "Deluxe Room",
     stayType: "Private room",
+    hook: "Comfortable deluxe room with a calm grey finish.",
     shortDescription:
-      "Deluxe room with plush furnishings and a composed grey interior for a quiet, premium short stay.",
+      "A deluxe room with plush furnishings, a calm grey finish, and access to shared GreenLux spaces.",
     description:
-      "Room 7 is positioned as a deluxe room on the current WordPress listing, with a sophisticated grey palette and plush furnishings. It suits guests who want comfort, privacy, and direct booking support without moving into a full apartment.",
+      "Room 7 suits guests who want comfort, privacy, and a polished room without moving into a full apartment. It is a good fit for couples, work trips, and shorter visits.",
     priceFromPkr: 7500,
     maxGuests: 3,
     amenities: [
@@ -227,8 +234,8 @@ export const rooms: PublicRoom[] = [
       "Terrace seating access",
       "Refrigerator access",
     ],
-    suitableFor: ["Couples", "Short stays", "Business travellers", "Airbnb-style guests"],
-    highlights: ["Plush setup", "Deluxe privacy", "Common spaces"],
+    suitableFor: ["Couples", "Short stays", "Business travellers", "Guests who want a quieter room"],
+    highlights: ["Plush setup", "Deluxe privacy", "Shared spaces"],
     images: [
       "/greenlux/rooms/room-7-01.jpg",
       "/greenlux/rooms/room-7-02.jpg",
@@ -246,10 +253,11 @@ export const rooms: PublicRoom[] = [
     type: "executive",
     categoryLabel: "Executive Room",
     stayType: "Private room",
+    hook: "Quiet executive stay with strong value.",
     shortDescription:
-      "Mid-size executive room for practical guests who want privacy, security, and common-area access.",
+      "A mid-size executive room with privacy, air conditioning, and access to shared lounge and kitchen areas.",
     description:
-      "Room 6 is a mid-size executive room for budget-conscious guests who still want the GreenLux common-use facilities, ambiance, security, and privacy. It is a practical base for business visits and short stays.",
+      "Room 6 is a practical base for solo guests, business travellers, and short stays. It keeps the price sensible while still giving you a private room and access to shared GreenLux spaces.",
     priceFromPkr: 6800,
     maxGuests: 2,
     amenities: [
@@ -260,7 +268,7 @@ export const rooms: PublicRoom[] = [
       "Refrigerator access",
     ],
     suitableFor: ["Business travellers", "Budget-conscious guests", "Solo guests", "Repeat stays"],
-    highlights: ["Executive value", "Common lounge", "Secure private room"],
+    highlights: ["Strong value", "Common lounge", "Private room"],
     images: [
       "/greenlux/rooms/room-6-01.jpg",
       "/greenlux/rooms/room-6-02.jpg",
@@ -277,10 +285,11 @@ export const rooms: PublicRoom[] = [
     type: "executive",
     categoryLabel: "Executive Room",
     stayType: "Private room",
+    hook: "Executive room close to lounge and terrace spaces.",
     shortDescription:
-      "Executive room with refrigerator, air conditioning, and easy access to the lounge, terrace seating, and kitchen.",
+      "An executive room with refrigerator, air conditioning, and easy access to lounge, terrace, and kitchen areas.",
     description:
-      "Room 10 is listed as a mid-size executive room for guests who want common-use facilities with security and privacy. The WordPress rooms page notes a 7 cu.ft refrigerator, 1200 BTU air conditioner, and direct access to the common lounge, outdoor terrace seating, and kitchen.",
+      "Room 10 is a good fit when you want a private room plus nearby shared spaces. It includes a refrigerator and air conditioning, with lounge, terrace seating, and kitchen access close by.",
     priceFromPkr: 6800,
     maxGuests: 2,
     amenities: [
@@ -291,7 +300,7 @@ export const rooms: PublicRoom[] = [
       "Common kitchen access",
     ],
     suitableFor: ["Business travellers", "Budget-conscious guests", "Solo guests", "Short stays"],
-    highlights: ["Direct common-area access", "Refrigerator", "Executive value"],
+    highlights: ["Shared-space access", "Refrigerator", "Executive value"],
     images: [
       "/greenlux/rooms/room-10-01.jpg",
       "/greenlux/rooms/room-10-02.jpg",
@@ -309,10 +318,11 @@ export const rooms: PublicRoom[] = [
     type: "economy",
     categoryLabel: "Economy Room",
     stayType: "Private room",
+    hook: "Smart economy room with a polished feel.",
     shortDescription:
-      "Economy-category room with a deluxe-feeling grey palette and plush furnishings at a direct-booking rate.",
+      "An economy room with a polished grey finish, plush furnishings, and access to shared GreenLux spaces.",
     description:
-      "Room 9 appears on the current rooms page as an economy room at Rs 7,500, described with a sleek grey palette and plush furnishings. It is a useful option for guests who want a refined private room while still comparing value across platforms.",
+      "Room 9 gives guests a clean, private room with a more polished feel than a basic stay. It works well for short trips, couples, and business travellers who want comfort at a sensible rate.",
     priceFromPkr: 7500,
     maxGuests: 2,
     amenities: [
@@ -322,8 +332,8 @@ export const rooms: PublicRoom[] = [
       "Terrace seating access",
       "Common kitchen access",
     ],
-    suitableFor: ["Couples", "Business travellers", "Short stays", "Direct WhatsApp bookings"],
-    highlights: ["Economy category", "Polished finish", "Fast confirmation"],
+    suitableFor: ["Couples", "Business travellers", "Short stays", "Value-focused guests"],
+    highlights: ["Economy price", "Polished finish", "Private room"],
     images: [
       "/greenlux/rooms/room-9-01.jpg",
       "/greenlux/rooms/room-9-02.jpg",
@@ -341,10 +351,11 @@ export const rooms: PublicRoom[] = [
     type: "economy",
     categoryLabel: "Budget Room",
     stayType: "Private room",
+    hook: "Simple, safe value for a short overnight stay.",
     shortDescription:
-      "Simple, secure room for guests who need an economical overnight stay with access to shared executive spaces.",
+      "A simple private room for budget stays, solo guests, transit stops, and short visits.",
     description:
-      "Budget Room 11 is the most economical visible option on the current GreenLux rooms page. The listing positions it for guests on a tighter budget who still want a safe, friendly environment for the night and access to executive common spaces.",
+      "Budget Room 11 is the lowest-priced GreenLux option. It is best for guests who need a safe, simple, economical place to stay with access to shared lounge, terrace, and kitchen spaces.",
     priceFromPkr: 5500,
     maxGuests: 2,
     amenities: [

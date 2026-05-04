@@ -53,7 +53,7 @@ export default function ContactPage() {
               <SectionHeading
                 eyebrow="Contact"
                 title="Check availability before you arrive."
-                description="WhatsApp is the quickest path. Share your dates, number of guests, preferred unit, and arrival time so management can confirm availability and the final rate."
+                description="WhatsApp is the quickest path. Share your dates, guest count, preferred stay, and arrival time. We will send availability and rates."
                 className="[&_h2]:text-white [&_p]:text-white/75"
               />
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -120,8 +120,8 @@ export default function ContactPage() {
                 <MapPin className="h-12 w-12 text-brand-fresh" aria-hidden="true" />
                 <p className="mt-5 font-serif text-3xl font-semibold text-brand-deep">{siteConfig.location}</p>
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
-                  Send dates and guest count on WhatsApp. Management will confirm availability, location guidance, and
-                  arrival steps.
+                  Send dates and guest count on WhatsApp. We will share availability, location guidance, and arrival
+                  steps.
                 </p>
               </div>
             </div>

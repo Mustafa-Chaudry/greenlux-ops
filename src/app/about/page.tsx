@@ -13,23 +13,23 @@ export const metadata: Metadata = {
 
 const values = [
   {
-    title: "Cleanliness first",
-    description: "Rooms and apartments are presented around fresh bedding, calm interiors, and practical readiness.",
+    title: "Fresh, ready rooms",
+    description: "Clean bedding, calm interiors, and a space prepared before you arrive.",
     icon: Sparkles,
   },
   {
-    title: "Family-friendly privacy",
-    description: "The stay is positioned for respectful families, overseas guests, and visitors who need peace.",
+    title: "Privacy for families",
+    description: "A quieter place for families, overseas guests, and visitors who need peace.",
     icon: UsersRound,
   },
   {
-    title: "Secure check-in",
-    description: "Online check-in and ID verification support safer operations for guests and staff.",
+    title: "Check in before arrival",
+    description: "Send your details early and arrive with less waiting.",
     icon: ShieldCheck,
   },
   {
-    title: "Responsive management",
-    description: "WhatsApp remains central because direct guest communication is how bookings actually happen.",
+    title: "Fast WhatsApp help",
+    description: "Ask questions, share arrival time, and get clear replies.",
     icon: HeartHandshake,
   },
 ];
@@ -52,16 +52,15 @@ export default function AboutPage() {
             <div className="flex flex-col justify-center">
               <p className="text-xs font-bold uppercase tracking-[0.26em] text-brand-gold">About GreenLux</p>
               <h1 className="mt-5 font-serif text-5xl font-semibold leading-[1.02] sm:text-6xl">
-                Boutique serviced stays with calm, trust, and operational discipline.
+                Quiet, clean, fully-managed stays you can rely on.
               </h1>
               <p className="mt-6 text-lg leading-8 text-white/75">
-                GreenLux Residency is built for guests who want a cleaner, more private, more responsive alternative
-                to a generic short-stay rental. The public site now reflects the real operating model: WhatsApp-first
-                booking, named rooms, and online check-in after confirmation.
+                GreenLux Residency gives guests a calmer alternative to a busy hotel or self-managed rental. Choose
+                your stay, message on WhatsApp, and complete check-in before you reach.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
-                  Speak with management
+                  Ask on WhatsApp
                 </CTAButton>
                 <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" showArrow className="border-white/30 bg-white/10 text-white hover:bg-white/20">
                   Complete online check-in
@@ -83,9 +82,9 @@ export default function AboutPage() {
         <section className="bg-white/70 py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
-              eyebrow="Positioning"
+              eyebrow="Why it feels easier"
               title="A managed stay, not just a room key."
-              description="GreenLux serves families, business visitors, short-stay guests, and repeat direct guests who need privacy, clear communication, and a practical base between Rawalpindi and Islamabad."
+              description="GreenLux suits families, business visitors, short-stay guests, and repeat guests who want privacy, clear answers, and a practical base between Rawalpindi and Islamabad."
               align="center"
             />
             <div className="mt-9 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -114,12 +113,12 @@ export default function AboutPage() {
           </div>
           <div className="flex flex-col justify-center">
             <SectionHeading
-              eyebrow="Operational professionalism"
-              title="Designed for real hotel workflows."
-              description="The public website supports how GreenLux already operates: many guests arrive from Airbnb, Booking.com, or direct referrals, then confirm through WhatsApp. Staff can keep direct bookings simple, while already-booked guests are sent to online check-in."
+              eyebrow="Arrive prepared"
+              title="Arrive without stress. Check in before you reach."
+              description="You can ask questions before booking, share your arrival time, and complete online check-in once your stay is confirmed."
             />
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              {["Direct WhatsApp confirmation", "Named unit inventory", "Visible online check-in", "No fake booking engine"].map((item) => (
+              {["Quick WhatsApp replies", "Named room choices", "Online check-in", "Clear arrival guidance"].map((item) => (
                 <div key={item} className="rounded-2xl border border-brand-deep/10 bg-white p-4 text-sm font-semibold text-brand-deep">
                   {item}
                 </div>

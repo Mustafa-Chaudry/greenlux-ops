@@ -2,11 +2,14 @@ import {
   BedDouble,
   Building2,
   Camera,
+  CalendarClock,
   Clock3,
   ConciergeBell,
   CookingPot,
+  CircleDollarSign,
   HeartHandshake,
   MapPin,
+  MessageCircle,
   ShieldCheck,
   Snowflake,
   Sofa,
@@ -25,76 +28,116 @@ export type Amenity = {
   icon: LucideIcon;
 };
 
+export type GuestReview = {
+  quote: string;
+  source: string;
+};
+
 export const trustHighlights = [
   {
-    title: "Real serviced inventory",
-    description: "Browse named GreenLux units with direct WhatsApp confirmation before you travel.",
+    title: "Named rooms",
+    description: "Choose a specific room, studio, or apartment before you message.",
     icon: BedDouble,
   },
   {
-    title: "Family-friendly privacy",
-    description: "A calm, respectful stay for families, overseas guests, medical visitors, and repeat guests.",
+    title: "Calm privacy",
+    description: "A quiet stay for families, business travellers, and repeat guests.",
     icon: UsersRound,
   },
   {
-    title: "Managed check-in",
-    description: "Already booked guests can complete online check-in before arrival for a smoother handover.",
+    title: "Easy arrival",
+    description: "Already booked? Complete check-in before you reach.",
     icon: ShieldCheck,
   },
   {
-    title: "Responsive booking support",
-    description: "WhatsApp remains the fastest route for availability, rates, location guidance, and arrival timing.",
+    title: "Fast replies",
+    description: "Ask for availability, rates, and arrival help on WhatsApp.",
     icon: HeartHandshake,
   },
 ];
 
 export const amenities: Amenity[] = [
-  { title: "WiFi", description: "Connectivity for work calls, messaging, and entertainment.", icon: Wifi },
-  { title: "24/7 light", description: "Practical continuity support for a more settled stay.", icon: Zap },
-  { title: "Smart TV", description: "In-room entertainment in the listed rooms and apartments.", icon: Tv },
-  { title: "Air conditioning", description: "Cooling comfort for Rawalpindi and Islamabad visits.", icon: Snowflake },
-  { title: "Refrigerator / freezer", description: "Available in rooms, studios, or shared areas depending on unit.", icon: ConciergeBell },
-  { title: "Kitchen and dining", description: "Private or common kitchen and dining access depending on room type.", icon: CookingPot },
-  { title: "Microwave", description: "Available in studio and apartment-style stays where noted by GreenLux.", icon: Utensils },
-  { title: "Common lounge", description: "Shared executive lounge access for selected private rooms.", icon: Sofa },
-  { title: "Home safety", description: "Managed access and verification support a safer family-friendly environment.", icon: Camera },
+  { title: "WiFi", description: "Stay connected for work, calls, and entertainment.", icon: Wifi },
+  { title: "24/7 light", description: "Reliable comfort for a more settled stay.", icon: Zap },
+  { title: "Smart TV", description: "Relax with in-room entertainment where listed.", icon: Tv },
+  { title: "Air conditioning", description: "Cool rooms for Rawalpindi and Islamabad visits.", icon: Snowflake },
+  { title: "Refrigerator / freezer", description: "Keep drinks, snacks, and essentials chilled.", icon: ConciergeBell },
+  { title: "Kitchen and dining", description: "Private or shared cooking space, depending on your stay.", icon: CookingPot },
+  { title: "Microwave", description: "Useful for longer stays and quick meals.", icon: Utensils },
+  { title: "Common lounge", description: "Comfortable shared seating for selected rooms.", icon: Sofa },
+  { title: "Home safety", description: "A safer, family-friendly place to stay.", icon: Camera },
 ];
 
 export const whyStayItems = [
   {
-    title: "Boutique aparthotel feel",
-    description: "A more personal alternative to a large hotel, with named rooms, studios, and full apartments.",
+    title: "More privacy than a busy hotel",
+    description: "Settle into a quieter stay with a room, studio, or full apartment.",
     icon: Building2,
   },
   {
-    title: "Clear direct booking",
-    description: "Guests compare on Airbnb and hotel platforms, then confirm availability quickly through WhatsApp.",
+    title: "Easy to ask before you book",
+    description: "Send your dates on WhatsApp and get a clear answer.",
     icon: Clock3,
   },
   {
-    title: "Rawalpindi / Islamabad base",
-    description: "Convenient for family visits, business schedules, events, medical trips, and longer stays.",
+    title: "Close to Rawalpindi and Islamabad",
+    description: "Useful for family visits, work trips, events, and medical travel.",
     icon: MapPin,
   },
   {
-    title: "Comfort without overcomplication",
-    description: "No booking engine or payment portal here yet, just practical room information and fast contact.",
+    title: "Simple from first message",
+    description: "See the rooms, choose what fits, and confirm on WhatsApp.",
     icon: Sparkles,
   },
 ];
 
-export const reviewThemes = [
+export const guestReviews: GuestReview[] = [
   {
-    quote: "Clean, calm, and private enough for a family stay.",
-    label: "Family guest priority",
+    quote: "Totally worth it.",
+    source: "Aoun, GreenLux guest",
   },
   {
-    quote: "Fast host response matters when arrival plans change.",
-    label: "Business traveller priority",
+    quote: "Good privacy.",
+    source: "Khaleeq, GreenLux guest",
   },
   {
-    quote: "Apartment-style space makes repeat and longer stays easier.",
-    label: "Long-stay priority",
+    quote: "Peaceful, clean, green, secured, safe.",
+    source: "Muniba, GreenLux guest",
+  },
+  {
+    quote: "Everything is good. Your place is peaceful.",
+    source: "Booking.com traveller",
+  },
+  {
+    quote: "Superb facilities & amenities.",
+    source: "Booking.com traveller",
+  },
+  {
+    quote: "A great place to stay.",
+    source: "GreenLux guest",
+  },
+];
+
+export const directBookingBenefits = [
+  {
+    title: "Faster response",
+    description: "Message on WhatsApp and get availability without waiting on an app thread.",
+    icon: MessageCircle,
+  },
+  {
+    title: "No platform fees",
+    description: "Ask for the direct rate for your dates.",
+    icon: CircleDollarSign,
+  },
+  {
+    title: "Direct communication",
+    description: "Share arrival time, guest count, and room preference in one chat.",
+    icon: HeartHandshake,
+  },
+  {
+    title: "Flexible stays",
+    description: "Ask about short stays, family trips, work visits, and longer bookings.",
+    icon: CalendarClock,
   },
 ];
 
@@ -102,26 +145,26 @@ export const faqs = [
   {
     question: "How do I book GreenLux Residency?",
     answer:
-      "Message GreenLux on WhatsApp with your dates, number of guests, room preference, and arrival time. Management confirms availability and the final rate directly.",
+      "Message GreenLux on WhatsApp with your dates, guest count, room preference, and arrival time. You will receive availability and rate details directly.",
   },
   {
     question: "Can I check in online after booking?",
     answer:
-      "Yes. Already-booked guests can use the online check-in link to complete guest details before arrival.",
+      "Yes. Already-booked guests can complete online check-in before arrival.",
   },
   {
     question: "Are studios and full apartments available?",
     answer:
-      "Yes. GreenLux lists Studio 1, Studio 2, Apartment 3, and Apartment 4 alongside private rooms.",
+      "Yes. GreenLux has studios, full apartments, deluxe rooms, executive rooms, and budget rooms.",
   },
   {
     question: "Is GreenLux suitable for families?",
     answer:
-      "Yes. The public positioning is family-friendly, privacy-focused, and practical for Rawalpindi and Islamabad visits.",
+      "Yes. Families often choose GreenLux for privacy, space, and a quieter setting.",
   },
   {
     question: "Are amenities identical in every room?",
     answer:
-      "No. Amenities vary by room type. The room detail pages list the amenities found on GreenLux's current pages or described cautiously where shared facilities apply.",
+      "No. Amenities vary by room. Each room page shows what is available for that stay.",
   },
 ];

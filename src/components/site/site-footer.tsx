@@ -21,8 +21,8 @@ export function SiteFooter() {
             {siteConfig.name}
           </Link>
           <p className="max-w-md text-sm leading-7 text-white/70">
-            Boutique serviced accommodation for families, business travellers, short stays, and repeat direct bookings
-            across Rawalpindi and Islamabad.
+            Quiet, clean stays for families, business travellers, short visits, and repeat guests across Rawalpindi and
+            Islamabad.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" size="default" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
@@ -68,7 +68,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-white/10 px-4 py-4 text-center text-xs text-white/60">
-        &copy; {new Date().getFullYear()} {siteConfig.name}. Public bookings are confirmed directly by management.
+        &copy; {new Date().getFullYear()} {siteConfig.name}. Direct bookings are confirmed on WhatsApp.
       </div>
     </footer>
   );

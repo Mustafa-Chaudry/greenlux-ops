@@ -30,11 +30,11 @@ export function Hero() {
             {siteConfig.tagline}
           </p>
           <h1 className="font-serif text-5xl font-semibold leading-[0.98] sm:text-6xl lg:text-7xl">
-            Private, fully-managed stays in Rawalpindi — without the platform friction.
+            Quiet, clean, fully-managed stays in Rawalpindi.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl sm:leading-9">
-            Studios, apartments, and rooms for families, business travellers, and short stays. Book directly on
-            WhatsApp and check in online before arrival.
+            Choose a studio, apartment, or private room. Message on WhatsApp for availability, then check in online
+            before you arrive.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <CTAButton
