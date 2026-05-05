@@ -1,4 +1,4 @@
-# GreenLux Residency — Operations Intelligence System (MVP v5.6)
+# GreenLux Residency — Operations Intelligence System (MVP v5.8)
 
 A production-grade internal operations platform designed for a real-world serviced accommodation business.
 
@@ -165,9 +165,14 @@ Instead, it enforces:
 
 ## 📌 Status
 
-**Production MVP — Phase 5.6 (Live System, Actively Evolving)**
+**Production MVP — Phase 5.8 — Live Occupancy Layer (Live System, Actively Evolving)**
 
 Recent upgrades:
+- Live 11-unit occupancy board
+- Due-out and upcoming-arrival visibility
+- Issue / attention indicators for risky stays
+- Maintenance-aware unit status
+- Occupancy percentage on the admin dashboard and reports
 - Guest folio / service-level revenue tracking
 - Extend stay workflow
 - Maintenance-to-expense financial integration

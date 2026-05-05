@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireRole } from "@/lib/auth/guards";
 import { hasAllowedRole, managementRoles, staffGuestCreationRoles, superAdminRoles } from "@/lib/auth/roles";
 import { getBusinessTodayDate, isReadyForCheckin } from "@/lib/check-in/options";
+import { fetchOccupancySnapshot } from "@/lib/occupancy/snapshot";
 
 const adminAreas = [
   {
@@ -12,6 +13,12 @@ const adminAreas = [
     description: "Search check-ins, review verification status, open records, and update operational fields.",
     href: "/admin/guest-records",
     icon: ClipboardList,
+  },
+  {
+    title: "Occupancy Board",
+    description: "Live 11-unit board for occupied, vacant, due-out, upcoming, issue, and maintenance visibility.",
+    href: "/admin/occupancy",
+    icon: Hotel,
   },
   {
     title: "Units",
@@ -53,6 +60,7 @@ export default async function AdminPage() {
   const canCreateGuests = hasAllowedRole(profile.role, staffGuestCreationRoles);
   const canAccessOwnerReports = hasAllowedRole(profile.role, superAdminRoles);
   const today = getBusinessTodayDate();
+  const occupancy = await fetchOccupancySnapshot(supabase, today);
   const { data: records } = await supabase
     .from("guest_checkins")
     .select("status,assigned_room_id,cnic_verified,payment_status,payment_method,payment_verified,check_in_date");
@@ -66,6 +74,15 @@ export default async function AdminPage() {
   ).length;
   const readyForCheckinCount = checkins.filter(isReadyForCheckin).length;
   const todaysCheckinsCount = checkins.filter((record) => record.check_in_date === today).length;
+  const occupancyCards = [
+    { title: "Total Units", value: occupancy.summary.totalUnits, description: "Canonical GreenLux operational units" },
+    { title: "Occupied Units", value: occupancy.summary.occupiedUnits, description: "Currently in-house or due out today" },
+    { title: "Vacant Units", value: occupancy.summary.vacantUnits, description: "No active guest or maintenance block" },
+    { title: "Due Out Today", value: occupancy.summary.dueOutToday, description: "Occupied units checking out today" },
+    { title: "Upcoming Arrivals", value: occupancy.summary.upcomingArrivals, description: "Assigned future arrivals" },
+    { title: "Needs Attention", value: occupancy.summary.needsAttentionUnits, description: "Verification, balance, issue, or exception" },
+    { title: "Occupancy", value: `${occupancy.summary.occupancyPercentage}%`, description: "Occupied units divided by total units" },
+  ];
 
   const summaryCards = [
     {
@@ -123,6 +140,20 @@ export default async function AdminPage() {
             ) : null}
           </div>
         </header>
+
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7" aria-label="Live occupancy summary">
+          {occupancyCards.map((card) => (
+            <Link key={card.title} href="/admin/occupancy" className="group block">
+              <Card className="h-full transition-shadow group-hover:shadow-soft">
+                <CardHeader>
+                  <CardDescription>{card.title}</CardDescription>
+                  <p className="font-serif text-4xl font-semibold text-brand-deep">{card.value}</p>
+                  <CardDescription>{card.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
+        </section>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card) => (

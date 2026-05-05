@@ -18,6 +18,7 @@ import {
   type ReportDateRange,
   type ReportDateRangePreset,
 } from "@/lib/reports/analytics";
+import { fetchOccupancySnapshot } from "@/lib/occupancy/snapshot";
 
 export const metadata: Metadata = {
   title: "Business Reports",
@@ -123,6 +124,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
   const { supabase } = await requireRole(superAdminRoles);
   const reportInputs = await fetchReportInputs(supabase, range);
   const report = buildBusinessReport(reportInputs);
+  const occupancy = await fetchOccupancySnapshot(supabase);
   const hasNoActivity =
     report.kpis.totalBookings === 0 &&
     report.kpis.totalRevenue === 0 &&
@@ -223,6 +225,22 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
             <KpiCard key={card.label} {...card} />
           ))}
         </section>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Live Occupancy Summary</CardTitle>
+            <CardDescription>Current 11-unit operational position for {occupancy.today}.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+            <MiniMetric label="Total units" value={String(occupancy.summary.totalUnits)} />
+            <MiniMetric label="Occupied" value={String(occupancy.summary.occupiedUnits)} />
+            <MiniMetric label="Vacant" value={String(occupancy.summary.vacantUnits)} />
+            <MiniMetric label="Due out today" value={String(occupancy.summary.dueOutToday)} />
+            <MiniMetric label="Upcoming" value={String(occupancy.summary.upcomingArrivals)} />
+            <MiniMetric label="Needs attention" value={String(occupancy.summary.needsAttentionUnits)} />
+            <MiniMetric label="Occupancy" value={`${occupancy.summary.occupancyPercentage}%`} />
+          </CardContent>
+        </Card>
 
         <DataTable
           title="Booking Source Breakdown"
