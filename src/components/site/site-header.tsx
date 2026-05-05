@@ -7,6 +7,7 @@ import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/rooms", label: "Rooms" },
+  { href: "/location", label: "Location" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];

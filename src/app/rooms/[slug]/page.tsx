@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BadgeCheck, BedDouble, CheckCircle2, MessageCircle, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowLeft, BadgeCheck, BedDouble, CheckCircle2, MessageCircle, Play, ShieldCheck, UsersRound } from "lucide-react";
 import { AmenityGrid } from "@/components/site/amenity-grid";
 import { CTAButton } from "@/components/site/cta-button";
 import { RoomCard } from "@/components/site/room-card";
 import { RoomGallery } from "@/components/site/room-gallery";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
+import { VideoCard } from "@/components/site/video-card";
 import { Button } from "@/components/ui/button";
 import { getRoomWhatsAppHref, siteConfig } from "@/lib/site/config";
 import { formatPricePkr, getRelatedRooms, getRoomBySlug, rooms } from "@/lib/site/rooms";
+import { getVideoBySlug } from "@/lib/site/videos";
 
 type RoomDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -45,6 +47,13 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
   }
 
   const relatedRooms = getRelatedRooms(room);
+  const roomVideo = getVideoBySlug(room.videoTourSlug);
+  const guestAccess =
+    room.stayType === "Full apartment"
+      ? ["Private apartment space", "Kitchen and lounge where listed", "Terrace or shared outdoor access where listed"]
+      : room.stayType === "Studio apartment"
+        ? ["Private studio space", "Kitchen basics where listed", "Terrace or shared outdoor access where listed"]
+        : ["Private room", "Shared lounge or terrace access where listed", "Direct GreenLux support on WhatsApp"];
 
   return (
     <SiteShell>
@@ -83,6 +92,12 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
                   <CTAButton href={getRoomWhatsAppHref(room.name)} external whatsapp>
                     Check availability on WhatsApp
                   </CTAButton>
+                  {roomVideo ? (
+                    <CTAButton href="#video-tour" variant="outline">
+                      <Play className="h-4 w-4" aria-hidden="true" />
+                      Watch room tour
+                    </CTAButton>
+                  ) : null}
                   <CTAButton href="/rooms" variant="outline" showArrow>
                     View rooms
                   </CTAButton>
@@ -108,6 +123,19 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <RoomGallery images={room.images} captions={room.galleryLabels} alt={room.imageAlt} priority />
         </section>
+
+        {roomVideo ? (
+          <section id="video-tour" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <div className="grid gap-8 rounded-[1.75rem] border border-brand-deep/10 bg-white p-5 shadow-sm sm:p-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+              <SectionHeading
+                eyebrow="Room video"
+                title={`Watch a quick tour of ${room.name}.`}
+                description="Use the video as a practical preview of the space before you message us for availability."
+              />
+              <VideoCard video={roomVideo} />
+            </div>
+          </section>
+        ) : null}
 
         <section className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
           <div className="space-y-10">
@@ -140,6 +168,28 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
                     <span className="font-medium text-brand-deep">{item}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="rounded-[1.75rem] border border-brand-deep/10 bg-white p-6 shadow-sm sm:p-8">
+                <h2 className="font-serif text-3xl font-semibold text-brand-deep">Guest access</h2>
+                <div className="mt-5 space-y-3">
+                  {guestAccess.map((item) => (
+                    <p key={item} className="flex gap-3 text-sm font-medium leading-6 text-brand-deep">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-brand-fresh" aria-hidden="true" />
+                      {item}
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[1.75rem] border border-brand-deep/10 bg-brand-ivory p-6 shadow-sm sm:p-8">
+                <h2 className="font-serif text-3xl font-semibold text-brand-deep">Good to know</h2>
+                <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-brand-deep">
+                  <p>Rates and availability are confirmed directly on WhatsApp for your dates.</p>
+                  <p>Amenities can vary by room, so ask us if one detail matters for your trip.</p>
+                  <p>Already-booked guests can complete online check-in before arrival.</p>
+                </div>
               </div>
             </div>
 

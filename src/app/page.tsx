@@ -7,9 +7,12 @@ import { Hero } from "@/components/site/hero";
 import { RoomCard } from "@/components/site/room-card";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
+import { VideoTourSection } from "@/components/site/video-tour-section";
 import { directBookingBenefits, guestReviews, propertyMoments } from "@/lib/site/content";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
+import { guides } from "@/lib/site/guides";
 import { featuredRooms } from "@/lib/site/rooms";
+import { homepageVideos } from "@/lib/site/videos";
 
 export default function HomePage() {
   const [primaryStay, ...secondaryStays] = featuredRooms;
@@ -43,6 +46,13 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+
+        <VideoTourSection
+          className="bg-white"
+          title="Take a quick look around GreenLux."
+          description="Short local videos help you understand the entrance, shared spaces, and overall feel before you message for availability."
+          videos={homepageVideos}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -136,6 +146,47 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-end">
+            <SectionHeading
+              eyebrow="Local guides"
+              title="Plan the stay around your visit."
+              description="A useful stay starts with location clarity. These guides help guests think through medical visits, family plans, food nearby, and Rawalpindi / Islamabad access."
+            />
+            <div className="flex justify-start lg:justify-end">
+              <CTAButton href="/guides" variant="outline" showArrow>
+                View guides
+              </CTAButton>
+            </div>
+          </div>
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {guides.slice(0, 3).map((guide) => (
+              <Link
+                key={guide.slug}
+                href={guide.href}
+                className="group overflow-hidden rounded-[1.5rem] border border-brand-deep/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-soft"
+              >
+                <span className="relative block aspect-[4/3] bg-brand-ivory">
+                  <Image
+                    src={guide.image}
+                    alt={guide.title}
+                    fill
+                    sizes="(min-width: 1024px) 30vw, 100vw"
+                    className="object-cover transition duration-700 group-hover:scale-[1.03]"
+                  />
+                </span>
+                <span className="block p-5">
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">{guide.shortTitle}</span>
+                  <span className="mt-3 block font-serif text-2xl font-semibold leading-tight text-brand-deep">
+                    {guide.title}
+                  </span>
+                  <span className="mt-2 block text-sm leading-6 text-slate-600">{guide.description}</span>
+                </span>
+              </Link>
+            ))}
           </div>
         </section>
 

@@ -20,6 +20,7 @@ export type PublicRoom = {
   images: string[];
   galleryLabels: string[];
   imageAlt: string;
+  videoTourSlug?: string;
   sourceUrl?: string;
   sourceNote?: string;
 };
@@ -82,6 +83,7 @@ export const rooms: PublicRoom[] = [
     ],
     galleryLabels: ["Main studio view", "Kitchenette", "Bathroom", "Living area", "Terrace", "Kitchen detail", "Sleeping area"],
     imageAlt: "GreenLux Studio 1 serviced apartment with warm interiors",
+    videoTourSlug: "studio-tour",
     sourceUrl: "https://greenluxresidency.com/apartment/studio-1/",
   },
   {
@@ -124,6 +126,7 @@ export const rooms: PublicRoom[] = [
     ],
     galleryLabels: ["Sleeping area", "Alternate room angle", "Bathroom", "Terrace access", "Kitchenette", "Dining detail", "Room detail"],
     imageAlt: "GreenLux Studio 2 room with serviced apartment amenities",
+    videoTourSlug: "studio-tour",
     sourceUrl: "https://greenluxresidency.com/apartment/studio-2/",
   },
   {
@@ -168,6 +171,7 @@ export const rooms: PublicRoom[] = [
     ],
     galleryLabels: ["Main apartment view", "Bedroom", "Lounge", "Dining area", "Bathroom", "Kitchen", "Terrace"],
     imageAlt: "GreenLux Apartment 3 dining and serviced apartment details",
+    videoTourSlug: "one-bed-apartment-tour",
     sourceUrl: "https://greenluxresidency.com/apartment/apartment-3/",
   },
   {

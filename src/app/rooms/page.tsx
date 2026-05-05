@@ -30,6 +30,10 @@ const decisionGuide = [
   { label: "Executive value", room: rooms.find((room) => room.slug === "room-10") },
 ];
 
+const comparisonRooms = rooms.filter((room) =>
+  ["budget-room-11", "apartment-3", "studio-1", "room-10", "studio-2"].includes(room.slug),
+);
+
 export default function RoomsPage() {
   return (
     <SiteShell>
@@ -93,6 +97,42 @@ export default function RoomsPage() {
                 {type.label}
               </a>
             ))}
+          </div>
+
+          <div className="mt-10 overflow-hidden rounded-[1.5rem] border border-brand-deep/10 bg-white shadow-sm">
+            <div className="border-b border-brand-deep/10 p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Help me choose</p>
+              <h2 className="mt-2 font-serif text-3xl font-semibold text-brand-deep">Compare the most-requested options.</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-[760px] w-full text-left text-sm">
+                <thead className="bg-brand-ivory text-xs uppercase tracking-[0.16em] text-brand-deep">
+                  <tr>
+                    <th className="px-5 py-4 font-bold">Stay</th>
+                    <th className="px-5 py-4 font-bold">Best for</th>
+                    <th className="px-5 py-4 font-bold">Guests</th>
+                    <th className="px-5 py-4 font-bold">Key feature</th>
+                    <th className="px-5 py-4 font-bold">From</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-brand-deep/10">
+                  {comparisonRooms.map((room) => (
+                    <tr key={room.slug} className="align-top">
+                      <td className="px-5 py-4">
+                        <Link href={`/rooms/${room.slug}`} className="font-serif text-xl font-semibold text-brand-deep hover:text-brand-fresh">
+                          {room.name}
+                        </Link>
+                        <p className="mt-1 text-xs font-semibold text-brand-fresh">{room.categoryLabel}</p>
+                      </td>
+                      <td className="px-5 py-4 text-slate-700">{room.decisionLabel}</td>
+                      <td className="px-5 py-4 text-slate-700">Up to {room.maxGuests}</td>
+                      <td className="px-5 py-4 text-slate-700">{room.highlights[0]}</td>
+                      <td className="px-5 py-4 font-bold text-brand-deep">Rs {formatPricePkr(room.priceFromPkr)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div id="all-stays" className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">

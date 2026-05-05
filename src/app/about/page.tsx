@@ -4,7 +4,9 @@ import { HeartHandshake, ShieldCheck, Sparkles, UsersRound } from "lucide-react"
 import { CTAButton } from "@/components/site/cta-button";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
+import { VideoTourSection } from "@/components/site/video-tour-section";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
+import { aboutVideos } from "@/lib/site/videos";
 
 export const metadata: Metadata = {
   title: "About",
@@ -92,6 +94,14 @@ export default function AboutPage() {
             </div>
           </div>
         </section>
+
+        <VideoTourSection
+          className="bg-brand-ivory"
+          eyebrow="See the property"
+          title="Shared spaces that make the stay feel calmer."
+          description="A quick look at lounge and terrace access helps guests understand the GreenLux feel before confirming dates."
+          videos={aboutVideos}
+        />
 
         <section className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
           <div className="grid gap-4 sm:grid-cols-2">

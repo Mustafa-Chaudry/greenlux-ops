@@ -5,7 +5,9 @@ import { ContactInquiryForm } from "@/components/site/contact-inquiry-form";
 import { CTAButton } from "@/components/site/cta-button";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
+import { VideoTourSection } from "@/components/site/video-tour-section";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
+import { contactVideos } from "@/lib/site/videos";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -47,6 +49,14 @@ const bookingSteps = [
   "Send your dates and guest count.",
   "We confirm the best available room, studio, or apartment.",
   "After booking, complete online check-in before you arrive.",
+];
+
+const inquiryChecklist = [
+  "Dates",
+  "Number of guests",
+  "Preferred room, studio, or apartment",
+  "Purpose of visit if relevant",
+  "Expected arrival time",
 ];
 
 export default function ContactPage() {
@@ -130,6 +140,16 @@ export default function ContactPage() {
                   </div>
                 ))}
               </div>
+              <div className="mt-8 rounded-[1.5rem] border border-brand-deep/10 bg-brand-ivory p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">What to send us</p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {inquiryChecklist.map((item) => (
+                    <p key={item} className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-brand-deep shadow-sm">
+                      {item}
+                    </p>
+                  ))}
+                </div>
+              </div>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <CTAButton href={getWhatsAppHref()} external whatsapp>
                   Check availability on WhatsApp
@@ -154,6 +174,14 @@ export default function ContactPage() {
             </div>
           </div>
         </section>
+
+        <VideoTourSection
+          className="bg-brand-ivory"
+          eyebrow="See the space first"
+          title="Watch a quick property preview before you message."
+          description="Use these short local clips to understand the entrance and terrace feel before asking for availability."
+          videos={contactVideos}
+        />
 
         <section className="px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[2rem] border border-brand-deep/10 bg-white shadow-soft lg:grid-cols-[1fr_0.9fr]">

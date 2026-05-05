@@ -5,6 +5,8 @@ import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
 
 const footerLinks = [
   { href: "/rooms", label: "Rooms" },
+  { href: "/location", label: "Location" },
+  { href: "/guides", label: "Guides" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
   { href: "/privacy", label: "Privacy" },
