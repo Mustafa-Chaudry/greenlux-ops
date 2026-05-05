@@ -147,7 +147,7 @@ export const contactVideos = siteVideos.filter((video) =>
 );
 
 export const locationVideos = siteVideos.filter((video) =>
-  ["property-gate-day", "terrace-studio-apartment-entrance-night", "gate-opening-building-shots-night"].includes(video.slug),
+  ["property-gate-day", "terrace-studio-apartment-entrance-night"].includes(video.slug),
 );
 
 export function getVideoBySlug(slug?: string) {

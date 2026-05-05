@@ -33,6 +33,11 @@ export type GuestReview = {
   source: string;
 };
 
+export type TrustSignal = {
+  title: string;
+  description: string;
+};
+
 export type PropertyMoment = {
   title: string;
   description: string;
@@ -122,6 +127,29 @@ export const guestReviews: GuestReview[] = [
   {
     quote: "A great place to stay.",
     source: "GreenLux guest",
+  },
+];
+
+export const platformTrustSignals: TrustSignal[] = [
+  {
+    title: "Listed on Booking.com",
+    description: "Guests can compare GreenLux on major travel platforms before booking direct.",
+  },
+  {
+    title: "Listed on Airbnb",
+    description: "Useful for guests who want platform-style confidence before messaging GreenLux.",
+  },
+  {
+    title: "Direct WhatsApp booking",
+    description: "Ask dates, rates, room fit, and arrival questions in one conversation.",
+  },
+  {
+    title: "Online check-in after confirmation",
+    description: "Already-booked guests can complete details before arrival.",
+  },
+  {
+    title: "Review themes",
+    description: "Guest excerpts mention privacy, cleanliness, peaceful stays, amenities, and helpful support.",
   },
 ];
 

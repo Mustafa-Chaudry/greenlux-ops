@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { HeartHandshake, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
+import { RatingCards } from "@/components/site/rating-cards";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
+import { TestimonialVideoSection } from "@/components/site/testimonial-video-section";
 import { VideoTourSection } from "@/components/site/video-tour-section";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
+import { approvedVideoTestimonials } from "@/lib/site/testimonials";
+import { homepageRatings } from "@/lib/site/trust";
 import { aboutVideos } from "@/lib/site/videos";
 
 export const metadata: Metadata = {
@@ -102,6 +106,22 @@ export default function AboutPage() {
           description="A quick look at lounge and terrace access helps guests understand the GreenLux feel before confirming dates."
           videos={aboutVideos}
         />
+
+        <section className="bg-white py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              eyebrow="Platform trust"
+              title="Ratings from public travel platforms."
+              description="Ratings vary by platform and listing. This prototype shows the latest public snapshot provided for GreenLux."
+              align="center"
+            />
+            <div className="mt-10">
+              <RatingCards ratings={homepageRatings} />
+            </div>
+          </div>
+        </section>
+
+        <TestimonialVideoSection testimonials={approvedVideoTestimonials} className="bg-brand-ivory" />
 
         <section className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
           <div className="grid gap-4 sm:grid-cols-2">

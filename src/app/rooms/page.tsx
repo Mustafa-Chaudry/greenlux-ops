@@ -72,6 +72,17 @@ export default function RoomsPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mb-8 rounded-[1.5rem] border border-brand-deep/10 bg-white p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Guest-rated stays</p>
+            <p className="mt-2 font-serif text-2xl font-semibold text-brand-deep">
+              Guest-rated on Booking.com, Airbnb, and travel platforms.
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Ratings vary by platform and listing. Room-specific ratings appear only where the listing clearly maps to
+              that stay.
+            </p>
+          </div>
+
           <div className="grid gap-4 rounded-[1.5rem] border border-brand-deep/10 bg-white p-5 shadow-sm md:grid-cols-4">
             {decisionGuide.map(({ label, room }) =>
               room ? (

@@ -1,22 +1,33 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, MapPin, MessageCircle } from "lucide-react";
+import { ArrowRight, Hospital, MapPin, MessageCircle, Plane, Route, Trees, Utensils } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
 import { FAQSection } from "@/components/site/faq-section";
 import { Hero } from "@/components/site/hero";
+import { RatingCards } from "@/components/site/rating-cards";
 import { RoomCard } from "@/components/site/room-card";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
+import { TestimonialVideoSection } from "@/components/site/testimonial-video-section";
 import { VideoTourSection } from "@/components/site/video-tour-section";
-import { directBookingBenefits, guestReviews, propertyMoments } from "@/lib/site/content";
+import { directBookingBenefits, guestReviews, platformTrustSignals, propertyMoments } from "@/lib/site/content";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
-import { guides } from "@/lib/site/guides";
+import { guides, type GuideIcon } from "@/lib/site/guides";
 import { featuredRooms } from "@/lib/site/rooms";
+import { approvedVideoTestimonials } from "@/lib/site/testimonials";
+import { homepageRatings } from "@/lib/site/trust";
 import { homepageVideos } from "@/lib/site/videos";
 
-export default function HomePage() {
-  const [primaryStay, ...secondaryStays] = featuredRooms;
+const guideIcons: Record<GuideIcon, typeof MapPin> = {
+  map: MapPin,
+  hospital: Hospital,
+  food: Utensils,
+  park: Trees,
+  route: Route,
+  passport: Plane,
+};
 
+export default function HomePage() {
   return (
     <SiteShell>
       <main>
@@ -35,13 +46,8 @@ export default function HomePage() {
             </CTAButton>
           </div>
 
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            {primaryStay ? (
-              <div className="lg:row-span-2">
-                <RoomCard room={primaryStay} featured />
-              </div>
-            ) : null}
-            {secondaryStays.slice(0, 2).map((room) => (
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            {featuredRooms.slice(0, 4).map((room) => (
               <RoomCard key={room.slug} room={room} featured />
             ))}
           </div>
@@ -95,17 +101,48 @@ export default function HomePage() {
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <SectionHeading
             eyebrow="What guests say"
+            title="Platform presence plus real guest themes."
+            description="GreenLux is visible on major travel platforms, while direct booking stays simple through WhatsApp."
+            align="center"
+          />
+          <div className="mt-10 rounded-[1.75rem] border border-brand-deep/10 bg-brand-ivory p-5 shadow-sm sm:p-7">
+            <RatingCards ratings={homepageRatings} />
+            <p className="mt-5 text-center text-xs leading-5 text-slate-600">
+              Ratings vary by platform and listing. Latest public snapshot; guests should check live platforms for
+              current scores.
+            </p>
+          </div>
+          <div className="mt-8 grid gap-3 md:grid-cols-5">
+            {platformTrustSignals.map((signal) => (
+              <div key={signal.title} className="rounded-2xl border border-brand-deep/10 bg-white p-4 text-center shadow-sm">
+                <p className="font-serif text-xl font-semibold leading-tight text-brand-deep">{signal.title}</p>
+                <p className="mt-2 text-xs leading-5 text-slate-600">{signal.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <TestimonialVideoSection testimonials={approvedVideoTestimonials} className="bg-brand-ivory" />
+
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="Written notes"
             title="Short notes from real stays."
-            description="Guests often mention the privacy, peaceful setting, helpful host, and value."
+            description="No names, ratings, or quotes are added unless already available from approved GreenLux material or platform listing snapshots."
             align="center"
           />
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {guestReviews.slice(0, 6).map((review) => (
               <figure key={`${review.source}-${review.quote}`} className="rounded-[1.5rem] border border-brand-deep/10 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-ivory font-serif text-lg font-semibold text-brand-deep">
+                    {review.source.slice(0, 1)}
+                  </span>
+                  <span className="rounded-full bg-brand-sage/45 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-brand-deep">
+                    {review.source}
+                  </span>
+                </div>
                 <blockquote className="font-serif text-2xl leading-9 text-brand-deep">&quot;{review.quote}&quot;</blockquote>
-                <figcaption className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">
-                  {review.source}
-                </figcaption>
               </figure>
             ))}
           </div>
@@ -122,7 +159,7 @@ export default function HomePage() {
               <div className="flex items-center gap-3 rounded-2xl bg-brand-ivory p-5 text-brand-deep">
                 <MapPin className="h-6 w-6 flex-none text-brand-fresh" aria-hidden="true" />
                 <p className="text-sm leading-6">
-                  <span className="font-bold">{siteConfig.addressLine}.</span> A quiet base for Rawalpindi and Islamabad visits.
+                  <span className="font-bold">{siteConfig.shortAddress}.</span> A quiet base for Rawalpindi and Islamabad visits.
                 </p>
               </div>
             </div>
@@ -163,20 +200,17 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {guides.slice(0, 3).map((guide) => (
+            {guides.slice(0, 3).map((guide) => {
+              const Icon = guideIcons[guide.icon] ?? Trees;
+
+              return (
               <Link
                 key={guide.slug}
                 href={guide.href}
-                className="group overflow-hidden rounded-[1.5rem] border border-brand-deep/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-soft"
+                className="group rounded-[1.5rem] border border-brand-deep/10 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-soft"
               >
-                <span className="relative block aspect-[4/3] bg-brand-ivory">
-                  <Image
-                    src={guide.image}
-                    alt={guide.title}
-                    fill
-                    sizes="(min-width: 1024px) 30vw, 100vw"
-                    className="object-cover transition duration-700 group-hover:scale-[1.03]"
-                  />
+                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-ivory text-brand-fresh">
+                  <Icon className="h-7 w-7" aria-hidden="true" />
                 </span>
                 <span className="block p-5">
                   <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">{guide.shortTitle}</span>
@@ -186,7 +220,8 @@ export default function HomePage() {
                   <span className="mt-2 block text-sm leading-6 text-slate-600">{guide.description}</span>
                 </span>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </section>
 

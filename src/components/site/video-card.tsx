@@ -10,9 +10,10 @@ import { VideoModal } from "@/components/site/video-modal";
 type VideoCardProps = {
   video: SiteVideo;
   featured?: boolean;
+  label?: string;
 };
 
-export function VideoCard({ video, featured = false }: VideoCardProps) {
+export function VideoCard({ video, featured = false, label = "Video tour" }: VideoCardProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -46,7 +47,7 @@ export function VideoCard({ video, featured = false }: VideoCardProps) {
           <span className="absolute inset-x-0 bottom-0 p-5 text-white">
             <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">
               <Video className="h-4 w-4" aria-hidden="true" />
-              Video tour
+              {label}
             </span>
             <span className="mt-2 block font-serif text-2xl font-semibold leading-tight">{video.title}</span>
             <span className="mt-2 block text-sm leading-6 text-white/78">{video.description}</span>

@@ -3,10 +3,12 @@ import Image from "next/image";
 import { Mail, MapPin, MessageCircle, Phone, ShieldCheck } from "lucide-react";
 import { ContactInquiryForm } from "@/components/site/contact-inquiry-form";
 import { CTAButton } from "@/components/site/cta-button";
+import { RatingCards } from "@/components/site/rating-cards";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
 import { VideoTourSection } from "@/components/site/video-tour-section";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
+import { homepageRatings } from "@/lib/site/trust";
 import { contactVideos } from "@/lib/site/videos";
 
 export const metadata: Metadata = {
@@ -97,7 +99,7 @@ export default function ContactPage() {
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">Location</p>
                 <p className="mt-1 font-serif text-2xl font-semibold text-brand-deep">{siteConfig.addressLine}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Exact arrival guidance is shared after confirmation.
+                  Approx coordinates: {siteConfig.coordinates.latitude} N, {siteConfig.coordinates.longitude} E
                 </p>
               </div>
             </div>
@@ -171,6 +173,19 @@ export default function ContactPage() {
                   <ContactInquiryForm />
                 </div>
               </div>
+              <div className="mt-5 rounded-[1.5rem] bg-white p-5 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Before you message</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  Guests rate GreenLux highly across public listing snapshots, with reviews mentioning privacy,
+                  cleanliness, peaceful stays, amenities, and helpful support.
+                </p>
+                <div className="mt-5">
+                  <RatingCards ratings={homepageRatings.slice(0, 2)} compact />
+                </div>
+                <p className="mt-4 text-xs leading-5 text-slate-500">
+                  Ratings vary by platform and listing. Check live platforms for current scores.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -192,10 +207,13 @@ export default function ContactPage() {
                 A Westridge base for Rawalpindi and Islamabad visits.
               </h2>
               <p className="mt-5 max-w-2xl leading-7 text-slate-700">
-                GreenLux is suited to guests who want a quiet, managed stay with direct support before arrival. Message
-                us for room fit, location guidance, and check-in details.
+                GreenLux is suited to guests who want a quieter residential base with direct support before arrival.
+                The address is {siteConfig.addressLine}. Message us for room fit, location guidance, and check-in details.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <CTAButton href={siteConfig.googleMapsHref} external variant="outline" showArrow>
+                  Open in Google Maps
+                </CTAButton>
                 <CTAButton href={getWhatsAppHref("Hi GreenLux Residency, please share location guidance for my stay.")} external whatsapp>
                   Ask for location guidance
                 </CTAButton>

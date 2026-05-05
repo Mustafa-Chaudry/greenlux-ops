@@ -126,7 +126,6 @@ export const rooms: PublicRoom[] = [
     ],
     galleryLabels: ["Sleeping area", "Alternate room angle", "Bathroom", "Terrace access", "Kitchenette", "Dining detail", "Room detail"],
     imageAlt: "GreenLux Studio 2 room with serviced apartment amenities",
-    videoTourSlug: "studio-tour",
     sourceUrl: "https://greenluxresidency.com/apartment/studio-2/",
   },
   {
@@ -459,7 +458,7 @@ export const rooms: PublicRoom[] = [
 ];
 
 export const featuredRooms = rooms.filter((room) =>
-  ["studio-1", "apartment-4", "room-5"].includes(room.slug),
+  ["studio-2", "apartment-4", "room-5", "studio-1"].includes(room.slug),
 );
 
 export const apartmentRooms = rooms.filter((room) => room.type === "apartment" || room.type === "club_class");

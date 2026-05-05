@@ -1,16 +1,24 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight, Building2, Hospital, MapPin, MessageCircle, Plane, Route, Trees, Utensils } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
 import { getWhatsAppHref } from "@/lib/site/config";
-import { guides } from "@/lib/site/guides";
+import { guides, type GuideIcon } from "@/lib/site/guides";
 
 export const metadata: Metadata = {
   title: "Local Guides",
   description: "GreenLux Residency guides for Westridge, nearby hospitals, food, parks, and Rawalpindi / Islamabad access.",
+};
+
+const guideIcons: Record<GuideIcon, typeof MapPin> = {
+  map: MapPin,
+  hospital: Hospital,
+  food: Utensils,
+  park: Trees,
+  route: Route,
+  passport: Plane,
 };
 
 export default function GuidesPage() {
@@ -44,29 +52,42 @@ export default function GuidesPage() {
 
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="grid gap-6">
-            {guides.map((guide, index) => (
+            {guides.map((guide) => {
+              const Icon = guideIcons[guide.icon] ?? Building2;
+
+              return (
               <article
                 key={guide.slug}
                 id={guide.slug}
-                className="grid overflow-hidden rounded-[1.75rem] border border-brand-deep/10 bg-white shadow-sm lg:grid-cols-[0.74fr_1.26fr]"
+                className="grid overflow-hidden rounded-[1.75rem] border border-brand-deep/10 bg-white shadow-sm lg:grid-cols-[0.48fr_1.52fr]"
               >
-                <div className="relative min-h-72 bg-brand-ivory">
-                  <Image
-                    src={guide.image}
-                    alt={guide.title}
-                    fill
-                    priority={index === 0}
-                    sizes="(min-width: 1024px) 34vw, 100vw"
-                    className="object-cover"
-                  />
+                <div className="flex min-h-72 flex-col justify-between bg-brand-ivory p-6">
+                  <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white text-brand-fresh shadow-sm">
+                    <Icon className="h-8 w-8" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Local planning</p>
+                    <p className="mt-3 font-serif text-3xl font-semibold leading-tight text-brand-deep">{guide.shortTitle}</p>
+                  </div>
                 </div>
                 <div className="p-6 sm:p-8 lg:p-10">
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">{guide.shortTitle}</p>
                   <h2 className="mt-4 font-serif text-4xl font-semibold leading-tight text-brand-deep">{guide.title}</h2>
                   <p className="mt-4 leading-7 text-slate-700">{guide.description}</p>
-                  <p className="mt-4 rounded-2xl bg-brand-ivory p-4 text-sm font-semibold leading-6 text-brand-deep">
-                    {guide.guestNeed}
-                  </p>
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl bg-brand-ivory p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-gold">Who it helps</p>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-brand-deep">{guide.whoItHelps}</p>
+                    </div>
+                    <div className="rounded-2xl bg-brand-ivory p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-gold">Why it matters</p>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-brand-deep">{guide.whyItMatters}</p>
+                    </div>
+                    <div className="rounded-2xl bg-brand-ivory p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-gold">Suggested stay</p>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-brand-deep">{guide.suggestedRoomType}</p>
+                    </div>
+                  </div>
                   <div className="mt-5 flex flex-wrap gap-2">
                     {guide.stayTypes.map((stayType) => (
                       <span key={stayType} className="rounded-full bg-brand-sage/45 px-3 py-1.5 text-xs font-bold text-brand-deep">
@@ -85,7 +106,8 @@ export default function GuidesPage() {
                   </div>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         </section>
 

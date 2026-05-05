@@ -33,6 +33,45 @@ Videos in `videos/` are GreenLux-provided local assets. They are referenced from
 
 No poster frames or compressed video versions were generated in this pass because ffmpeg/ffprobe are not available in the local environment. Existing GreenLux still images are used as poster images. Original video files remain intact.
 
+## Approved Video Testimonials
+
+Approved guest testimonial videos are copied into `testimonials/` and referenced only from local `/greenlux/testimonials/...` paths.
+
+- `testimonials/Newzeland-male-testimonial.mp4` - approved New Zealand guest testimonial.
+- `testimonials/slovakian-male-testimonial.mp4` - approved Slovakian guest testimonial.
+- `testimonials/International-female-testimonial.mp4` - approved international guest testimonial.
+
+The following Chinese-language testimonial files are present in `videos/` but are not used in the public prototype because transcript and translation have not been verified:
+
+- `videos/Chinese-male-testimonial-in-chinese.mp4`
+- `videos/Zang-male-testimonial-in-chinese.mp4`
+
+No guest names or direct quotes are shown for video testimonials because verified transcripts were not provided.
+
+## Public Rating Snapshots
+
+The prototype uses the following provided public listing snapshots:
+
+- Booking.com: `8.8 / 10`, `Fabulous`, `161 reviews`.
+- Airbnb Studio 1: `4.86 / 5`, `21 reviews`, `Guest favorite`.
+- Airbnb Budget Room: `4.69 / 5`, `13 reviews`.
+- Airbnb host signal: `Superhost`, approximately `4.89 / 5`, `91-92 reviews shown on listings`.
+- Skyscanner: `4.6 / 5`, `Excellent`, `7 reviews`.
+
+Ratings vary by platform and listing. Guests should check live platforms for current scores.
+
+## Location and Guide Visuals
+
+No third-party nearby-place photos were downloaded for hospitals, food, parks, airport, or Islamabad-access sections in this pass. To avoid misleading guests with GreenLux property photos and to avoid unsafe image licensing, `/guides` and nearby-place sections use illustrated icon/location cards instead.
+
+GreenLux-owned property images remain in use only where the page is showing GreenLux itself, such as the property, entrance, terrace, lounge, and contact/location hero sections.
+
+The public location pages use the provided address and approximate coordinates:
+
+- Address: `J268+6C3, Mian Iqbal Road, Westridge 1, Rawalpindi, 46000, Pakistan`
+- Coordinates: `33.6062 N, 73.0232 E`
+- Google Maps link: `https://www.google.com/maps/search/?api=1&query=33.6062,73.0232`
+
 ## Curation Notes
 
 - Room galleries intentionally use only selected images per unit, avoiding dark, blurry, cluttered, or duplicate-angle shots.

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, BadgeCheck, BedDouble, CheckCircle2, MessageCircle, Play, ShieldCheck, UsersRound } from "lucide-react";
 import { AmenityGrid } from "@/components/site/amenity-grid";
 import { CTAButton } from "@/components/site/cta-button";
+import { RatingCards } from "@/components/site/rating-cards";
 import { RoomCard } from "@/components/site/room-card";
 import { RoomGallery } from "@/components/site/room-gallery";
 import { SectionHeading } from "@/components/site/section-heading";
@@ -12,6 +13,7 @@ import { VideoCard } from "@/components/site/video-card";
 import { Button } from "@/components/ui/button";
 import { getRoomWhatsAppHref, siteConfig } from "@/lib/site/config";
 import { formatPricePkr, getRelatedRooms, getRoomBySlug, rooms } from "@/lib/site/rooms";
+import { getRoomRating } from "@/lib/site/trust";
 import { getVideoBySlug } from "@/lib/site/videos";
 
 type RoomDetailPageProps = {
@@ -48,6 +50,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
 
   const relatedRooms = getRelatedRooms(room);
   const roomVideo = getVideoBySlug(room.videoTourSlug);
+  const roomRating = getRoomRating(room.slug);
   const guestAccess =
     room.stayType === "Full apartment"
       ? ["Private apartment space", "Kitchen and lounge where listed", "Terrace or shared outdoor access where listed"]
@@ -217,6 +220,16 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Direct booking</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold text-brand-deep">{room.name}</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{room.hook}</p>
+              {roomRating ? (
+                <div className="mt-5">
+                  <RatingCards ratings={[roomRating]} compact />
+                  <p className="mt-3 text-xs leading-5 text-slate-500">
+                    {roomRating.roomSlug
+                      ? "Room-specific public listing snapshot where the listing clearly maps to this stay."
+                      : "Property-level public listing snapshot. Ratings vary by platform and listing."}
+                  </p>
+                </div>
+              ) : null}
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-brand-ivory p-4">
                   <p className="text-xs uppercase text-slate-600">From</p>
