@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { requireRole } from "@/lib/auth/guards";
 import { managementRoles } from "@/lib/auth/roles";
-import { formatEnumLabel, formatPkr, roomStatusOptions } from "@/lib/check-in/options";
+import { formatEnumLabel, formatPkr, formatUnitRoomLabel, roomStatusOptions } from "@/lib/check-in/options";
 
 export const metadata: Metadata = {
-  title: "Rooms Admin",
+  title: "Units Admin",
 };
 
 type PageProps = {
@@ -31,7 +31,7 @@ function statusTone(status: string) {
 export default async function AdminRoomsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const { supabase } = await requireRole(managementRoles);
-  const { data: rooms, error } = await supabase.from("rooms").select("*").order("base_price_pkr");
+  const { data: rooms, error } = await supabase.from("rooms").select("*").order("unit_number", { nullsFirst: false });
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -39,8 +39,8 @@ export default async function AdminRoomsPage({ searchParams }: PageProps) {
         <header className="flex flex-col gap-4 rounded-xl border border-brand-sage bg-white/85 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase text-brand-fresh">Operations</p>
-            <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">Rooms</h1>
-            <p className="mt-2 text-sm text-slate-600">Edit operational status and base price for seeded room inventory.</p>
+            <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">Units</h1>
+            <p className="mt-2 text-sm text-slate-600">Edit operational status and base price for the 11 unit inventory.</p>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin">Back to admin</Link>
@@ -62,9 +62,10 @@ export default async function AdminRoomsPage({ searchParams }: PageProps) {
                 <CardHeader>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <CardTitle>{room.name}</CardTitle>
+                      <CardTitle>{formatUnitRoomLabel(room)}</CardTitle>
                       <CardDescription>
                         {formatEnumLabel(room.type)} - up to {room.max_guests} guests - {formatPkr(room.base_price_pkr)}
+                        {room.unit_number === 8 ? " - Temporary mapping" : ""}
                       </CardDescription>
                     </div>
                     <Badge tone={statusTone(room.status)}>{formatEnumLabel(room.status)}</Badge>

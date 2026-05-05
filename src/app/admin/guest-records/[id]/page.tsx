@@ -27,6 +27,7 @@ import {
   documentStatusOptions,
   formatEnumLabel,
   formatPkr,
+  formatUnitRoomLabel,
   getApprovalMissingRequirements,
   getCheckinStatusLabel,
   getDocumentStatusLabel,
@@ -152,7 +153,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
   const [{ data: record, error: recordError }, { data: rooms }, { data: documents }, { data: charges }] = await Promise.all([
     supabase.from("guest_checkins").select("*").eq("id", id).single(),
-    supabase.from("rooms").select("id,name,status,base_price_pkr").order("name"),
+    supabase.from("rooms").select("id,unit_number,name,status,base_price_pkr").order("unit_number", { nullsFirst: false }),
     supabase.from("guest_documents").select("*").eq("checkin_id", id).order("created_at", { ascending: false }),
     supabase.from("guest_charges").select("*").eq("guest_checkin_id", id).order("charged_at", { ascending: false }),
   ]);
@@ -199,15 +200,15 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const isCompleted = record.status === "checked_out";
   const showIssueAction = record.status !== "issue" && record.status !== "checked_out";
   const assignedRoom = record.assigned_room_id ? rooms?.find((room) => room.id === record.assigned_room_id) : null;
-  const roomName = assignedRoom?.name ?? "To be assigned";
+  const roomName = assignedRoom ? formatUnitRoomLabel(assignedRoom) : "To be assigned";
   const financialSummary = getGuestFinancialSummary({ checkin: record, charges: guestCharges });
   const requirements = [
-    { label: "Room assigned", complete: Boolean(record.assigned_room_id), missing: "Room not assigned" },
+    { label: "Unit assigned", complete: Boolean(record.assigned_room_id), missing: "Unit not assigned" },
     { label: "CNIC verified", complete: record.cnic_verified, missing: "CNIC not verified" },
     { label: "Payment verified", complete: record.payment_verified, missing: "Payment not confirmed" },
   ];
   const missingCheckinRequirements = [
-    !record.assigned_room_id ? "Room may not be assigned" : null,
+    !record.assigned_room_id ? "Unit may not be assigned" : null,
     !record.cnic_verified ? "ID may be missing or unverified" : null,
     !record.payment_verified ? "Payment may be pending" : null,
     record.status === "issue" ? "Record is marked as an issue" : null,
@@ -215,7 +216,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const whatsappActions = [
     {
       label: "Confirm check-in",
-      message: `Hello ${record.full_name}, your GreenLux Residency check-in is approved. Room: ${roomName}. Dates: ${record.check_in_date} to ${record.check_out_date}. Thank you.`,
+      message: `Hello ${record.full_name}, your GreenLux Residency check-in is approved. Unit: ${roomName}. Dates: ${record.check_in_date} to ${record.check_out_date}. Thank you.`,
     },
     {
       label: "Request corrected CNIC",
@@ -304,7 +305,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   <InfoRow label="Phone" value={record.phone} />
                   <InfoRow label="CNIC / passport" value={maskSensitiveId(record.cnic_passport_number)} />
                   <InfoRow label="Stay dates" value={`${record.check_in_date} to ${record.check_out_date}`} />
-                  <InfoRow label="Room" value={roomName} />
+                  <InfoRow label="Unit" value={roomName} />
                   <InfoRow label="Base stay expected" value={formatPkr(financialSummary.baseExpected)} />
                   <InfoRow label="Base stay paid" value={formatPkr(financialSummary.basePaid)} />
                   <InfoRow label="Guest charges total" value={formatPkr(financialSummary.chargesTotal)} />
@@ -571,7 +572,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           <Card>
             <CardHeader>
               <CardTitle>Admin actions</CardTitle>
-              <CardDescription>Assign room, confirm payment, verify documents, and add internal notes.</CardDescription>
+              <CardDescription>Assign unit, confirm payment, verify documents, and add internal notes.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="mb-5 grid gap-3 rounded-lg border border-brand-sage bg-white p-4 sm:grid-cols-2">
@@ -735,12 +736,12 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                 <input type="hidden" name="id" value={record.id} />
 
                 <div className="space-y-2">
-                  <Label htmlFor="assigned_room_id">Assigned room</Label>
+                  <Label htmlFor="assigned_room_id">Assigned unit</Label>
                   <Select id="assigned_room_id" name="assigned_room_id" defaultValue={record.assigned_room_id ?? ""}>
                     <option value="">Not assigned</option>
                     {(rooms ?? []).map((room) => (
                       <option key={room.id} value={room.id}>
-                        {room.name} ({formatEnumLabel(room.status)})
+                          {formatUnitRoomLabel(room)} ({formatEnumLabel(room.status)})
                       </option>
                     ))}
                   </Select>

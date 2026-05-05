@@ -22,7 +22,7 @@ export async function updateRoomOperationalFields(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(`/admin/rooms?message=${encodeURIComponent("Invalid room update.")}`);
+    redirect(`/admin/rooms?message=${encodeURIComponent("Invalid unit update.")}`);
   }
 
   const { id, base_price_pkr, status } = parsed.data;
@@ -33,6 +33,5 @@ export async function updateRoomOperationalFields(formData: FormData) {
   }
 
   revalidatePath("/admin/rooms");
-  redirect(`/admin/rooms?message=${encodeURIComponent("Room updated.")}`);
+  redirect(`/admin/rooms?message=${encodeURIComponent("Unit updated.")}`);
 }
-

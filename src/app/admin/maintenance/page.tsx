@@ -10,7 +10,14 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { requireRole } from "@/lib/auth/guards";
 import { hasAllowedRole, managementRoles, superAdminRoles } from "@/lib/auth/roles";
-import { formatEnumLabel, formatPkr, getBusinessTodayDate, maintenanceStatusOptions, paymentMethodOptions } from "@/lib/check-in/options";
+import {
+  formatEnumLabel,
+  formatPkr,
+  formatUnitRoomLabel,
+  getBusinessTodayDate,
+  maintenanceStatusOptions,
+  paymentMethodOptions,
+} from "@/lib/check-in/options";
 import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -72,9 +79,9 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
   const canLinkExpenses = hasAllowedRole(profile.role, superAdminRoles);
   const [{ data: logs, error }, { data: rooms }] = await Promise.all([
     supabase.from("room_maintenance_logs").select("*").order("reported_date", { ascending: false }),
-    supabase.from("rooms").select("id,name,status").order("name"),
+    supabase.from("rooms").select("id,unit_number,name,status").order("unit_number", { nullsFirst: false }),
   ]);
-  const roomNames = new Map((rooms ?? []).map((room) => [room.id, room.name]));
+  const roomNames = new Map((rooms ?? []).map((room) => [room.id, formatUnitRoomLabel(room)]));
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -83,7 +90,7 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
           <div>
             <p className="text-sm font-semibold uppercase text-brand-fresh">Operations</p>
             <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">Maintenance</h1>
-            <p className="mt-2 text-sm text-slate-600">Track room issues, repair status, costs, and resolution dates.</p>
+            <p className="mt-2 text-sm text-slate-600">Track unit issues, repair status, costs, and resolution dates.</p>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin">Back to admin</Link>
@@ -98,19 +105,19 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
           <CardHeader>
             <CardTitle>Create maintenance issue</CardTitle>
             <CardDescription>
-              Room, issue title, reported date, and status are required. Estimated cost is not included in profit.
+              Unit, issue title, reported date, and status are required. Estimated cost is not included in profit.
               Super admins can record an actual paid cost to create one linked expense.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form action={createMaintenanceLog} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="room_id">Room</Label>
+                <Label htmlFor="room_id">Unit</Label>
                 <Select id="room_id" name="room_id" required>
                   <option value="">Select room</option>
                   {(rooms ?? []).map((room) => (
                     <option key={room.id} value={room.id}>
-                      {room.name} ({formatEnumLabel(room.status)})
+                      {formatUnitRoomLabel(room)} ({formatEnumLabel(room.status)})
                     </option>
                   ))}
                 </Select>
@@ -203,7 +210,7 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                     <div>
                       <h2 className="font-semibold text-brand-deep">{log.issue_title}</h2>
                       <p className="text-sm text-slate-600">
-                        {roomNames.get(log.room_id) ?? "Assigned room"} - reported {log.reported_date}
+                        {roomNames.get(log.room_id) ?? "Assigned unit"} - reported {log.reported_date}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -220,9 +227,9 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
                       </>
                     ) : null}
                     <div>
-                      <Select name="room_id" defaultValue={log.room_id} aria-label="Room">
+                      <Select name="room_id" defaultValue={log.room_id} aria-label="Unit">
                         {(rooms ?? []).map((room) => (
-                          <option key={room.id} value={room.id}>{room.name}</option>
+                          <option key={room.id} value={room.id}>{formatUnitRoomLabel(room)}</option>
                         ))}
                       </Select>
                       <FieldError message={fieldError(params, "room_id", log.id)} />

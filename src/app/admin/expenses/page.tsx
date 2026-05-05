@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { requireRole } from "@/lib/auth/guards";
 import { superAdminRoles } from "@/lib/auth/roles";
-import { expenseCategoryOptions, formatEnumLabel, formatPkr, paymentMethodOptions } from "@/lib/check-in/options";
+import { expenseCategoryOptions, formatEnumLabel, formatPkr, formatUnitRoomLabel, paymentMethodOptions } from "@/lib/check-in/options";
 
 export const metadata: Metadata = {
   title: "Expenses",
@@ -25,10 +25,10 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
   const { supabase } = await requireRole(superAdminRoles);
   const [{ data: expenses, error }, { data: rooms }, { data: maintenanceLinks }] = await Promise.all([
     supabase.from("expenses").select("*").order("expense_date", { ascending: false }),
-    supabase.from("rooms").select("id,name").order("name"),
+    supabase.from("rooms").select("id,unit_number,name").order("unit_number", { nullsFirst: false }),
     supabase.from("room_maintenance_logs").select("linked_expense_id,issue_title").not("linked_expense_id", "is", null),
   ]);
-  const roomNames = new Map((rooms ?? []).map((room) => [room.id, room.name]));
+  const roomNames = new Map((rooms ?? []).map((room) => [room.id, formatUnitRoomLabel(room)]));
   const maintenanceExpenseTitles = new Map((maintenanceLinks ?? []).map((log) => [log.linked_expense_id, log.issue_title]));
 
   return (
@@ -85,11 +85,11 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="related_room_id">Related room</Label>
+                <Label htmlFor="related_room_id">Related unit</Label>
                 <Select id="related_room_id" name="related_room_id">
-                  <option value="">No room</option>
+                  <option value="">No unit</option>
                   {(rooms ?? []).map((room) => (
-                    <option key={room.id} value={room.id}>{room.name}</option>
+                    <option key={room.id} value={room.id}>{formatUnitRoomLabel(room)}</option>
                   ))}
                 </Select>
               </div>
@@ -147,17 +147,17 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
                     </Select>
-                    <Select name="related_room_id" defaultValue={expense.related_room_id ?? ""} aria-label="Related room">
-                      <option value="">No room</option>
+                    <Select name="related_room_id" defaultValue={expense.related_room_id ?? ""} aria-label="Related unit">
+                      <option value="">No unit</option>
                       {(rooms ?? []).map((room) => (
-                        <option key={room.id} value={room.id}>{room.name}</option>
+                        <option key={room.id} value={room.id}>{formatUnitRoomLabel(room)}</option>
                       ))}
                     </Select>
                     <Input name="receipt" type="file" accept=".jpg,.jpeg,.png,.pdf" aria-label="Replace receipt" />
                     <Textarea name="notes" defaultValue={expense.notes ?? ""} aria-label="Notes" />
                   </div>
                   <p className="mt-3 text-xs text-slate-500">
-                    Room: {expense.related_room_id ? roomNames.get(expense.related_room_id) ?? "Assigned room" : "None"}
+                    Unit: {expense.related_room_id ? roomNames.get(expense.related_room_id) ?? "Assigned unit" : "None"}
                     {maintenanceExpenseTitles.has(expense.id) ? ` - Linked maintenance: ${maintenanceExpenseTitles.get(expense.id)}` : ""}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">

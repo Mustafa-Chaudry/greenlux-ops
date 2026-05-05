@@ -22,6 +22,7 @@ import {
   paymentMethodOptions,
   paymentStatusOptions,
 } from "@/lib/check-in/options";
+import { findUnitAssignmentConflict, formatUnitConflictMessage } from "@/lib/check-in/unit-availability";
 import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/uploads";
 import type { Database } from "@/types/database";
 
@@ -158,7 +159,34 @@ export async function updateGuestRecord(formData: FormData) {
   }
 
   const { id, cnic_verified, payment_verified, payment_status, ...payload } = parsed.data;
-  const { data: currentRecord } = await supabase.from("guest_checkins").select("status").eq("id", id).single();
+  const { data: currentRecord, error: currentRecordError } = await supabase
+    .from("guest_checkins")
+    .select("status,assigned_room_id,check_in_date,check_out_date")
+    .eq("id", id)
+    .single();
+
+  if (currentRecordError || !currentRecord) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(currentRecordError?.message ?? "Guest record not found.")}`);
+  }
+
+  if (payload.assigned_room_id && payload.assigned_room_id !== currentRecord.assigned_room_id) {
+    let conflict: Awaited<ReturnType<typeof findUnitAssignmentConflict>> = null;
+
+    try {
+      conflict = await findUnitAssignmentConflict(supabase, {
+        assignedRoomId: payload.assigned_room_id,
+        checkInDate: currentRecord.check_in_date,
+        checkOutDate: currentRecord.check_out_date,
+        excludeCheckinId: id,
+      });
+    } catch (error) {
+      redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(error instanceof Error ? error.message : "Could not check unit availability.")}`);
+    }
+
+    if (conflict) {
+      redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(formatUnitConflictMessage(conflict))}`);
+    }
+  }
 
   let cnicVerified = cnic_verified;
   const paymentVerified = payment_status === "paid" ? true : payment_verified;
@@ -646,7 +674,7 @@ export async function extendGuestStay(formData: FormData) {
   const values = parsed.data;
   const { data: record, error: recordError } = await supabase
     .from("guest_checkins")
-    .select("check_out_date,total_expected_amount_pkr,agreed_room_rate_pkr,amount_paid_pkr,internal_notes,payment_verified")
+    .select("assigned_room_id,check_in_date,check_out_date,total_expected_amount_pkr,agreed_room_rate_pkr,amount_paid_pkr,internal_notes,payment_verified")
     .eq("id", values.id)
     .single();
 
@@ -656,6 +684,25 @@ export async function extendGuestStay(formData: FormData) {
 
   if (values.new_check_out_date <= record.check_out_date) {
     redirect(`/admin/guest-records/${values.id}?message=${encodeURIComponent("New check-out date must be after the current check-out date.")}`);
+  }
+
+  if (record.assigned_room_id) {
+    let conflict: Awaited<ReturnType<typeof findUnitAssignmentConflict>> = null;
+
+    try {
+      conflict = await findUnitAssignmentConflict(supabase, {
+        assignedRoomId: record.assigned_room_id,
+        checkInDate: record.check_in_date,
+        checkOutDate: values.new_check_out_date,
+        excludeCheckinId: values.id,
+      });
+    } catch (error) {
+      redirect(`/admin/guest-records/${values.id}?message=${encodeURIComponent(error instanceof Error ? error.message : "Could not check unit availability.")}`);
+    }
+
+    if (conflict) {
+      redirect(`/admin/guest-records/${values.id}?message=${encodeURIComponent(formatUnitConflictMessage(conflict))}`);
+    }
   }
 
   const currentExpected = record.total_expected_amount_pkr ?? record.agreed_room_rate_pkr ?? 0;

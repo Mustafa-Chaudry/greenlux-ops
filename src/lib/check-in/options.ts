@@ -177,6 +177,10 @@ export function formatPkr(value: number | null | undefined) {
   return `Rs ${new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(value)}`;
 }
 
+export function formatUnitRoomLabel(room: { unit_number: number | null; name: string }) {
+  return room.unit_number ? `Unit ${room.unit_number} - ${room.name}` : room.name;
+}
+
 export function getExpectedAmount(checkin: {
   total_expected_amount_pkr: number | null;
   agreed_room_rate_pkr: number | null;
@@ -300,7 +304,7 @@ export function getApprovalMissingRequirements(checkin: {
   const missing: string[] = [];
 
   if (!checkin.assigned_room_id) {
-    missing.push("Room not assigned");
+    missing.push("Unit not assigned");
   }
 
   if (!checkin.cnic_verified) {
@@ -369,7 +373,7 @@ export function getActionRequiredLabel(checkin: {
   }
 
   if (!checkin.assigned_room_id) {
-    return "Assign room";
+    return "Assign unit";
   }
 
   if (!checkin.cnic_verified) {

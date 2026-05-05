@@ -34,6 +34,7 @@ export type Database = {
       rooms: {
         Row: {
           id: string;
+          unit_number: number | null;
           name: string;
           slug: string;
           type: Database["public"]["Enums"]["room_type"];
@@ -48,6 +49,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          unit_number?: number | null;
           name: string;
           slug: string;
           type: Database["public"]["Enums"]["room_type"];

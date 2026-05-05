@@ -241,11 +241,29 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
         </DataTable>
 
         <DataTable
-          title="Room Performance"
-          description="Shows which rooms are earning, carrying balance, or currently occupied."
-          headers={["Room", "Bookings", "Expected revenue", "Paid revenue", "Outstanding", "Avg paid / booking", "Active stays"]}
+          title="Unit Performance"
+          description="Shows which real units are earning, carrying balance, or currently occupied."
+          headers={["Unit", "Bookings", "Expected revenue", "Paid revenue", "Outstanding", "Avg paid / booking", "Active stays"]}
         >
           {report.roomRows.map((row) => (
+            <tr key={row.key} className="bg-white">
+              <td className="px-4 py-3 font-medium text-brand-deep">{row.label}</td>
+              <td className="px-4 py-3">{row.bookings}</td>
+              <td className="px-4 py-3">{formatPkr(row.expectedRevenue)}</td>
+              <td className="px-4 py-3">{formatPkr(row.paidRevenue)}</td>
+              <td className="px-4 py-3">{formatPkr(row.outstandingBalance)}</td>
+              <td className="px-4 py-3">{formatPkr(row.averagePaidPerBooking)}</td>
+              <td className="px-4 py-3">{row.activeStays}</td>
+            </tr>
+          ))}
+        </DataTable>
+
+        <DataTable
+          title="Category Summary"
+          description="Groups unit performance by existing room category/tag after unit-level calculation."
+          headers={["Category", "Bookings", "Expected revenue", "Paid revenue", "Outstanding", "Avg paid / booking", "Active stays"]}
+        >
+          {report.categoryRows.map((row) => (
             <tr key={row.key} className="bg-white">
               <td className="px-4 py-3 font-medium text-brand-deep">{row.label}</td>
               <td className="px-4 py-3">{row.bookings}</td>
@@ -309,8 +327,8 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
           </Card>
 
           <DataTable
-            title="Maintenance Expenses by Room"
-            headers={["Room", "Expense entries", "Recorded expenses"]}
+            title="Maintenance Expenses by Unit"
+            headers={["Unit", "Expense entries", "Recorded expenses"]}
             minWidth={480}
           >
             {report.maintenance.expenseByRoomRows.length ? (

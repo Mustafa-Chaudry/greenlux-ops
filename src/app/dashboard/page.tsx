@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUserProfile } from "@/lib/auth/guards";
 import { canAccessManagement } from "@/lib/auth/roles";
-import { checkinStatusTone, formatEnumLabel, guestCheckinStatusLabels } from "@/lib/check-in/options";
+import { checkinStatusTone, formatEnumLabel, formatUnitRoomLabel, guestCheckinStatusLabels } from "@/lib/check-in/options";
 
 function verificationBadge(verified: boolean) {
   return <Badge tone={verified ? "success" : "warning"}>{verified ? "Verified" : "Pending"}</Badge>;
@@ -33,9 +33,9 @@ export default async function DashboardPage() {
     new Set((checkins ?? []).map((checkin) => checkin.assigned_room_id).filter((id): id is string => Boolean(id))),
   );
   const { data: rooms } = assignedRoomIds.length
-    ? await supabase.from("rooms").select("id,name").in("id", assignedRoomIds)
+    ? await supabase.from("rooms").select("id,unit_number,name").in("id", assignedRoomIds)
     : { data: [] };
-  const roomNames = new Map((rooms ?? []).map((room) => [room.id, room.name]));
+  const roomNames = new Map((rooms ?? []).map((room) => [room.id, formatUnitRoomLabel(room)]));
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
                       </p>
                       <p className="flex items-center gap-2 text-slate-600">
                         <Home className="h-4 w-4 text-brand-fresh" aria-hidden="true" />
-                        Room {checkin.assigned_room_id ? roomNames.get(checkin.assigned_room_id) ?? "Assigned" : "Not assigned yet"}
+                        Unit {checkin.assigned_room_id ? roomNames.get(checkin.assigned_room_id) ?? "Assigned" : "Not assigned yet"}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 lg:justify-end">

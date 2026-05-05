@@ -14,6 +14,7 @@ import {
   checkinStatusTone,
   formatEnumLabel,
   formatPkr,
+  formatUnitRoomLabel,
   getActionRequiredLabel,
   getBalanceDue,
   getCheckinStatusLabel,
@@ -200,9 +201,9 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
     new Set(visibleRecords.map((record) => record.assigned_room_id).filter((id): id is string => Boolean(id))),
   );
   const { data: rooms } = assignedRoomIds.length
-    ? await supabase.from("rooms").select("id,name").in("id", assignedRoomIds)
+    ? await supabase.from("rooms").select("id,unit_number,name").in("id", assignedRoomIds)
     : { data: [] };
-  const roomNames = new Map((rooms ?? []).map((room) => [room.id, room.name]));
+  const roomNames = new Map((rooms ?? []).map((room) => [room.id, formatUnitRoomLabel(room)]));
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -319,7 +320,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
                       <th className="px-4 py-3">Expected</th>
                       <th className="px-4 py-3">Paid</th>
                       <th className="px-4 py-3">Balance</th>
-                      <th className="px-4 py-3">Room</th>
+                      <th className="px-4 py-3">Unit</th>
                       <th className="px-4 py-3">CNIC</th>
                       <th className="px-4 py-3">Proof</th>
                       <th className="px-4 py-3">Created</th>
@@ -356,7 +357,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
                         <td className="px-4 py-3">{formatPkr(getExpectedAmount(record))}</td>
                         <td className="px-4 py-3">{formatPkr(record.amount_paid_pkr)}</td>
                         <td className="px-4 py-3">{formatPkr(getBalanceDue(record))}</td>
-                        <td className="px-4 py-3">{record.assigned_room_id ? roomNames.get(record.assigned_room_id) ?? "Assigned" : "Not assigned"}</td>
+                        <td className="px-4 py-3">{record.assigned_room_id ? roomNames.get(record.assigned_room_id) ?? "Assigned unit" : "Not assigned"}</td>
                         <td className="px-4 py-3">{verifiedBadge(record.cnic_verified)}</td>
                         <td className="px-4 py-3">{verifiedBadge(record.payment_verified)}</td>
                         <td className="px-4 py-3">{new Date(record.created_at).toLocaleDateString()}</td>

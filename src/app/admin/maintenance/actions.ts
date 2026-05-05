@@ -34,7 +34,7 @@ const nullableString = (value: FormDataEntryValue | null) => {
 const maintenanceSchema = z
   .object({
     id: z.string().optional(),
-    room_id: z.string().min(1, "Room is required.").pipe(z.uuid("Select a valid room.")),
+    room_id: z.string().min(1, "Unit is required.").pipe(z.uuid("Select a valid unit.")),
     issue_title: z.string().trim().min(1, "Issue title is required."),
     issue_description: z.string().nullable(),
     status: z.enum(maintenanceStatusOptions.map((option) => option.value)),

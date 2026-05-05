@@ -12,6 +12,7 @@ import {
   paymentMethodOptions,
   purposeOptions,
 } from "@/lib/check-in/options";
+import { findUnitAssignmentConflict, formatUnitConflictMessage } from "@/lib/check-in/unit-availability";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/uploads";
 import type { Database } from "@/types/database";
@@ -282,6 +283,24 @@ export async function createManualGuest(formData: FormData) {
     phone: values.phone,
   });
   const expectedAmount = values.total_expected_amount_pkr ?? values.agreed_room_rate_pkr;
+
+  if (values.assigned_room_id) {
+    let conflict: Awaited<ReturnType<typeof findUnitAssignmentConflict>> = null;
+
+    try {
+      conflict = await findUnitAssignmentConflict(supabase, {
+        assignedRoomId: values.assigned_room_id,
+        checkInDate: values.check_in_date,
+        checkOutDate: values.check_out_date,
+      });
+    } catch (error) {
+      redirect(`/admin/guests/new?message=${encodeURIComponent(error instanceof Error ? error.message : "Could not check unit availability.")}`);
+    }
+
+    if (conflict) {
+      redirect(`/admin/guests/new?message=${encodeURIComponent(formatUnitConflictMessage(conflict))}`);
+    }
+  }
 
   const { error } = await supabase.from("guest_checkins").insert({
     id: guestId,

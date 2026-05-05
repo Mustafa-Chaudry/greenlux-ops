@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   bookingSourceOptions,
   formatEnumLabel,
+  formatUnitRoomLabel,
   getBalanceDue,
   isReadyToApprove,
   paymentStatusOptions,
@@ -112,9 +113,9 @@ export async function GET(request: NextRequest) {
     new Set(visibleRecords.map((record) => record.assigned_room_id).filter((id): id is string => Boolean(id))),
   );
   const { data: rooms } = assignedRoomIds.length
-    ? await supabase.from("rooms").select("id,name").in("id", assignedRoomIds)
+    ? await supabase.from("rooms").select("id,unit_number,name").in("id", assignedRoomIds)
     : { data: [] };
-  const roomNames = new Map((rooms ?? []).map((room) => [room.id, room.name]));
+  const roomNames = new Map((rooms ?? []).map((room) => [room.id, formatUnitRoomLabel(room)]));
 
   const headers = [
     "guest name",
@@ -126,7 +127,7 @@ export async function GET(request: NextRequest) {
     "number of guests",
     "booking source",
     "payment method",
-    "assigned room",
+    "assigned unit",
     "agreed_room_rate_pkr",
     "advance_paid_amount_pkr",
     "total_expected_amount_pkr",
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
     record.number_of_guests,
     formatEnumLabel(record.booking_source),
     formatEnumLabel(record.payment_method),
-    record.assigned_room_id ? roomNames.get(record.assigned_room_id) ?? "Assigned" : "",
+    record.assigned_room_id ? roomNames.get(record.assigned_room_id) ?? "Assigned unit" : "",
     toNumberCell(record.agreed_room_rate_pkr),
     toNumberCell(record.advance_paid_amount_pkr),
     toNumberCell(record.total_expected_amount_pkr),

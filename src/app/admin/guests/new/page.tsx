@@ -15,6 +15,7 @@ import {
   checkinStatusOptions,
   formatEnumLabel,
   formatPkr,
+  formatUnitRoomLabel,
   getBusinessTodayDate,
   guestTagOptions,
   paymentMethodOptions,
@@ -42,7 +43,10 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
   const { supabase } = await requireRole(staffGuestCreationRoles);
   const today = getBusinessTodayDate();
   const tomorrow = addDaysIso(today, 1);
-  const { data: rooms } = await supabase.from("rooms").select("id,name,status,base_price_pkr").order("name");
+  const { data: rooms } = await supabase
+    .from("rooms")
+    .select("id,unit_number,name,status,base_price_pkr")
+    .order("unit_number", { nullsFirst: false });
   const paymentOptions = paymentStatusOptions.filter((option) => option.value !== "refunded");
   const initialStatusOptions = checkinStatusOptions.filter(
     (option) => option.value === "submitted" || option.value === "under_review",
@@ -175,17 +179,17 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Room and payment optional</CardTitle>
-              <CardDescription>Staff can assign a room and add rates now, or finish these from the record detail page.</CardDescription>
+              <CardTitle>Unit and payment optional</CardTitle>
+              <CardDescription>Staff can assign a unit and add rates now, or finish these from the record detail page.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="assigned_room_id">Assign room optional</Label>
+                <Label htmlFor="assigned_room_id">Assign unit optional</Label>
                 <Select id="assigned_room_id" name="assigned_room_id">
                   <option value="">Assign later</option>
                   {(rooms ?? []).map((room) => (
                     <option key={room.id} value={room.id}>
-                      {room.name} - {formatEnumLabel(room.status)} - {formatPkr(room.base_price_pkr)}
+                      {formatUnitRoomLabel(room)} - {formatEnumLabel(room.status)} - {formatPkr(room.base_price_pkr)}
                     </option>
                   ))}
                 </Select>
