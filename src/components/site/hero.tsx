@@ -1,13 +1,12 @@
 import Image from "next/image";
-import { BedDouble, MapPin, MessageCircle, ShieldCheck } from "lucide-react";
+import { BedDouble, MessageCircle, ShieldCheck } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
 
-const realnessStrip = [
-  { label: "Westridge, Rawalpindi", icon: MapPin },
-  { label: "Rooms, studios, apartments", icon: BedDouble },
-  { label: "WhatsApp-first booking", icon: MessageCircle },
-  { label: "Online check-in after confirmation", icon: ShieldCheck },
+const trustBullets = [
+  { label: "Reply within minutes", icon: MessageCircle },
+  { label: "Direct pricing (no platform fees)", icon: ShieldCheck },
+  { label: "Room suggestions based on your stay", icon: BedDouble },
 ];
 
 export function Hero() {
@@ -31,11 +30,11 @@ export function Hero() {
             {siteConfig.tagline}
           </p>
           <h1 className="font-serif text-5xl font-semibold leading-[0.98] sm:text-6xl lg:text-7xl">
-            Quiet, clean stays in Rawalpindi, managed from booking to arrival.
+            Thoughtfully managed stays in Rawalpindi — designed for calm, privacy, and control.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl sm:leading-9">
-            Choose a room, studio, or apartment. Message us on WhatsApp for availability, then complete online check-in
-            before you arrive.
+            Chosen by overseas families, international visitors, and short-stay guests who want a clean, quiet base with
+            direct support — without the uncertainty of typical rentals.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <CTAButton
@@ -64,8 +63,8 @@ export function Hero() {
               Already booked? Complete online check-in
             </CTAButton>
           </div>
-          <div className="mt-8 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {realnessStrip.map((item) => (
+          <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-3">
+            {trustBullets.map((item) => (
               <div
                 key={item.label}
                 className="flex items-center gap-3 rounded-2xl border border-white/18 bg-white/12 px-4 py-3 backdrop-blur-sm"

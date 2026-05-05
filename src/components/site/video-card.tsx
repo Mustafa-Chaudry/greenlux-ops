@@ -28,13 +28,24 @@ export function VideoCard({ video, featured = false, label = "Video tour" }: Vid
         aria-label={`Play ${video.title}`}
       >
         <span className={cn("relative block bg-[#f7f1e6]", featured ? "aspect-[4/5] lg:aspect-auto lg:h-full" : "aspect-[4/3]")}>
-          <Image
-            src={video.poster}
-            alt={`${video.title} poster`}
-            fill
-            sizes={featured ? "(min-width: 1024px) 45vw, 100vw" : "(min-width: 1024px) 24vw, 100vw"}
-            className="object-cover transition duration-700 group-hover:scale-[1.03]"
-          />
+          {video.poster ? (
+            <Image
+              src={video.poster}
+              alt={`${video.title} poster`}
+              fill
+              sizes={featured ? "(min-width: 1024px) 45vw, 100vw" : "(min-width: 1024px) 24vw, 100vw"}
+              className="object-cover transition duration-700 group-hover:scale-[1.03]"
+            />
+          ) : (
+            <video
+              src={video.src}
+              muted
+              playsInline
+              preload="metadata"
+              className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]"
+              aria-label={`${video.title} preview`}
+            />
+          )}
           <span className="absolute inset-0 bg-gradient-to-t from-brand-deep/75 via-brand-deep/15 to-transparent" />
           <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-brand-deep shadow-sm">
             {video.durationLabel}

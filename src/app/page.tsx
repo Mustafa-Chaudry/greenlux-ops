@@ -27,11 +27,47 @@ const guideIcons: Record<GuideIcon, typeof MapPin> = {
   passport: Plane,
 };
 
+const visitIntents = [
+  {
+    label: "Visiting family",
+    message:
+      "Hi GreenLux Residency, I am visiting family in Rawalpindi. Please suggest the right stay for my dates.",
+  },
+  {
+    label: "Medical visit",
+    message:
+      "Hi GreenLux Residency, I am coming for a medical visit. Please suggest a quiet stay that fits my guest count and dates.",
+  },
+  {
+    label: "Short stay (1-3 nights)",
+    message:
+      "Hi GreenLux Residency, I need a short stay for 1-3 nights. Please share suitable rooms and direct rates.",
+  },
+  {
+    label: "Work trip",
+    message:
+      "Hi GreenLux Residency, I am coming for a work trip. Please suggest a quiet room, studio, or apartment with WiFi.",
+  },
+  {
+    label: "Coming from abroad",
+    message:
+      "Hi GreenLux Residency, I am coming from abroad. Please suggest the best stay and arrival guidance for my dates.",
+  },
+];
+
+const guestMentionHighlights = [
+  "Clean and well-kept rooms",
+  "Quiet residential location",
+  "Responsive and helpful host",
+];
+
 export default function HomePage() {
   return (
     <SiteShell>
       <main>
         <Hero />
+
+        <TestimonialVideoSection testimonials={approvedVideoTestimonials} className="bg-brand-ivory" />
 
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -99,6 +135,31 @@ export default function HomePage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="grid gap-8 rounded-[2rem] border border-brand-deep/10 bg-white p-6 shadow-sm lg:grid-cols-[0.72fr_1.28fr] lg:p-10">
+            <SectionHeading
+              eyebrow="Help me choose"
+              title="Tell us your visit — we’ll suggest the right stay"
+              description="Send one message with your reason for visiting. GreenLux can suggest a room, studio, or apartment before you commit."
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visitIntents.map((intent) => (
+                <CTAButton
+                  key={intent.label}
+                  href={getWhatsAppHref(intent.message)}
+                  external
+                  whatsapp
+                  variant="outline"
+                  showArrow
+                  className="justify-between bg-brand-ivory text-left"
+                >
+                  {intent.label}
+                </CTAButton>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <SectionHeading
             eyebrow="What guests say"
             title="Platform presence plus real guest themes."
@@ -107,10 +168,21 @@ export default function HomePage() {
           />
           <div className="mt-10 rounded-[1.75rem] border border-brand-deep/10 bg-brand-ivory p-5 shadow-sm sm:p-7">
             <RatingCards ratings={homepageRatings} />
-            <p className="mt-5 text-center text-xs leading-5 text-slate-600">
-              Ratings vary by platform and listing. Latest public snapshot; guests should check live platforms for
-              current scores.
-            </p>
+            <div className="mt-6 grid gap-4 rounded-[1.25rem] bg-white p-5 md:grid-cols-[0.75fr_1.25fr] md:items-center">
+              <div>
+                <p className="font-serif text-2xl font-semibold text-brand-deep">Guests consistently mention:</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Direct communication available before arrival via WhatsApp.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {guestMentionHighlights.map((highlight) => (
+                  <div key={highlight} className="rounded-2xl bg-brand-ivory px-4 py-3 text-sm font-bold text-brand-deep">
+                    {highlight}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="mt-8 grid gap-3 md:grid-cols-5">
             {platformTrustSignals.map((signal) => (
@@ -122,13 +194,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        <TestimonialVideoSection testimonials={approvedVideoTestimonials} className="bg-brand-ivory" />
-
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <SectionHeading
             eyebrow="Written notes"
             title="Short notes from real stays."
-            description="No names, ratings, or quotes are added unless already available from approved GreenLux material or platform listing snapshots."
+            description="Short public review excerpts are shown with source labels, without adding names or extra claims."
             align="center"
           />
           <div className="mt-10 grid gap-4 md:grid-cols-3">

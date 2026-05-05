@@ -31,7 +31,7 @@ Videos in `videos/` are GreenLux-provided local assets. They are referenced from
 - `gate-opening-building-shots-night-landscape.mp4` - longer night exterior context, used on location.
 - `gate-driveway-parking-night.mp4` - retained locally but not used in the public UI yet.
 
-No poster frames or compressed video versions were generated in this pass because ffmpeg/ffprobe are not available in the local environment. Existing GreenLux still images are used as poster images. Original video files remain intact.
+No poster frames or compressed video versions were generated in this pass because ffmpeg/ffprobe are not available in the local environment. Existing GreenLux still images are used as poster images for property tour videos. Original video files remain intact.
 
 ## Approved Video Testimonials
 
@@ -46,7 +46,7 @@ The following Chinese-language testimonial files are present in `videos/` but ar
 - `videos/Chinese-male-testimonial-in-chinese.mp4`
 - `videos/Zang-male-testimonial-in-chinese.mp4`
 
-No guest names or direct quotes are shown for video testimonials because verified transcripts were not provided.
+No guest names or direct quotes are shown for video testimonials because verified transcripts were not provided. Testimonial cards intentionally do not use GreenLux property images as thumbnails; when no verified guest poster still is available, the local testimonial video itself is used as the preview frame so guests see the actual approved guest video.
 
 ## Public Rating Snapshots
 
@@ -58,7 +58,7 @@ The prototype uses the following provided public listing snapshots:
 - Airbnb host signal: `Superhost`, approximately `4.89 / 5`, `91-92 reviews shown on listings`.
 - Skyscanner: `4.6 / 5`, `Excellent`, `7 reviews`.
 
-Ratings vary by platform and listing. Guests should check live platforms for current scores.
+These ratings are shown as platform/listing snapshots rather than a combined score.
 
 ## Location and Guide Visuals
 

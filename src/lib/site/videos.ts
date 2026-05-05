@@ -5,7 +5,7 @@ export type SiteVideo = {
   title: string;
   description: string;
   src: string;
-  poster: string;
+  poster?: string;
   durationLabel: string;
   orientation: "landscape" | "portrait";
   quality: "good" | "usable" | "weak";
