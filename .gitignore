@@ -29,6 +29,9 @@ yarn-error.log*
 pnpm-debug.log*
 .next-dev.*.log
 
+# local backups / exports
+backups/
+
 # system
 .DS_Store
 Thumbs.db
