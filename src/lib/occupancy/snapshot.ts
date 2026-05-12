@@ -27,8 +27,10 @@ type CheckinRow = Pick<
 >;
 type MaintenanceRow = Pick<Database["public"]["Tables"]["room_maintenance_logs"]["Row"], "id" | "room_id" | "issue_title" | "status">;
 type ChargeRow = Pick<Database["public"]["Tables"]["guest_charges"]["Row"], "guest_checkin_id" | "total_amount_pkr" | "is_paid">;
+type DocumentRow = Pick<Database["public"]["Tables"]["guest_documents"]["Row"], "checkin_id" | "document_type" | "document_status">;
 
 export type OccupancyStatus = "vacant" | "occupied" | "due_out_today" | "reserved_upcoming" | "needs_attention" | "maintenance";
+export type VerificationSignal = "verified" | "pending" | "missing" | "rejected";
 
 export const occupancyStatusLabels: Record<OccupancyStatus, string> = {
   vacant: "Vacant",
@@ -54,9 +56,15 @@ export type UnitOccupancyRow = {
   status: OccupancyStatus;
   currentStay: CheckinRow | null;
   upcomingStay: CheckinRow | null;
+  departedToday: CheckinRow | null;
   openMaintenance: MaintenanceRow | null;
   attentionReasons: string[];
   outstandingBalance: number;
+  idVerificationStatus: VerificationSignal;
+  paymentVerificationStatus: VerificationSignal;
+  arrivalToday: boolean;
+  departureToday: boolean;
+  turnoverNeeded: boolean;
 };
 
 export type OccupancySnapshot = {
@@ -67,6 +75,7 @@ export type OccupancySnapshot = {
     occupiedUnits: number;
     vacantUnits: number;
     dueOutToday: number;
+    arrivingToday: number;
     upcomingArrivals: number;
     needsAttentionUnits: number;
     maintenanceUnits: number;
@@ -107,12 +116,14 @@ function getOutstandingBalance(checkin: CheckinRow, charges: ChargeRow[]) {
 
 function getAttentionReasons({
   checkin,
-  hasRejectedDocument,
   outstandingBalance,
+  idVerificationStatus,
+  paymentVerificationStatus,
 }: {
   checkin: CheckinRow | null;
-  hasRejectedDocument: boolean;
   outstandingBalance: number;
+  idVerificationStatus: VerificationSignal;
+  paymentVerificationStatus: VerificationSignal;
 }) {
   if (!checkin) {
     return [];
@@ -120,16 +131,20 @@ function getAttentionReasons({
 
   const reasons: string[] = [];
 
-  if (!checkin.cnic_verified) {
-    reasons.push("CNIC pending");
+  if (idVerificationStatus === "rejected") {
+    reasons.push("ID rejected");
+  } else if (idVerificationStatus === "missing") {
+    reasons.push("ID missing");
+  } else if (idVerificationStatus === "pending") {
+    reasons.push("ID pending");
   }
 
-  if (!checkin.payment_verified) {
-    reasons.push("Payment proof pending");
-  }
-
-  if (hasRejectedDocument) {
-    reasons.push("Document issue");
+  if (paymentVerificationStatus === "rejected") {
+    reasons.push("Payment rejected");
+  } else if (paymentVerificationStatus === "missing") {
+    reasons.push("Payment missing");
+  } else if (paymentVerificationStatus === "pending") {
+    reasons.push("Payment pending");
   }
 
   if (outstandingBalance > 0) {
@@ -157,6 +172,34 @@ function sortByCheckout(a: CheckinRow, b: CheckinRow) {
 
 function sortByCheckin(a: CheckinRow, b: CheckinRow) {
   return a.check_in_date.localeCompare(b.check_in_date);
+}
+
+function documentStatusForCheckin({
+  checkin,
+  documents,
+  verified,
+  documentTypes,
+}: {
+  checkin: CheckinRow | null;
+  documents: DocumentRow[];
+  verified: boolean;
+  documentTypes: DocumentRow["document_type"][];
+}): VerificationSignal {
+  if (!checkin) {
+    return "missing";
+  }
+
+  const matchingDocuments = documents.filter((document) => documentTypes.includes(document.document_type));
+
+  if (matchingDocuments.some((document) => document.document_status === "rejected")) {
+    return "rejected";
+  }
+
+  if (verified) {
+    return "verified";
+  }
+
+  return matchingDocuments.length > 0 ? "pending" : "missing";
 }
 
 function getUnitStatus({
@@ -198,7 +241,7 @@ function getUnitStatus({
 }
 
 export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, today = getBusinessTodayDate()): Promise<OccupancySnapshot> {
-  const [roomsResult, checkinsResult, maintenanceResult] = await Promise.all([
+  const [roomsResult, checkinsResult, departuresResult, maintenanceResult] = await Promise.all([
     supabase
       .from("rooms")
       .select("id,unit_number,name,type,status")
@@ -211,11 +254,20 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
       .not("assigned_room_id", "is", null)
       .neq("status", "checked_out"),
     supabase
+      .from("guest_checkins")
+      .select(
+        "id,assigned_room_id,full_name,check_in_date,check_out_date,status,cnic_verified,payment_verified,issue_type,guest_tag,total_expected_amount_pkr,agreed_room_rate_pkr,amount_paid_pkr",
+      )
+      .not("assigned_room_id", "is", null)
+      .eq("status", "checked_out")
+      .eq("check_out_date", today),
+    supabase
       .from("room_maintenance_logs")
       .select("id,room_id,issue_title,status")
       .in("status", ["reported", "in_progress"]),
   ]);
   const checkins = (checkinsResult.data ?? []) as CheckinRow[];
+  const departures = (departuresResult.data ?? []) as CheckinRow[];
   const checkinIds = checkins.map((checkin) => checkin.id);
   const [chargesResult, documentsResult] = checkinIds.length
     ? await Promise.all([
@@ -225,19 +277,23 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
           .in("guest_checkin_id", checkinIds),
         supabase
           .from("guest_documents")
-          .select("checkin_id")
-          .eq("document_status", "rejected")
+          .select("checkin_id,document_type,document_status")
           .in("checkin_id", checkinIds),
       ])
     : [{ data: [], error: null }, { data: [], error: null }];
 
   const chargesByCheckin = new Map<string, ChargeRow[]>();
   ((chargesResult.data ?? []) as ChargeRow[]).forEach((charge) => {
-    const charges = chargesByCheckin.get(charge.guest_checkin_id) ?? [];
-    charges.push(charge);
-    chargesByCheckin.set(charge.guest_checkin_id, charges);
+      const charges = chargesByCheckin.get(charge.guest_checkin_id) ?? [];
+      charges.push(charge);
+      chargesByCheckin.set(charge.guest_checkin_id, charges);
   });
-  const rejectedDocumentCheckins = new Set((documentsResult.data ?? []).map((document) => document.checkin_id));
+  const documentsByCheckin = new Map<string, DocumentRow[]>();
+  ((documentsResult.data ?? []) as DocumentRow[]).forEach((document) => {
+    const documents = documentsByCheckin.get(document.checkin_id) ?? [];
+    documents.push(document);
+    documentsByCheckin.set(document.checkin_id, documents);
+  });
   const checkinsByRoom = new Map<string, CheckinRow[]>();
   checkins.forEach((checkin) => {
     if (!checkin.assigned_room_id) {
@@ -247,6 +303,16 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
     const roomCheckins = checkinsByRoom.get(checkin.assigned_room_id) ?? [];
     roomCheckins.push(checkin);
     checkinsByRoom.set(checkin.assigned_room_id, roomCheckins);
+  });
+  const departuresByRoom = new Map<string, CheckinRow[]>();
+  departures.forEach((checkin) => {
+    if (!checkin.assigned_room_id) {
+      return;
+    }
+
+    const roomDepartures = departuresByRoom.get(checkin.assigned_room_id) ?? [];
+    roomDepartures.push(checkin);
+    departuresByRoom.set(checkin.assigned_room_id, roomDepartures);
   });
   const maintenanceByRoom = new Map<string, MaintenanceRow>();
   ((maintenanceResult.data ?? []) as MaintenanceRow[]).forEach((maintenance) => {
@@ -259,16 +325,34 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
     const roomCheckins = checkinsByRoom.get(room.id) ?? [];
     const currentStay = roomCheckins.filter((checkin) => isActiveStay(checkin, today)).sort(sortByCheckout)[0] ?? null;
     const upcomingStay = roomCheckins.filter((checkin) => isUpcomingStay(checkin, today)).sort(sortByCheckin)[0] ?? null;
+    const departedToday = (departuresByRoom.get(room.id) ?? []).sort(sortByCheckout)[0] ?? null;
     const displayStay = currentStay ?? upcomingStay;
     const charges = displayStay ? chargesByCheckin.get(displayStay.id) ?? [] : [];
     const outstandingBalance = displayStay ? getOutstandingBalance(displayStay, charges) : 0;
+    const displayDocuments = displayStay ? documentsByCheckin.get(displayStay.id) ?? [] : [];
+    const idVerificationStatus = documentStatusForCheckin({
+      checkin: displayStay,
+      documents: displayDocuments,
+      verified: Boolean(displayStay?.cnic_verified),
+      documentTypes: ["primary_cnic", "additional_guest_cnic"],
+    });
+    const paymentVerificationStatus = documentStatusForCheckin({
+      checkin: displayStay,
+      documents: displayDocuments,
+      verified: Boolean(displayStay?.payment_verified),
+      documentTypes: ["payment_proof"],
+    });
     const attentionReasons = getAttentionReasons({
       checkin: displayStay,
-      hasRejectedDocument: displayStay ? rejectedDocumentCheckins.has(displayStay.id) : false,
       outstandingBalance,
+      idVerificationStatus,
+      paymentVerificationStatus,
     });
     const openMaintenance = maintenanceByRoom.get(room.id) ?? null;
     const status = getUnitStatus({ room, currentStay, upcomingStay, openMaintenance, attentionReasons, today });
+    const arrivalToday = Boolean(displayStay && displayStay.check_in_date === today);
+    const departureToday = Boolean(currentStay?.check_out_date === today);
+    const turnoverNeeded = !currentStay && Boolean(departedToday);
 
     return {
       room,
@@ -276,9 +360,15 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
       status,
       currentStay,
       upcomingStay,
+      departedToday,
       openMaintenance,
       attentionReasons,
       outstandingBalance,
+      idVerificationStatus,
+      paymentVerificationStatus,
+      arrivalToday,
+      departureToday,
+      turnoverNeeded,
     };
   });
   const occupiedUnits = units.filter((unit) => unit.currentStay).length;
@@ -292,12 +382,13 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
       occupiedUnits,
       vacantUnits: units.filter((unit) => unit.status === "vacant").length,
       dueOutToday: units.filter((unit) => unit.status === "due_out_today").length,
+      arrivingToday: units.filter((unit) => unit.arrivalToday).length,
       upcomingArrivals: units.filter((unit) => unit.status === "reserved_upcoming").length,
       needsAttentionUnits: units.filter((unit) => unit.attentionReasons.length > 0).length,
       maintenanceUnits: units.filter((unit) => unit.status === "maintenance").length,
       occupancyPercentage: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
     },
-    errors: [roomsResult.error, checkinsResult.error, maintenanceResult.error, chargesResult.error, documentsResult.error]
+    errors: [roomsResult.error, checkinsResult.error, departuresResult.error, maintenanceResult.error, chargesResult.error, documentsResult.error]
       .filter((error): error is NonNullable<typeof error> => Boolean(error))
       .map((error) => error.message),
   };
