@@ -384,16 +384,34 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           <CardContent className="space-y-4">
             {bookingGroup ? (
               <>
-                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <InfoRow label="Lead guest/contact" value={`${bookingGroup.lead_guest_name} - ${bookingGroup.lead_guest_phone}`} />
-                  <InfoRow label="Lead email" value={bookingGroup.lead_guest_email} />
-                  <InfoRow label="Stay dates" value={formatStayRangeWithNights(bookingGroup.check_in_date, bookingGroup.check_out_date)} />
-                  <InfoRow label="Booking source" value={findLabel(bookingSourceOptions, bookingGroup.booking_source)} />
-                  <InfoRow label="Combined expected" value={formatPkr(combinedExpected)} />
-                  <InfoRow label="Combined paid" value={formatPkr(combinedPaid)} />
-                  <InfoRow label="Combined outstanding" value={formatPkr(combinedOutstanding)} />
-                  <InfoRow label="Linked stays" value={linkedStays.length} />
-                </dl>
+                <div className="rounded-lg border border-brand-sage bg-white p-4">
+                  <p className="font-semibold text-brand-deep">This room/stay amount</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    This stay remains the reportable room-level record for revenue, folio, documents, readiness, and cleaning.
+                  </p>
+                  <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <InfoRow label="This stay expected" value={formatPkr(financialSummary.totalExpected)} />
+                    <InfoRow label="This stay paid" value={formatPkr(financialSummary.totalPaid)} />
+                    <InfoRow label="This stay outstanding" value={formatPkr(financialSummary.outstanding)} />
+                  </dl>
+                </div>
+
+                <div className="rounded-lg border border-brand-sage bg-brand-ivory p-4">
+                  <p className="font-semibold text-brand-deep">Lead booking reference total</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Reference only. Reports currently calculate revenue from individual room stays to avoid double-counting.
+                  </p>
+                  <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <InfoRow label="Lead guest/contact" value={`${bookingGroup.lead_guest_name} - ${bookingGroup.lead_guest_phone}`} />
+                    <InfoRow label="Lead email" value={bookingGroup.lead_guest_email} />
+                    <InfoRow label="Stay dates" value={formatStayRangeWithNights(bookingGroup.check_in_date, bookingGroup.check_out_date)} />
+                    <InfoRow label="Booking source" value={findLabel(bookingSourceOptions, bookingGroup.booking_source)} />
+                    <InfoRow label="Lead expected reference" value={formatPkr(combinedExpected)} />
+                    <InfoRow label="Lead paid reference" value={formatPkr(combinedPaid)} />
+                    <InfoRow label="Lead outstanding reference" value={formatPkr(combinedOutstanding)} />
+                    <InfoRow label="Linked stays" value={linkedStays.length} />
+                  </dl>
+                </div>
 
                 <div className="rounded-lg border border-brand-sage bg-white p-4">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -987,6 +1005,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     <Label htmlFor="amount_paid_pkr">Amount paid</Label>
                     <Input id="amount_paid_pkr" name="amount_paid_pkr" type="number" min={0} defaultValue={record.amount_paid_pkr ?? ""} />
                   </div>
+                  {bookingGroup ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-2">
+                      For multi-room bookings, enter the amount for this room/stay only. Do not enter the full group total on every room.
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">

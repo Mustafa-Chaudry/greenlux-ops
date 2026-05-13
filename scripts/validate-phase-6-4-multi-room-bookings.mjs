@@ -49,6 +49,16 @@ test("admin creation can create or attach to a lead booking group", () => {
   assert.match(page, /Create new lead booking from this stay/, "staff must be able to create a group from the first room stay");
   assert.match(page, /booking_group_id/, "new guest form must offer existing booking groups");
   assert.match(page, /formatStayRangeWithNights/, "new guest form must show stay length in group choices");
+  assert.match(
+    page,
+    /For multi-room bookings, enter the amount for this room\/stay only\. Do not enter the full group total on every room\./,
+    "new guest form must warn staff to enter per-room stay amounts",
+  );
+  assert.match(
+    page,
+    /Lead booking totals are for management reference\. Reports currently calculate revenue from individual room stays to avoid double-counting\./,
+    "multi-room section must explain group totals are reference-only",
+  );
 
   assert.match(actions, /create_new_booking_group/, "create action must parse group creation intent");
   assert.match(actions, /\.from\("booking_groups"\)\s*\.insert/, "create action must create booking groups");
@@ -60,10 +70,15 @@ test("guest record detail shows and manages multi-room booking context", () => {
   const actions = sourceAt(guestRecordActionsPath, "src/app/admin/guest-records/actions.ts");
 
   assert.match(page, /Part of multi-room booking/, "guest detail must flag grouped stays");
+  assert.match(page, /This room\/stay amount/, "guest detail must separate this stay's amount");
+  assert.match(page, /Lead booking reference total/, "guest detail must identify group totals as reference-only");
   assert.match(page, /Linked rooms\/stays/, "guest detail must list linked stays");
-  assert.match(page, /Combined expected/, "guest detail must show combined expected amount");
-  assert.match(page, /Combined paid/, "guest detail must show combined paid amount");
-  assert.match(page, /Combined outstanding/, "guest detail must show combined outstanding amount");
+  assert.match(page, /This stay expected/, "guest detail must show this stay expected amount");
+  assert.match(page, /This stay paid/, "guest detail must show this stay paid amount");
+  assert.match(page, /This stay outstanding/, "guest detail must show this stay outstanding amount");
+  assert.match(page, /Lead expected reference/, "guest detail must show lead booking expected amount separately");
+  assert.match(page, /Lead paid reference/, "guest detail must show lead booking paid amount separately");
+  assert.match(page, /Lead outstanding reference/, "guest detail must show lead booking outstanding amount separately");
   assert.match(page, /Create multi-room booking from this stay/, "guest detail must allow grouping an existing stay");
   assert.match(page, /formatStayRangeWithNights/, "guest detail must show stay length");
 
@@ -81,6 +96,8 @@ test("room reality board and reporting remain stay-level", () => {
   assert.match(snapshot, /assigned_room_id/, "occupancy snapshot must remain room assignment based");
   assert.match(reports, /guest_checkins/, "reports must continue from stay-level guest_checkins");
   assert.doesNotMatch(reports, /booking_groups/, "Phase 6.4 must not switch reports to group-level revenue");
+  assert.doesNotMatch(reports, /\.from\("booking_groups"\)/, "reports must not read group totals for revenue");
+  assert.doesNotMatch(reports, /expected_total_amount|paid_total_amount/, "reports must not use booking group total column names");
 });
 
 test("booking source and stay length are available where touched", () => {

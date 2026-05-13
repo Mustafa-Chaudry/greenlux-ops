@@ -248,6 +248,9 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
                 <Label htmlFor="amount_paid_pkr">Paid amount optional</Label>
                 <Input id="amount_paid_pkr" name="amount_paid_pkr" type="number" min={0} inputMode="numeric" />
               </div>
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 md:col-span-2">
+                For multi-room bookings, enter the amount for this room/stay only. Do not enter the full group total on every room.
+              </p>
               <div className="grid gap-3 rounded-lg border border-brand-sage bg-brand-ivory p-4 md:col-span-2">
                 <label className="flex items-center gap-3 text-sm font-medium text-brand-deep">
                   <input type="checkbox" name="cnic_verified" className="h-4 w-4 accent-brand-fresh" />
@@ -266,6 +269,7 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
               <CardTitle>Multi-room booking</CardTitle>
               <CardDescription>
                 Keep this empty for normal single-room stays. Use it when one lead guest is booking more than one unit.
+                Lead booking totals are for management reference. Reports currently calculate revenue from individual room stays to avoid double-counting.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
