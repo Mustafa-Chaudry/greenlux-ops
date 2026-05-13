@@ -200,7 +200,7 @@ function buildRoomRealityCard(unit: UnitOccupancyRow): RoomRealityCard {
 
   if (stay) {
     href = `/admin/guest-records/${stay.id}`;
-    hrefLabel = "Open guest record";
+    hrefLabel = "Open guest stay";
   } else if (hasMaintenanceIssue || isRoomInactive) {
     href = "/admin/maintenance";
     hrefLabel = "Open maintenance";

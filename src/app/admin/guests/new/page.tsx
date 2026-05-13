@@ -26,7 +26,7 @@ import {
 import { formatStayRangeWithNights } from "@/lib/check-in/stay-dates";
 
 export const metadata: Metadata = {
-  title: "Add Guest / Walk-in",
+  title: "Add Guest Stay",
 };
 
 type PageProps = {
@@ -74,9 +74,9 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
 
         <header className="rounded-xl border border-brand-sage bg-white/85 p-5 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-fresh">Front desk entry</p>
-          <h1 className="mt-2 font-serif text-3xl font-semibold text-brand-deep sm:text-4xl">Add Guest / Walk-in</h1>
+          <h1 className="mt-2 font-serif text-3xl font-semibold text-brand-deep sm:text-4xl">Add Guest Stay</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-            Create a staff-managed guest record for WhatsApp bookings, walk-ins, VIPs, or non-email guests. Only the
+            Create a staff-managed guest stay for WhatsApp bookings, walk-ins, VIPs, or non-email guests. Only the
             quick-entry fields are required; staff can add documents and payment details when available.
           </p>
         </header>
@@ -335,7 +335,7 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
             <CardHeader>
               <CardTitle>Optional documents</CardTitle>
               <CardDescription>
-                Upload documents if they are available now. Staff can still create the guest record without files.
+                Upload documents if they are available now. Staff can still create the guest stay without files.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
@@ -376,7 +376,7 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button type="submit" size="lg">
               <UserPlus className="h-4 w-4" aria-hidden="true" />
-              Create guest record
+              Add Guest Stay
             </Button>
             <Button asChild size="lg" variant="outline">
               <Link href="/admin/guest-records">Cancel</Link>

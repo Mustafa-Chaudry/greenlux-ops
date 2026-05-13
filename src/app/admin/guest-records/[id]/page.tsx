@@ -51,7 +51,7 @@ import { formatStayRangeWithNights } from "@/lib/check-in/stay-dates";
 import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
-  title: "Guest Record Detail",
+  title: "Guest Stay Detail",
 };
 
 type PageProps = {
@@ -189,12 +189,12 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
         <div className="mx-auto max-w-4xl">
           <Card>
             <CardHeader>
-              <CardTitle>Guest record not found</CardTitle>
+              <CardTitle>Guest stay not found</CardTitle>
               <CardDescription>{recordError?.message ?? "The record may have been removed."}</CardDescription>
             </CardHeader>
             <CardContent>
               <Button asChild>
-                <Link href="/admin/guest-records">Back to guest records</Link>
+                <Link href="/admin/guest-records">Back to guest stays</Link>
               </Button>
             </CardContent>
           </Card>
@@ -291,18 +291,18 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   ].filter((requirement): requirement is string => Boolean(requirement));
   const whatsappActions = [
     {
-      label: "Confirm check-in",
-      message: `Hello ${record.full_name}, your GreenLux Residency check-in is approved. Unit: ${roomName}. Dates: ${record.check_in_date} to ${record.check_out_date}. Thank you.`,
+      label: "Confirm arrival details",
+      message: `Hello ${record.full_name}, your GreenLux Residency Arrival Details are approved. Unit: ${roomName}. Dates: ${record.check_in_date} to ${record.check_out_date}. We look forward to welcoming you.`,
     },
     {
       label: "Request corrected CNIC",
       message:
-        "Assalam o Alaikum, this is GreenLux Residency. We need a corrected CNIC/passport image for your check-in record. Please send a clear photo on WhatsApp so we can complete verification.",
+        "Assalam o Alaikum, this is GreenLux Residency. We need a corrected CNIC/passport image for your stay details. Please send a clear photo on WhatsApp so we can complete verification.",
     },
     {
       label: "Request payment proof",
       message:
-        "Assalam o Alaikum, this is GreenLux Residency. Please send your payment proof on WhatsApp so we can complete payment verification for your booking.",
+        "Assalam o Alaikum, this is GreenLux Residency. Please send your Payment Confirmation on WhatsApp so we can complete your booking.",
     },
     {
       label: "Request additional guest CNICs",
@@ -322,13 +322,13 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
         <Button asChild variant="ghost">
           <Link href="/admin/guest-records">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to guest records
+            Back to guest stays
           </Link>
         </Button>
 
         <header className="flex flex-col gap-4 rounded-xl border border-brand-sage bg-white/85 p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase text-brand-fresh">Guest record</p>
+            <p className="text-sm font-semibold uppercase text-brand-fresh">Guest Stay Details</p>
             <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">{record.full_name}</h1>
             <p className="mt-2 text-sm text-slate-600">
               {formatStayRangeWithNights(record.check_in_date, record.check_out_date)} - {record.number_of_guests} guest(s)
@@ -437,7 +437,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     <InfoRow label="Booking source" value={findLabel(bookingSourceOptions, bookingGroup.booking_source)} />
                     <InfoRow label="Lead expected reference" value={formatPkr(combinedExpected)} />
                     <InfoRow label="Lead paid reference" value={formatPkr(combinedPaid)} />
-                    <InfoRow label="Lead outstanding reference" value={formatPkr(combinedOutstanding)} />
+                    <InfoRow label="Lead balance due reference" value={formatPkr(combinedOutstanding)} />
                     <InfoRow label="Linked stays" value={linkedStays.length} />
                   </dl>
                 </div>
@@ -556,7 +556,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   <InfoRow label="Paid guest charges" value={formatPkr(financialSummary.paidCharges)} />
                   <InfoRow label="Total expected" value={formatPkr(financialSummary.totalExpected)} />
                   <InfoRow label="Total paid" value={formatPkr(financialSummary.totalPaid)} />
-                  <InfoRow label="Outstanding balance" value={formatPkr(financialSummary.outstanding)} />
+                  <InfoRow label="Balance Due" value={formatPkr(financialSummary.outstanding)} />
                   <InfoRow label="Generated date" value={new Date().toLocaleDateString()} />
                   <InfoRow label="CNIC verified" value={record.cnic_verified ? "Yes" : "No"} />
                   <InfoRow label="Payment verified" value={record.payment_verified ? "Yes" : "No"} />
@@ -655,7 +655,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   <InfoRow label="Guest charges total" value={formatPkr(financialSummary.chargesTotal)} />
                   <InfoRow label="Paid guest charges" value={formatPkr(financialSummary.paidCharges)} />
                   <InfoRow label="Total expected" value={formatPkr(financialSummary.totalExpected)} />
-                  <InfoRow label="Outstanding balance" value={formatPkr(financialSummary.outstanding)} />
+                  <InfoRow label="Balance Due" value={formatPkr(financialSummary.outstanding)} />
                 </div>
 
                 {guestCharges.length ? (

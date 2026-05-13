@@ -332,7 +332,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
                       <tr key={record.id} className="bg-white hover:bg-brand-ivory/70">
                         <td className="px-4 py-3">{statusBadge(record.status)}</td>
                         <td className="px-4 py-3">
-                          <Badge tone={getActionRequiredLabel(record) === "Issue flagged" ? "danger" : "info"}>
+                          <Badge tone={getActionRequiredLabel(record) === "Needs attention" ? "danger" : "info"}>
                             {getActionRequiredLabel(record)}
                           </Badge>
                         </td>

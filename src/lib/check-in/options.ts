@@ -62,7 +62,7 @@ export const checkinStatusOptions: Array<{ value: CheckinStatus; label: string }
   { value: "approved", label: "Approved" },
   { value: "checked_in", label: "Checked-in" },
   { value: "checked_out", label: "Checked-out" },
-  { value: "issue", label: "Issue" },
+  { value: "issue", label: "Needs Attention" },
 ];
 
 export const guestCheckinStatusLabels: Record<CheckinStatus, string> = {
@@ -87,7 +87,7 @@ export const guestTagOptions: Array<{ value: GuestTag; label: string }> = [
   { value: "new", label: "New" },
   { value: "repeat", label: "Repeat" },
   { value: "vip", label: "VIP" },
-  { value: "issue", label: "Issue" },
+  { value: "issue", label: "Needs Attention" },
   { value: "do_not_host", label: "Do not host" },
 ];
 
@@ -373,7 +373,7 @@ export function getActionRequiredLabel(checkin: {
   payment_verified: boolean;
 }) {
   if (checkin.status === "issue") {
-    return "Issue flagged";
+    return "Needs attention";
   }
 
   if (checkin.status === "checked_out") {

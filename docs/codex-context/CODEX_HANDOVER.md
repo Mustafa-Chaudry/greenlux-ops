@@ -1,203 +1,158 @@
-# GreenLux Ops — Codex Handover Context
+# GreenLux Ops Codex Context Pack
 
-## Current repo location
+Use this as the concise grounding file for future Codex tasks. It replaces older phase handovers as the normal first read after `AGENTS.md`.
 
-The active GreenLux Ops repository is located at:
+## Active Repo
 
 `D:\Projects\greenlux-ops`
 
-Older Codex chats may reference an old or missing working directory. Those old chats are historical context only. All future work must operate from this active repo path.
+Older chats may reference missing or stale working directories. Treat this repository as the source of truth.
 
-## Product context
+## Product Doctrine
 
-GreenLux Ops is an internal operations intelligence system for GreenLux Residency, a real serviced accommodation and boutique hospitality business in the Rawalpindi-Islamabad market.
+GreenLux Ops is an internal operations layer for GreenLux Residency, a live serviced-accommodation business. It is not a full PMS, booking engine, channel manager, or accounting platform.
 
-The system is not a generic booking engine. It is an operational control layer for messy real-world hospitality workflows.
+- Do not block operations. Make risk visible and manageable.
+- Build for non-technical hotel staff under pressure.
+- Prefer admin-controlled workflows over fragile automation.
+- Keep room-level operational truth separate from lead booking/group context.
+- Staff must be able to recover from imperfect real-world data.
+- Guest-facing language should feel premium, calm, human, and hospitality-led.
+- Admin language should remain clear, low-stress, and operational.
+- Luxury is clarity.
 
-Primary operating reality:
+## Current Status
 
-- WhatsApp/direct calls remain a major booking and coordination channel.
-- Booking.com and Airbnb create demand.
-- Staff are non-technical.
-- Check-in often happens under imperfect conditions.
-- The system must not block real operations unnecessarily.
-- Risk should be visible, recoverable, and auditable.
+The app is a Next.js App Router + Supabase operations system with public marketing pages, guest check-in, admin guest records, room operations, reporting, folio/additional charges, cleaning readiness, multi-room booking groups, and protected accommodation receipts.
 
-Core principle:
+Recent commit history shows current active work through Phase 6.5B plus a recent guest check-in text polish.
 
-Do not block operations. Make risk visible and manageable.
+## Phase History
 
-## Current capabilities
+### Foundation: Phases 1-5
 
-The system includes:
+- Phase 1 - Foundation: Next.js App Router, Supabase setup, auth/session middleware, role-based access, rooms table, 11-unit inventory foundations, database/RLS base.
+- Phase 2 - Public Site Shell: public GreenLux pages including homepage, rooms, about, contact, privacy, terms, and marketing surface separate from internal ops.
+- Phase 3 - Guest Check-In: guest self-check-in route, guest details form, CNIC/passport/document upload, payment proof upload, Supabase Storage, `guest_checkins` and `guest_documents`.
+- Phase 3.5 - Operator UX / Verification: admin-assisted verification, document/payment review states, issue/correction handling, WhatsApp-assisted recovery.
+- Phase 4 - Operational Utilities: admin guest records, CSV/export support, expenses, maintenance logs, reporting shell, audit-log patterns where present.
+- Phase 5 - Analytics / Reporting / Operational Control: expected vs paid revenue, outstanding balances, booking source breakdown, room performance, new/repeat guest tracking where present, guest folio/additional charges, extend stay workflow, maintenance vs expense separation, occupancy/reporting foundations.
 
-- Guest self-service check-in
-- Admin-assisted check-in
-- Guest records
-- CNIC/passport document capture and verification
-- Payment proof/status tracking
-- Room assignment
-- Role-based admin access
-- Guest folio and additional charges
-- Extend stay workflow
-- Expenses
-- Maintenance logs
-- Reports and analytics
-- Occupancy dashboard
-- Command centre daily operations page
-- WhatsApp-assisted operational actions
+### Current Active Layer: Phase 6+
 
-## Important routes
+- Phase 6.1 - Room Reality Board v2: `/admin/occupancy` became the room-level operating board, with per-room status, urgency, payment/ID signals, maintenance, and stay dates with nights.
+- Phase 6.2 - Guest Portal Concierge: guest check-in became a clearer concierge-style journey with arrival guide, success state, WhatsApp help, and Wi-Fi request without exposing credentials.
+- Phase 6.3 - Cleaning & Turnover Layer: `rooms` gained cleaning/readiness state, manual room controls, inferred turnover, and Room Reality Board cleaning actions. No separate housekeeping table.
+- Phase 6.4 - Multi-Room Booking Groups: `booking_groups` added lightweight lead-booking context and nullable `guest_checkins.booking_group_id`. Room/stay records remain separate.
+- Phase 6.4C - Multi-Room Finance Guidance: staff guidance warns that room-level expected/paid amounts are per stay; group totals are management reference only.
+- Phase 6.5 - Accommodation Receipt: protected admin receipt route at `/admin/guest-records/[id]/receipt`, with browser print/download and WhatsApp-safe sharing.
+- Phase 6.5B - Receipt Print/Polish: receipt print CSS fixed, receipt design upgraded for workplace reimbursement, old "Printable guest receipt" language renamed to internal/front-desk summary.
+- Recent check-in page polish: guest-facing check-in text was updated to feel clearer and more hospitality-led.
 
-- `/admin`
-- `/admin/guest-records`
-- `/admin/guest-records/[id]`
-- `/admin/occupancy`
-- `/admin/reports`
-- `/admin/expenses`
-- `/admin/maintenance`
-- `/admin/command-centre`
-- `/dashboard/check-in`
+## Architecture Map
 
-## Data model concepts
+- `/admin/occupancy` - Room Reality Board; uses `src/lib/occupancy/snapshot.ts`.
+- `/admin/command-centre` - daily action screen; reuses occupancy and reporting sources.
+- `/admin/guests/new` - create admin guest stays; supports single-room stays and multi-room booking group attachment/creation.
+- `/admin/guest-records/[id]` - room/stay detail, documents, payment, folio/additional charges, room assignment, multi-room context.
+- `/admin/guest-records/[id]/receipt` - protected Accommodation Receipt for current stay only.
+- `/admin/rooms` - room inventory, operational fields, cleaning readiness controls.
+- `/admin/reports` and `/admin/reports/export` - stay-level business reporting and CSV exports.
+- `/dashboard/check-in` and `src/components/check-in/check-in-form.tsx` - guest check-in and document/payment upload flow.
+- `src/lib/check-in/stay-dates.ts` - stay-date and nights helpers.
+- `src/lib/check-in/options.ts` - status, source, payment, room, and label options.
+- `src/lib/reports/analytics.ts` - reporting calculations.
+- `src/components/admin/print-button.tsx` - browser print helper.
+- `scripts/validate-*.mjs` - phase-specific code/logic validators.
 
-Core tables include:
+## Data Model Map
 
-- `users_profile`
-- `guest_checkins`
-- `guest_documents`
-- `rooms`
-- `guest_charges`
-- `expenses`
-- `room_maintenance_logs`
-- `audit_logs`
+Key tables:
 
-Role model:
+- `rooms` - 11-unit room inventory, room type/unit labels, maintenance and cleaning/readiness state.
+- `guest_checkins` - room/stay-level truth: guest, dates, assigned room, status, expected/paid amounts, source, payment state, notes, `booking_group_id`.
+- `guest_documents` - guest ID/payment proof document records and verification state.
+- `guest_charges` - folio/additional charges linked to a stay.
+- `expenses` - business expense records and private receipt metadata.
+- `room_maintenance_logs` - operational maintenance records.
+- `audit_logs` - change history where implemented.
+- `booking_groups` - lightweight lead booking context for multi-room bookings.
 
-- `guest`
-- `manager`
-- `admin`
-- `super_admin`
+Important reporting/finance rule:
 
-Operational role intent:
+- `guest_checkins` remain revenue truth.
+- `booking_groups.expected_total_amount` and `booking_groups.paid_total_amount` are reference fields only.
+- Reports remain stay-level unless a future analytics phase explicitly adds grouped allocation logic.
+- Do not use booking group totals in revenue, receipt totals, or exports unless that feature is explicitly requested and double-counting is handled.
 
-- Guests should only access their own guest-facing flow.
-- Managers can operate daily workflows.
-- Admins can manage broader operations.
-- Super admins control financial/system-level truth.
+## Build Protocol For Future Codex Tasks
 
-## Existing known users from setup/testing
+For normal UI/content tasks:
 
-Current users may include:
+1. Read `AGENTS.md` and this context pack.
+2. Inspect only directly relevant files.
+3. Avoid unrelated migrations, assets, reports, auth, and schema files.
 
-- Mustafa Chaudry = super_admin
-- Mujtaba Aamir = admin
-- Murtaza Chaudry = manager
-- Javeria Munir = guest/test guest
-- Test User = test manager account
+Full or broader audits are justified only when the task changes:
 
-Do not assume these users are production-clean. Do not delete users unless explicitly asked.
+- schema, RLS, Storage, auth/session, role access
+- reports, CSV export, payments, revenue, folio, receipts
+- deployment, recovery, production data handling
+- shared operational truth such as occupancy or room assignment
 
-## Security hardening context
+General rules:
 
-Supabase Security Advisor currently flagged:
+- Plan first for complex tasks.
+- Prefer existing routes, helpers, validation scripts, and Supabase patterns.
+- Do not inspect unrelated migrations unless schema is changing.
+- Do not touch unrelated assets.
+- Do not stage or commit `scripts/manual-reset-test-operational-data.sql` unless explicitly instructed.
+- Do not include new GreenLux image assets unless the task is asset integration.
+- Do not add libraries unless clearly necessary.
+- Use browser print/save-as-PDF before adding PDF tooling.
+- Do not commit automatically.
 
-Errors:
+## Validation Protocol
 
-- Security Definer View:
-  - `public.guest_checkins_guest_view`
-  - `public.guest_checkins_management_view`
+Standard code checks:
 
-Warnings:
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
+- `git diff --check`
 
-- Function Search Path Mutable:
-  - `public.set_updated_at`
+Known validators:
 
-SECURITY DEFINER functions executable too broadly:
+- `node scripts/validate-command-centre.mjs`
+- `node scripts/validate-room-reality-board.mjs`
+- `node scripts/validate-guest-portal-concierge.mjs`
+- `node scripts/validate-cleaning-turnover-layer.mjs`
+- `node scripts/validate-phase-6-4-multi-room-bookings.mjs`
+- `node scripts/validate-phase-6-5-accommodation-receipt.mjs`
 
-- `public.handle_new_user()`
-- `public.is_management(user_id uuid)`
-- `public.is_super_admin(user_id uuid)`
-- `public.owns_checkin(checkin_id uuid, user_id uuid)`
-- `public.prevent_guest_internal_checkin_changes()`
-- `public.prevent_unauthorized_role_change()`
+When to narrow validation:
 
-Auth warning:
+- Docs-only changes: run `git diff --check`; no build needed unless source, package, or tooling changed.
+- Receipt/print changes: run receipt validator and manually verify Chrome print preview/save-as-PDF.
+- Guest portal/check-in changes: run guest portal validator and verify no Wi-Fi password is exposed.
+- Room board/cleaning changes: run room reality and cleaning validators.
+- Command centre changes: run command centre validator plus reporting/occupancy checks as relevant.
+- Schema changes: inspect migrations and `src/types/database.ts`; migration must be applied before code that depends on it is deployed.
+- Reporting/payment changes: explicitly review active stay handling, folio/additional charges, expected vs paid revenue, and multi-room double-counting risk.
 
-- Leaked password protection disabled
+## Roadmap
 
-These warnings are not mainly caused by test users. They are database hardening issues around functions, views, and permissions.
+- Phase 6.6A - Hospitality Language & Brand Asset Audit
+- Phase 6.6 - Command Centre v2
+- Phase 6.7 - Guest Record Detail v2
+- Phase 6.8 - Cleaner Role + Housekeeping Inspection
+- Phase 6.8B - Lost Property Register
+- Phase 6.9 - Business Analytics v2 with room-night allocation and average rate/night
+- Phase 6.10 - Multi-room booking refinement and combined receipts if needed
+- Phase 7.4 - Historical Booking Imports for Airbnb, Booking.com, Agoda
 
-## Important implementation rules
+## Normal Task Starting Prompt
 
-Do not:
+Use `docs/codex-context/FUTURE_TASK_TEMPLATE.md` for new work. The key instruction is:
 
-- Break working flows.
-- Delete required functions.
-- Remove RLS policies casually.
-- Change live operational meaning without explaining.
-- Create fake guest data.
-- Build a parallel booking engine.
-- Overengineer integrations too early.
-
-Always:
-
-- Prefer migrations for database changes.
-- Preserve auditability.
-- Preserve admin control.
-- Keep non-technical staff usability.
-- Make incomplete/risky states visible.
-- Link actions back to existing admin screens.
-- Test guest, manager, admin, and super_admin flows after changes.
-
-## Recent Phase 5.9 context
-
-Phase 5.9 added `/admin/command-centre`.
-
-Purpose:
-
-A single daily operating screen that shows:
-
-- immediate actions
-- today timeline
-- unit/occupancy snapshot
-- money snapshot
-- quick actions
-
-It should reuse existing data and admin screens rather than create disconnected new flows.
-
-Files involved may include:
-
-- `src/app/admin/command-centre/page.tsx`
-- `scripts/validate-command-centre.mjs`
-- existing analytics/reporting/occupancy helpers
-
-## Next planned work
-
-Next priority is Phase 6 hardening:
-
-1. Fix Supabase Security Advisor issues through a migration.
-2. Keep all role-based access working.
-3. Keep guest check-in working.
-4. Preserve signup profile creation.
-5. Preserve management dashboards.
-6. Re-run advisor/linter checks.
-7. Clean up or demote test users only after security migration is tested.
-
-## Working style for Codex
-
-Before editing:
-
-- Verify current working directory.
-- Confirm repo root files.
-- Check git status.
-- Inspect relevant migrations and policies.
-- Explain plan before making changes.
-
-After editing:
-
-- Provide changed files.
-- Explain why changes were made.
-- Run typecheck/lint/build or available validation scripts.
-- Provide commit message.
-- Mention any remaining warnings.
+> Read the GreenLux context pack first, then inspect only the files directly relevant to this task. Do not do a full repo audit unless this task changes schema, auth/RLS, reports, payments, role access, or deployment logic.

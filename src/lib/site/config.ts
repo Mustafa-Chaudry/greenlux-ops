@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "GreenLux Residency",
   tagline: "Quiet, clean stays in Rawalpindi / Islamabad",
   location: "Westridge, Rawalpindi / Islamabad access",
-  addressLine: "J268+6C3, Mian Iqbal Road, Westridge 1, Rawalpindi, 46000, Pakistan",
+  addressLine: "Mian Iqbal Road, Westridge 1, Rawalpindi, 46000, Pakistan",
   shortAddress: "Westridge 1, Rawalpindi",
   coordinates: {
     latitude: 33.6062,

@@ -9,6 +9,7 @@ const guestRecordPagePath = join(root, "src/app/admin/guest-records/[id]/page.ts
 const printButtonPath = join(root, "src/components/admin/print-button.tsx");
 const globalCssPath = join(root, "src/app/globals.css");
 const reportsPath = join(root, "src/lib/reports/analytics.ts");
+const configPath = join(root, "src/lib/site/config.ts");
 
 function sourceAt(path, label) {
   assert.equal(existsSync(path), true, `${label} is missing`);
@@ -18,7 +19,8 @@ function sourceAt(path, label) {
 test("admin accommodation receipt route exists and is printable", () => {
   const receipt = sourceAt(receiptPagePath, "Accommodation receipt route");
 
-  assert.match(receipt, /Accommodation Receipt/, "receipt route must use the required title");
+  assert.match(receipt, /Accommodation Receipt/, "receipt route must use the required metadata title");
+  assert.match(receipt, />Receipt</, "receipt main heading must be 'Receipt'");
   assert.match(receipt, /requireRole\(managementRoles\)/, "receipt route must stay admin/management protected");
   assert.match(receipt, /Print \/ Download Receipt/, "receipt route must expose a print/download action");
   assert.match(receipt, /window\.print|PrintButton/, "receipt route must use the existing print helper");
@@ -47,18 +49,29 @@ test("receipt includes stay, room, nights, and financial fields", () => {
   assert.match(receipt, /Prepared for/, "receipt must use premium guest-facing wording");
   assert.match(receipt, /Stay Period/, "receipt must use polished stay-period wording");
   assert.match(receipt, /Room \/ Suite/, "receipt must use polished room wording");
-  assert.match(receipt, /Room\/stay charge/, "receipt must separate the base room or stay charge");
+  assert.doesNotMatch(receipt, />Room\/stay charge</, "receipt must replace generic room charge wording");
+  assert.doesNotMatch(receipt, /Status \/ Rate/, "receipt must replace awkward Status / Rate column");
+  assert.doesNotMatch(receipt, />Business Details</, "receipt must not have a bulky Business Details section heading");
+  assert.match(receipt, /Rate \/ Night/, "receipt must have a Rate / Night column");
+  assert.match(receipt, />Details</, "receipt must have a Details column");
+  assert.match(receipt, /Accommodation Charges/, "receipt totals must use Accommodation Charges");
   assert.match(receipt, /Additional Charges/, "receipt must include folio/additional charges");
+  assert.match(receipt, /No additional charges recorded/, "receipt must render empty additional charge note");
   assert.match(receipt, /Total Amount/, "receipt must include total amount");
   assert.match(receipt, /Amount Paid/, "receipt must include amount paid");
   assert.match(receipt, /Balance Due/, "receipt must include balance due wording");
   assert.match(receipt, /Payment Method/, "receipt must include payment method");
   assert.match(receipt, /Payment Status/, "receipt must include payment status");
+  assert.match(receipt, /ratePerNight/, "receipt must calculate display-only rate per night");
+  assert.match(receipt, /roomDescription/, "receipt must use clean room description helper");
   assert.match(
     receipt,
-    /This accommodation receipt is prepared from GreenLux Residency stay records for accommodation and reimbursement purposes\./,
+    /This receipt is prepared from GreenLux Residency stay records for accommodation and reimbursement purposes\./,
     "receipt must include professional reimbursement footer wording",
   );
+
+  const config = sourceAt(configPath, "src/lib/site/config.ts");
+  assert.doesNotMatch(config, /J268\+6C3/, "plus code must be removed from business address");
 });
 
 test("receipt handles multi-room context without combining group revenue", () => {

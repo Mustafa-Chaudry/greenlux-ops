@@ -43,7 +43,7 @@ type SubmittedStay = {
 };
 
 const conciergeSteps = [
-  "Guest details",
+  "Your details",
   "ID/payment upload",
   "Arrival details",
   "Review/submission",
@@ -67,10 +67,10 @@ function getWifiAccessMessage(guestName?: string) {
   const trimmedName = guestName?.trim();
 
   if (!trimmedName) {
-    return "Hello GreenLux team, I have completed my check-in and would like Wi-Fi access.";
+    return "Hello GreenLux team, I have completed my arrival details and would like to request Wi-Fi access.";
   }
 
-  return `Hello GreenLux team, I have completed my check-in and would like Wi-Fi access. My name is ${trimmedName}.`;
+  return `Hello GreenLux team, I have completed my arrival details and would like to request Wi-Fi access. My name is ${trimmedName}.`;
 }
 
 function StatusPill({
@@ -268,7 +268,7 @@ export function CheckInForm({ profile }: CheckInFormProps) {
   if (submittedStay) {
     const wifiHref = getWhatsAppHref(getWifiAccessMessage(submittedStay.guestName));
     const contactHref = getWhatsAppHref(
-      `Hello GreenLux team, I have completed my check-in. My name is ${submittedStay.guestName}.`,
+      `Hello GreenLux team, I have completed my arrival details. My name is ${submittedStay.guestName}.`,
     );
 
     return (
@@ -280,19 +280,19 @@ export function CheckInForm({ profile }: CheckInFormProps) {
             </div>
             <CardTitle>Welcome to GreenLux, {submittedStay.guestName}</CardTitle>
             <CardDescription>
-              Your check-in details have been received. Our staff will review your documents and payment information
+              Your arrival details have been received. Our team will review your documents and payment information
               before updating your stay record.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 p-5 sm:grid-cols-2">
-            <StatusPill icon={ShieldCheck} label="ID received" value="Pending review" tone="warning" />
+            <StatusPill icon={ShieldCheck} label="ID received" value="Pending Team Review" tone="warning" />
             <StatusPill
               icon={WalletCards}
-              label={submittedStay.paymentProofReceived ? "Payment proof received" : "Payment proof"}
-              value={submittedStay.paymentProofReceived ? "Pending review" : "Not uploaded"}
+              label={submittedStay.paymentProofReceived ? "Payment Confirmation received" : "Payment Confirmation"}
+              value={submittedStay.paymentProofReceived ? "Pending Team Review" : "Not uploaded"}
               tone={submittedStay.paymentProofReceived ? "warning" : "neutral"}
             />
-            <StatusPill icon={Home} label="Room assigned" value="Pending staff update" tone="neutral" />
+            <StatusPill icon={Home} label="Room assigned" value="Pending Team Review" tone="neutral" />
             <StatusPill icon={Clock3} label="Arrival information received" value="Received" tone="success" />
           </CardContent>
         </Card>
@@ -365,7 +365,7 @@ export function CheckInForm({ profile }: CheckInFormProps) {
 
       <StepCard
         step={1}
-        title="Guest details"
+        title="Your details"
         description="Use the same name and contact details you used for your booking."
       >
         <div className="grid gap-4 md:grid-cols-2">
@@ -464,10 +464,10 @@ export function CheckInForm({ profile }: CheckInFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="payment_proof">Proof of payment {paymentProofRequired ? "(required)" : "(optional)"}</Label>
+            <Label htmlFor="payment_proof">Payment Confirmation {paymentProofRequired ? "(required)" : "(optional)"}</Label>
             <Input id="payment_proof" type="file" accept=".jpg,.jpeg,.png,.pdf" {...register("payment_proof")} />
             <p className="text-xs text-slate-500">
-              Staff will review uploaded proof. This screen does not mark payment as confirmed.
+              Our team will review uploaded confirmation. This screen does not mark payment as confirmed.
             </p>
             <FieldError message={errors.payment_proof?.message} />
           </div>
@@ -568,7 +568,7 @@ export function CheckInForm({ profile }: CheckInFormProps) {
           </div>
           <Button type="submit" size="lg" disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <UploadCloud className="h-4 w-4" aria-hidden="true" />}
-            {isSubmitting ? "Submitting..." : "Submit check-in"}
+            {isSubmitting ? "Submitting..." : "Submit Arrival Details"}
           </Button>
         </CardContent>
       </Card>

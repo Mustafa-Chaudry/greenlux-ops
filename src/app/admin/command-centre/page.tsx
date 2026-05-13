@@ -190,7 +190,7 @@ function buildImmediateActions({
     if (financialSummary.outstanding > 0) {
       actions.push({
         id: `balance-${checkin.id}`,
-        title: "Outstanding balances",
+        title: "Balances Due",
         detail: `${checkin.full_name} owes ${formatPkr(financialSummary.outstanding)}`,
         href: `/admin/guest-records/${checkin.id}`,
         urgency: 50,
@@ -439,7 +439,7 @@ export default async function CommandCentrePage() {
                       <p className="text-slate-600">{roomLabel(roomNames, checkin.assigned_room_id)}</p>
                       <p className="flex items-center gap-1 text-xs text-slate-500">
                         <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
-                        Mark checked-out from guest record
+                        Mark checked-out from guest stay
                       </p>
                     </Link>
                   ))
@@ -479,7 +479,7 @@ export default async function CommandCentrePage() {
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               <Metric label="Today's collected" value={formatPkr(report.kpis.totalRevenue)} />
-              <Metric label="Outstanding" value={formatPkr(openOutstanding)} />
+              <Metric label="Balance Due" value={formatPkr(openOutstanding)} />
               <Metric label="New charges" value={formatPkr(newChargesToday)} />
             </CardContent>
           </Card>
