@@ -16,12 +16,19 @@ import {
   WalletCards,
   Wrench,
 } from "lucide-react";
+import { updateRoomCleaningStatus } from "@/app/admin/rooms/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
 import { managementRoles } from "@/lib/auth/roles";
-import { formatEnumLabel, formatPkr } from "@/lib/check-in/options";
+import {
+  formatEnumLabel,
+  formatPkr,
+  roomCleaningStatusLabels,
+  roomCleaningStatusOptions,
+  type RoomCleaningStatus,
+} from "@/lib/check-in/options";
 import { fetchOccupancySnapshot, type UnitOccupancyRow, type VerificationSignal } from "@/lib/occupancy/snapshot";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +42,9 @@ type RoomRealityKind =
   | "departing_today"
   | "occupied"
   | "ready_vacant"
+  | "cleaning_required"
+  | "cleaning_in_progress"
+  | "maintenance_blocked"
   | "turnover_needed"
   | "maintenance";
 
@@ -50,12 +60,15 @@ type RoomRealityCard = {
 
 const roomRealityPriority: Record<RoomRealityKind, number> = {
   action_required: 1,
-  arriving_today: 2,
-  departing_today: 3,
-  occupied: 4,
-  ready_vacant: 5,
-  turnover_needed: 6,
-  maintenance: 7,
+  maintenance_blocked: 2,
+  cleaning_required: 3,
+  turnover_needed: 4,
+  cleaning_in_progress: 5,
+  arriving_today: 6,
+  departing_today: 7,
+  occupied: 8,
+  ready_vacant: 9,
+  maintenance: 10,
 };
 
 const stateStyles: Record<RoomRealityKind, string> = {
@@ -64,6 +77,9 @@ const stateStyles: Record<RoomRealityKind, string> = {
   departing_today: "border-amber-200 bg-amber-50/80 hover:border-amber-300",
   occupied: "border-brand-sage bg-white hover:border-brand-fresh/70",
   ready_vacant: "border-emerald-200 bg-emerald-50/80 hover:border-emerald-300",
+  cleaning_required: "border-orange-200 bg-orange-50/80 hover:border-orange-300",
+  cleaning_in_progress: "border-sky-200 bg-sky-50/80 hover:border-sky-300",
+  maintenance_blocked: "border-red-200 bg-red-50/80 hover:border-red-300",
   turnover_needed: "border-slate-300 bg-slate-50 hover:border-slate-400",
   maintenance: "border-yellow-300 bg-yellow-50/80 hover:border-yellow-400",
 };
@@ -74,6 +90,9 @@ const stateTone: Record<RoomRealityKind, "neutral" | "success" | "warning" | "da
   departing_today: "warning",
   occupied: "info",
   ready_vacant: "success",
+  cleaning_required: "warning",
+  cleaning_in_progress: "blue",
+  maintenance_blocked: "danger",
   turnover_needed: "neutral",
   maintenance: "warning",
 };
@@ -90,6 +109,13 @@ const verificationText: Record<VerificationSignal, { id: string; payment: string
   pending: { id: "ID pending", payment: "Payment pending" },
   missing: { id: "ID missing", payment: "Payment missing" },
   rejected: { id: "ID rejected", payment: "Payment rejected" },
+};
+
+const cleaningTone: Record<RoomCleaningStatus, "neutral" | "success" | "warning" | "danger" | "info" | "blue"> = {
+  ready: "success",
+  cleaning_required: "warning",
+  cleaning_in_progress: "blue",
+  maintenance_blocked: "danger",
 };
 
 function SummaryMetric({ label, value }: { label: string; value: string | number }) {
@@ -125,11 +151,28 @@ function buildRoomRealityCard(unit: UnitOccupancyRow): RoomRealityCard {
   const hasMaintenanceIssue = unit.room.status === "maintenance" || Boolean(unit.openMaintenance);
   const isRoomInactive = unit.room.status === "inactive";
   const needsAction = Boolean(stay) && isActionRequired(unit);
+  const cleaningStatus = unit.effectiveCleaningStatus;
   let state: RoomRealityKind = "ready_vacant";
   let stateLabel = "Ready / Vacant";
   let primaryText = "Ready for guest";
 
-  if (needsAction) {
+  if (cleaningStatus === "maintenance_blocked") {
+    state = "maintenance_blocked";
+    stateLabel = "Maintenance Blocked";
+    primaryText = unit.openMaintenance?.issue_title ?? "Maintenance blocking readiness";
+  } else if (!stay && unit.inferredTurnoverNeeded) {
+    state = "turnover_needed";
+    stateLabel = "Inferred turnover needed";
+    primaryText = "Turnover likely after checkout";
+  } else if (cleaningStatus === "cleaning_required") {
+    state = "cleaning_required";
+    stateLabel = "Cleaning Required";
+    primaryText = "Cleaning required";
+  } else if (cleaningStatus === "cleaning_in_progress") {
+    state = "cleaning_in_progress";
+    stateLabel = "Cleaning In Progress";
+    primaryText = "Cleaning in progress";
+  } else if (needsAction) {
     state = "action_required";
     stateLabel = "Action Required";
     primaryText = unit.attentionReasons[0] ?? "Action required";
@@ -145,10 +188,6 @@ function buildRoomRealityCard(unit: UnitOccupancyRow): RoomRealityCard {
     state = "occupied";
     stateLabel = "Occupied";
     primaryText = `Guest: ${unit.currentStay.full_name}`;
-  } else if (unit.turnoverNeeded) {
-    state = "turnover_needed";
-    stateLabel = "Dirty / Turnover Needed";
-    primaryText = "Cleaning required";
   } else if (hasMaintenanceIssue || isRoomInactive) {
     state = "maintenance";
     stateLabel = isRoomInactive ? "Out of Service" : "Maintenance";
@@ -198,6 +237,14 @@ function statusIconFor(state: RoomRealityKind) {
     return Sparkles;
   }
 
+  if (state === "cleaning_required" || state === "cleaning_in_progress") {
+    return Sparkles;
+  }
+
+  if (state === "maintenance_blocked") {
+    return AlertTriangle;
+  }
+
   if (state === "maintenance") {
     return Wrench;
   }
@@ -219,6 +266,39 @@ function VerificationBadge({
       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
       {label}
     </Badge>
+  );
+}
+
+function cleaningActionLabel(status: RoomCleaningStatus) {
+  if (status === "ready") {
+    return "Mark Ready";
+  }
+
+  if (status === "cleaning_required") {
+    return "Mark Cleaning Required";
+  }
+
+  if (status === "cleaning_in_progress") {
+    return "Mark Cleaning In Progress";
+  }
+
+  return "Mark Maintenance Blocked";
+}
+
+function CleaningActionButtons({ roomId, currentStatus }: { roomId: string; currentStatus: RoomCleaningStatus }) {
+  return (
+    <div className="grid gap-2 border-t border-white/70 pt-3 sm:grid-cols-2">
+      {roomCleaningStatusOptions.map((option) => (
+        <form key={option.value} action={updateRoomCleaningStatus}>
+          <input type="hidden" name="id" value={roomId} />
+          <input type="hidden" name="cleaning_status" value={option.value} />
+          <input type="hidden" name="return_to" value="/admin/occupancy" />
+          <Button type="submit" size="sm" variant={option.value === currentStatus ? "secondary" : "outline"} className="w-full justify-start">
+            {cleaningActionLabel(option.value)}
+          </Button>
+        </form>
+      ))}
+    </div>
   );
 }
 
@@ -270,13 +350,7 @@ export default async function OccupancyPage() {
             const stayDateRange = formatStayDateRange(unit);
 
             return (
-              <Link
-                key={unit.room.id}
-                href={card.href}
-                className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2"
-                aria-label={`${unit.room.name}: ${card.stateLabel}. ${card.hrefLabel}`}
-              >
-                <Card className={cn("flex h-full flex-col overflow-hidden transition-shadow group-hover:shadow-soft", stateStyles[card.state])}>
+              <Card key={unit.room.id} className={cn("flex h-full flex-col overflow-hidden transition-shadow hover:shadow-soft", stateStyles[card.state])}>
                   <CardHeader className="space-y-4 p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
@@ -351,11 +425,16 @@ export default async function OccupancyPage() {
                       ) : null}
 
                       {unit.turnoverNeeded ? (
-                        <Badge tone="neutral" className="gap-1.5">
+                        <Badge tone={unit.inferredTurnoverNeeded ? "neutral" : cleaningTone[unit.effectiveCleaningStatus]} className="gap-1.5">
                           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                          Cleaning required
+                          {unit.inferredTurnoverNeeded ? "Inferred turnover needed" : roomCleaningStatusLabels[unit.effectiveCleaningStatus]}
                         </Badge>
-                      ) : null}
+                      ) : (
+                        <Badge tone="success" className="gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          Ready
+                        </Badge>
+                      )}
 
                       {unit.openMaintenance ? (
                         <Badge tone="warning" className="gap-1.5">
@@ -372,13 +451,18 @@ export default async function OccupancyPage() {
                       ) : null}
                     </div>
 
+                    <CleaningActionButtons roomId={unit.room.id} currentStatus={unit.room.cleaning_status} />
+
                     <div className="flex items-center justify-between gap-3 border-t border-white/70 pt-3 text-sm font-semibold text-brand-deep">
-                      <span>{card.hrefLabel}</span>
-                      <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
+                      <Button asChild size="sm" variant="ghost" className="px-0 text-brand-deep hover:bg-transparent">
+                        <Link href={card.href} aria-label={`${unit.room.name}: ${card.stateLabel}. ${card.hrefLabel}`}>
+                          {card.hrefLabel}
+                          <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
-              </Link>
             );
           })}
         </section>

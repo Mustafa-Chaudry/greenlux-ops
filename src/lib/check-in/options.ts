@@ -20,6 +20,7 @@ export type GuestChargeType =
   | "damage"
   | "other";
 export type RoomStatus = Database["public"]["Enums"]["room_status"];
+export type RoomCleaningStatus = Database["public"]["Enums"]["room_cleaning_status"];
 export type ExpenseCategory = Database["public"]["Enums"]["expense_category"];
 export type MaintenanceStatus = Database["public"]["Enums"]["maintenance_status"];
 
@@ -135,6 +136,20 @@ export const roomStatusOptions: Array<{ value: RoomStatus; label: string }> = [
   { value: "inactive", label: "Inactive" },
   { value: "maintenance", label: "Maintenance" },
 ];
+
+export const roomCleaningStatusOptions: Array<{ value: RoomCleaningStatus; label: string }> = [
+  { value: "ready", label: "Ready" },
+  { value: "cleaning_required", label: "Cleaning Required" },
+  { value: "cleaning_in_progress", label: "Cleaning In Progress" },
+  { value: "maintenance_blocked", label: "Maintenance Blocked" },
+];
+
+export const roomCleaningStatusLabels: Record<RoomCleaningStatus, string> = {
+  ready: "Ready",
+  cleaning_required: "Cleaning Required",
+  cleaning_in_progress: "Cleaning In Progress",
+  maintenance_blocked: "Maintenance Blocked",
+};
 
 export const expenseCategoryOptions: Array<{ value: ExpenseCategory; label: string }> = [
   { value: "maintenance", label: "Maintenance" },

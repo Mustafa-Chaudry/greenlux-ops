@@ -3,12 +3,16 @@ import {
   getBusinessTodayDate,
   getExpectedAmount,
   type CheckinStatus,
+  type RoomCleaningStatus,
 } from "@/lib/check-in/options";
 import type { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
-type RoomRow = Pick<Database["public"]["Tables"]["rooms"]["Row"], "id" | "unit_number" | "name" | "type" | "status">;
+type RoomRow = Pick<
+  Database["public"]["Tables"]["rooms"]["Row"],
+  "id" | "unit_number" | "name" | "type" | "status" | "cleaning_status" | "cleaning_status_updated_at"
+>;
 type CheckinRow = Pick<
   Database["public"]["Tables"]["guest_checkins"]["Row"],
   | "id"
@@ -31,6 +35,7 @@ type DocumentRow = Pick<Database["public"]["Tables"]["guest_documents"]["Row"], 
 
 export type OccupancyStatus = "vacant" | "occupied" | "due_out_today" | "reserved_upcoming" | "needs_attention" | "maintenance";
 export type VerificationSignal = "verified" | "pending" | "missing" | "rejected";
+export type CleaningStatusSource = "manual" | "inferred";
 
 export const occupancyStatusLabels: Record<OccupancyStatus, string> = {
   vacant: "Vacant",
@@ -65,6 +70,9 @@ export type UnitOccupancyRow = {
   arrivalToday: boolean;
   departureToday: boolean;
   turnoverNeeded: boolean;
+  inferredTurnoverNeeded: boolean;
+  effectiveCleaningStatus: RoomCleaningStatus;
+  cleaningStatusSource: CleaningStatusSource;
 };
 
 export type OccupancySnapshot = {
@@ -240,11 +248,41 @@ function getUnitStatus({
   return "vacant";
 }
 
+function getEffectiveCleaningStatus({
+  room,
+  currentStay,
+  departedToday,
+  today,
+}: {
+  room: RoomRow;
+  currentStay: CheckinRow | null;
+  departedToday: CheckinRow | null;
+  today: string;
+}) {
+  const manuallyMarkedReadyToday =
+    room.cleaning_status === "ready" && Boolean(room.cleaning_status_updated_at?.startsWith(today));
+  const inferredTurnoverNeeded = !currentStay && Boolean(departedToday) && !manuallyMarkedReadyToday;
+
+  if (inferredTurnoverNeeded) {
+    return {
+      effectiveCleaningStatus: "cleaning_required" as const,
+      cleaningStatusSource: "inferred" as const,
+      inferredTurnoverNeeded,
+    };
+  }
+
+  return {
+    effectiveCleaningStatus: room.cleaning_status,
+    cleaningStatusSource: "manual" as const,
+    inferredTurnoverNeeded: false,
+  };
+}
+
 export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, today = getBusinessTodayDate()): Promise<OccupancySnapshot> {
   const [roomsResult, checkinsResult, departuresResult, maintenanceResult] = await Promise.all([
     supabase
       .from("rooms")
-      .select("id,unit_number,name,type,status")
+      .select("id,unit_number,name,type,status,cleaning_status,cleaning_status_updated_at")
       .order("unit_number", { nullsFirst: false }),
     supabase
       .from("guest_checkins")
@@ -284,9 +322,9 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
 
   const chargesByCheckin = new Map<string, ChargeRow[]>();
   ((chargesResult.data ?? []) as ChargeRow[]).forEach((charge) => {
-      const charges = chargesByCheckin.get(charge.guest_checkin_id) ?? [];
-      charges.push(charge);
-      chargesByCheckin.set(charge.guest_checkin_id, charges);
+    const charges = chargesByCheckin.get(charge.guest_checkin_id) ?? [];
+    charges.push(charge);
+    chargesByCheckin.set(charge.guest_checkin_id, charges);
   });
   const documentsByCheckin = new Map<string, DocumentRow[]>();
   ((documentsResult.data ?? []) as DocumentRow[]).forEach((document) => {
@@ -352,7 +390,13 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
     const status = getUnitStatus({ room, currentStay, upcomingStay, openMaintenance, attentionReasons, today });
     const arrivalToday = Boolean(displayStay && displayStay.check_in_date === today);
     const departureToday = Boolean(currentStay?.check_out_date === today);
-    const turnoverNeeded = !currentStay && Boolean(departedToday);
+    const { effectiveCleaningStatus, cleaningStatusSource, inferredTurnoverNeeded } = getEffectiveCleaningStatus({
+      room,
+      currentStay,
+      departedToday,
+      today,
+    });
+    const turnoverNeeded = effectiveCleaningStatus !== "ready";
 
     return {
       room,
@@ -369,6 +413,9 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
       arrivalToday,
       departureToday,
       turnoverNeeded,
+      inferredTurnoverNeeded,
+      effectiveCleaningStatus,
+      cleaningStatusSource,
     };
   });
   const occupiedUnits = units.filter((unit) => unit.currentStay).length;

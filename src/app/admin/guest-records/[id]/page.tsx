@@ -45,6 +45,7 @@ import {
   paymentMethodOptions,
   paymentStatusOptions,
   purposeOptions,
+  roomCleaningStatusLabels,
 } from "@/lib/check-in/options";
 import type { Database } from "@/types/database";
 
@@ -153,7 +154,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
   const [{ data: record, error: recordError }, { data: rooms }, { data: documents }, { data: charges }] = await Promise.all([
     supabase.from("guest_checkins").select("*").eq("id", id).single(),
-    supabase.from("rooms").select("id,unit_number,name,status,base_price_pkr").order("unit_number", { nullsFirst: false }),
+    supabase.from("rooms").select("id,unit_number,name,status,cleaning_status,base_price_pkr").order("unit_number", { nullsFirst: false }),
     supabase.from("guest_documents").select("*").eq("checkin_id", id).order("created_at", { ascending: false }),
     supabase.from("guest_charges").select("*").eq("guest_checkin_id", id).order("charged_at", { ascending: false }),
   ]);
@@ -200,6 +201,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const isCompleted = record.status === "checked_out";
   const showIssueAction = record.status !== "issue" && record.status !== "checked_out";
   const assignedRoom = record.assigned_room_id ? rooms?.find((room) => room.id === record.assigned_room_id) : null;
+  const assignedRoomNotReady = Boolean(assignedRoom && assignedRoom.cleaning_status !== "ready");
   const roomName = assignedRoom ? formatUnitRoomLabel(assignedRoom) : "To be assigned";
   const financialSummary = getGuestFinancialSummary({ checkin: record, charges: guestCharges });
   const requirements = [
@@ -741,10 +743,20 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     <option value="">Not assigned</option>
                     {(rooms ?? []).map((room) => (
                       <option key={room.id} value={room.id}>
-                          {formatUnitRoomLabel(room)} ({formatEnumLabel(room.status)})
+                        {formatUnitRoomLabel(room)} ({formatEnumLabel(room.status)}
+                        {room.cleaning_status !== "ready" ? ` - ${roomCleaningStatusLabels[room.cleaning_status]}` : ""})
                       </option>
                     ))}
                   </Select>
+                  {assignedRoomNotReady ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                      Warning: this room is not marked ready. You may continue if management has approved this.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      Rooms not marked ready are labelled in the list. This is a soft warning only; assignment remains available for management-approved exceptions.
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">

@@ -43,6 +43,9 @@ export type Database = {
           max_guests: number;
           amenities: string[];
           status: Database["public"]["Enums"]["room_status"];
+          cleaning_status: Database["public"]["Enums"]["room_cleaning_status"];
+          cleaning_status_updated_at: string | null;
+          cleaning_status_updated_by: string | null;
           image_urls: string[];
           created_at: string;
           updated_at: string;
@@ -58,6 +61,9 @@ export type Database = {
           max_guests: number;
           amenities?: string[];
           status?: Database["public"]["Enums"]["room_status"];
+          cleaning_status?: Database["public"]["Enums"]["room_cleaning_status"];
+          cleaning_status_updated_at?: string | null;
+          cleaning_status_updated_by?: string | null;
           image_urls?: string[];
           created_at?: string;
           updated_at?: string;
@@ -268,6 +274,7 @@ export type Database = {
       guest_type: "self_registered" | "admin_created";
       room_type: "economy_room" | "executive_room" | "deluxe_room" | "studio" | "apartment";
       room_status: "active" | "inactive" | "maintenance";
+      room_cleaning_status: "ready" | "cleaning_required" | "cleaning_in_progress" | "maintenance_blocked";
       purpose_of_visit: "family_visit" | "business" | "medical" | "tourism" | "event_wedding" | "other";
       booking_source: "booking_com" | "airbnb" | "direct_whatsapp_call" | "referral" | "other";
       payment_method: "cash" | "bank_transfer" | "online_payment" | "other";

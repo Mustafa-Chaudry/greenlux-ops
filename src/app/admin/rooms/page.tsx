@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { updateRoomOperationalFields } from "@/app/admin/rooms/actions";
+import { updateRoomCleaningStatus, updateRoomOperationalFields } from "@/app/admin/rooms/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { requireRole } from "@/lib/auth/guards";
 import { managementRoles } from "@/lib/auth/roles";
-import { formatEnumLabel, formatPkr, formatUnitRoomLabel, roomStatusOptions } from "@/lib/check-in/options";
+import {
+  formatEnumLabel,
+  formatPkr,
+  formatUnitRoomLabel,
+  roomCleaningStatusLabels,
+  roomCleaningStatusOptions,
+  roomStatusOptions,
+  type RoomCleaningStatus,
+} from "@/lib/check-in/options";
 
 export const metadata: Metadata = {
   title: "Units Admin",
@@ -26,6 +34,34 @@ function statusTone(status: string) {
     return "warning";
   }
   return "neutral";
+}
+
+function cleaningTone(status: RoomCleaningStatus) {
+  if (status === "ready") {
+    return "success";
+  }
+
+  if (status === "maintenance_blocked") {
+    return "danger";
+  }
+
+  return "warning";
+}
+
+function cleaningActionLabel(status: RoomCleaningStatus) {
+  if (status === "ready") {
+    return "Mark Ready";
+  }
+
+  if (status === "cleaning_required") {
+    return "Mark Cleaning Required";
+  }
+
+  if (status === "cleaning_in_progress") {
+    return "Mark Cleaning In Progress";
+  }
+
+  return "Mark Maintenance Blocked";
 }
 
 export default async function AdminRoomsPage({ searchParams }: PageProps) {
@@ -68,7 +104,10 @@ export default async function AdminRoomsPage({ searchParams }: PageProps) {
                         {room.unit_number === 8 ? " - Temporary mapping" : ""}
                       </CardDescription>
                     </div>
-                    <Badge tone={statusTone(room.status)}>{formatEnumLabel(room.status)}</Badge>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge tone={statusTone(room.status)}>{formatEnumLabel(room.status)}</Badge>
+                      <Badge tone={cleaningTone(room.cleaning_status)}>{roomCleaningStatusLabels[room.cleaning_status]}</Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -102,6 +141,25 @@ export default async function AdminRoomsPage({ searchParams }: PageProps) {
                     </div>
                     <Button type="submit">Save</Button>
                   </form>
+
+                  <div className="rounded-lg border border-brand-sage bg-brand-ivory p-4">
+                    <p className="text-sm font-semibold text-brand-deep">Cleaning readiness</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Manual readiness state used by the Room Reality Board. This does not block room assignment.
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      {roomCleaningStatusOptions.map((option) => (
+                        <form key={option.value} action={updateRoomCleaningStatus}>
+                          <input type="hidden" name="id" value={room.id} />
+                          <input type="hidden" name="cleaning_status" value={option.value} />
+                          <input type="hidden" name="return_to" value="/admin/rooms" />
+                          <Button type="submit" size="sm" variant={option.value === room.cleaning_status ? "secondary" : "outline"} className="w-full justify-start">
+                            {cleaningActionLabel(option.value)}
+                          </Button>
+                        </form>
+                      ))}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}

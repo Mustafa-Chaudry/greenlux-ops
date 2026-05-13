@@ -21,6 +21,7 @@ import {
   paymentMethodOptions,
   paymentStatusOptions,
   purposeOptions,
+  roomCleaningStatusLabels,
 } from "@/lib/check-in/options";
 
 export const metadata: Metadata = {
@@ -45,8 +46,9 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
   const tomorrow = addDaysIso(today, 1);
   const { data: rooms } = await supabase
     .from("rooms")
-    .select("id,unit_number,name,status,base_price_pkr")
+    .select("id,unit_number,name,status,cleaning_status,base_price_pkr")
     .order("unit_number", { nullsFirst: false });
+  const hasRoomsNotReady = Boolean(rooms?.some((room) => room.cleaning_status !== "ready"));
   const paymentOptions = paymentStatusOptions.filter((option) => option.value !== "refunded");
   const initialStatusOptions = checkinStatusOptions.filter(
     (option) => option.value === "submitted" || option.value === "under_review",
@@ -189,10 +191,18 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
                   <option value="">Assign later</option>
                   {(rooms ?? []).map((room) => (
                     <option key={room.id} value={room.id}>
-                      {formatUnitRoomLabel(room)} - {formatEnumLabel(room.status)} - {formatPkr(room.base_price_pkr)}
+                      {formatUnitRoomLabel(room)} - {formatEnumLabel(room.status)}
+                      {room.cleaning_status !== "ready" ? ` - ${roomCleaningStatusLabels[room.cleaning_status]}` : ""} -{" "}
+                      {formatPkr(room.base_price_pkr)}
                     </option>
                   ))}
                 </Select>
+                {hasRoomsNotReady ? (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    Rooms labelled Cleaning Required, Cleaning In Progress, or Maintenance Blocked are not ready. Warning:
+                    this room is not marked ready. You may continue if management has approved this.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="payment_method">Payment method</Label>
