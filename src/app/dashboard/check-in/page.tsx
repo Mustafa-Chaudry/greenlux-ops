@@ -31,14 +31,14 @@ export default async function CheckInPage() {
               Complete your GreenLux arrival details.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">
-              A simple mobile-first check-in journey for your guest details, ID/payment upload, arrival timing, and next
+              A simple check-in journey for your details, ID/payment upload, arrival timing, and next
               steps. Staff review happens after you submit.
             </p>
           </div>
           <div className="grid gap-3 p-5 text-sm sm:grid-cols-3 sm:p-6">
             <div className="flex items-start gap-3 rounded-lg bg-brand-ivory p-3">
               <Sparkles className="mt-0.5 h-4 w-4 text-brand-fresh" aria-hidden="true" />
-              <span>Designed to make arrival clearer before you reach.</span>
+              <span>Designed to make arrival smooth and clear before you reach.</span>
             </div>
             <div className="flex items-start gap-3 rounded-lg bg-brand-ivory p-3">
               <ShieldCheck className="mt-0.5 h-4 w-4 text-brand-fresh" aria-hidden="true" />
