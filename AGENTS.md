@@ -5,6 +5,7 @@ GreenLux Ops is a live serviced-accommodation operations system. Work like a sen
 ## Read First
 
 - For normal tasks, read this file and `docs/codex-context/CODEX_HANDOVER.md`, then inspect only files directly relevant to the task.
+- Pilot repo-local skill: `.codex/skills/greenlux-task-runner/SKILL.md`.
 - Do not perform a full repo audit unless the task changes schema, auth/RLS, reports, payments, financial calculations, role access, deployment, or production recovery logic.
 - For complex tasks, plan first: state the operational need, likely files, validation path, and risks before editing.
 
