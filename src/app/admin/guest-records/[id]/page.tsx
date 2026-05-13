@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, ExternalLink, LogIn, LogOut, MessageCircle, TriangleAlert } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, FileText, LogIn, LogOut, MessageCircle, Printer, TriangleAlert } from "lucide-react";
 import {
   createBookingGroupFromGuestRecord,
   createGuestCharge,
@@ -315,6 +315,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
       message: `Hello ${record.full_name}, thank you for staying with GreenLux Residency. We hope you had a comfortable stay and wish you safe travels.`,
     },
   ];
+  const receiptMessage = `Hello ${record.full_name}, your GreenLux Accommodation Receipt is ready. Our team can share the receipt PDF here.`;
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -363,6 +364,35 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
             </ul>
           </div>
         ) : null}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Accommodation Receipt</CardTitle>
+            <CardDescription>
+              Open a clean receipt for workplace reimbursement or management records. Use browser print to save as PDF.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button asChild>
+              <Link href={`/admin/guest-records/${record.id}/receipt`}>
+                <FileText className="h-4 w-4" aria-hidden="true" />
+                View Accommodation Receipt
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/admin/guest-records/${record.id}/receipt?print=1`}>
+                <Printer className="h-4 w-4" aria-hidden="true" />
+                Print / Download Receipt
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <a href={getWhatsAppGuestHref(record.phone, receiptMessage)} target="_blank" rel="noreferrer">
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                Send receipt via WhatsApp
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
