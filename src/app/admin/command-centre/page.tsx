@@ -39,6 +39,7 @@ type Checkin = Pick<
   | "amount_paid_pkr"
   | "issue_type"
   | "guest_tag"
+  | "booking_group_id"
 >;
 type GuestCharge = Pick<
   Database["public"]["Tables"]["guest_charges"]["Row"],
@@ -58,6 +59,13 @@ type CommandAction = {
   urgency: number;
   tone: "danger" | "warning" | "info";
   meta?: string;
+};
+
+type SnapshotMetric = {
+  label: string;
+  value: string | number;
+  href?: string;
+  tone?: "neutral" | "success" | "warning" | "danger" | "info";
 };
 
 const quickActions = [
@@ -87,6 +95,26 @@ function actionTone(tone: CommandAction["tone"]) {
   return "border-brand-sage bg-brand-ivory text-brand-deep";
 }
 
+function readinessTone(metric: SnapshotMetric["tone"]) {
+  if (metric === "danger") {
+    return "border-red-200 bg-red-50";
+  }
+
+  if (metric === "warning") {
+    return "border-amber-200 bg-amber-50";
+  }
+
+  if (metric === "success") {
+    return "border-emerald-200 bg-emerald-50";
+  }
+
+  if (metric === "info") {
+    return "border-sky-200 bg-sky-50";
+  }
+
+  return "border-brand-sage bg-white";
+}
+
 function roomLabel(roomNames: Map<string, string>, roomId: string | null) {
   if (!roomId) {
     return "No unit assigned";
@@ -107,132 +135,152 @@ function getChargesByCheckin(charges: GuestCharge[]) {
   return chargesByCheckin;
 }
 
-function buildImmediateActions({
-  checkins,
+function isVerificationPending(checkin: Checkin, rejectedDocuments: Set<string>) {
+  return !checkin.cnic_verified || !checkin.payment_verified || rejectedDocuments.has(checkin.id);
+}
+
+function checkinNeedsAttention({
+  checkin,
   chargesByCheckin,
   rejectedDocuments,
-  maintenanceLogs,
-  roomNames,
+}: {
+  checkin: Checkin;
+  chargesByCheckin: Map<string, GuestCharge[]>;
+  rejectedDocuments: Set<string>;
+}) {
+  const financialSummary = getGuestFinancialSummary({
+    checkin,
+    charges: chargesByCheckin.get(checkin.id) ?? [],
+  });
+
+  return (
+    financialSummary.outstanding > 0 ||
+    isVerificationPending(checkin, rejectedDocuments) ||
+    Boolean(checkin.issue_type) ||
+    checkin.status === "issue" ||
+    checkin.guest_tag === "issue"
+  );
+}
+
+function buildPriorityActions({
+  checkins,
+  rejectedDocuments,
+  occupancyUnits,
   today,
 }: {
   checkins: Checkin[];
-  chargesByCheckin: Map<string, GuestCharge[]>;
   rejectedDocuments: Set<string>;
-  maintenanceLogs: MaintenanceLog[];
-  roomNames: Map<string, string>;
+  occupancyUnits: Awaited<ReturnType<typeof fetchOccupancySnapshot>>["units"];
   today: string;
 }) {
   const actions: CommandAction[] = [];
-  const openCheckins = checkins.filter((checkin) => checkin.status !== "checked_out");
 
-  openCheckins
-    .filter((checkin) => checkin.check_out_date === today)
-    .forEach((checkin) => {
+  occupancyUnits
+    .filter((unit) => {
+      const stay = unit.currentStay ?? unit.upcomingStay;
+      return Boolean(stay && unit.arrivalToday && (unit.effectiveCleaningStatus !== "ready" || unit.openMaintenance || unit.room.status !== "active"));
+    })
+    .forEach((unit) => {
+      const stay = unit.currentStay ?? unit.upcomingStay;
+
+      if (!stay) {
+        return;
+      }
+
       actions.push({
-        id: `due-out-${checkin.id}`,
-        title: "Check-outs due today",
-        detail: `${checkin.full_name} - ${roomLabel(roomNames, checkin.assigned_room_id)}`,
-        href: `/admin/guest-records/${checkin.id}`,
+        id: `arrival-not-ready-${stay.id}`,
+        title: "Arriving today but room not ready",
+        detail: `${stay.full_name} - ${unit.unitLabel}`,
+        href: `/admin/guest-records/${stay.id}`,
         urgency: 10,
         tone: "danger",
-        meta: checkin.phone,
+        meta: unit.effectiveCleaningStatus === "ready" ? "Maintenance Needs Attention" : "Room not Ready for Arrival",
       });
     });
 
-  openCheckins
+  occupancyUnits
+    .filter((unit) => unit.departureToday && unit.currentStay && unit.outstandingBalance > 0)
+    .forEach((unit) => {
+      const stay = unit.currentStay;
+
+      if (!stay) {
+        return;
+      }
+
+      actions.push({
+        id: `departure-balance-${stay.id}`,
+        title: "Departing today with Balance Due",
+        detail: `${stay.full_name} - ${formatPkr(unit.outstandingBalance)} Balance Due`,
+        href: `/admin/guest-records/${stay.id}`,
+        urgency: 20,
+        tone: "danger",
+        meta: unit.unitLabel,
+      });
+    });
+
+  checkins
+    .filter((checkin) => checkin.status === "checked_in" && isVerificationPending(checkin, rejectedDocuments))
+    .forEach((checkin) => {
+      actions.push({
+        id: `verification-${checkin.id}`,
+        title: "Guest Stay missing ID or Payment Confirmation",
+        detail: `${checkin.full_name} Needs Attention`,
+        href: `/admin/guest-records/${checkin.id}`,
+        urgency: 30,
+        tone: "warning",
+        meta: `${!checkin.cnic_verified || rejectedDocuments.has(checkin.id) ? "ID pending" : "ID ready"} / ${!checkin.payment_verified ? "Payment Confirmation pending" : "Payment ready"}`,
+      });
+    });
+
+  occupancyUnits
+    .filter((unit) => unit.effectiveCleaningStatus === "maintenance_blocked")
+    .forEach((unit) => {
+      actions.push({
+        id: `maintenance-blocked-${unit.room.id}`,
+        title: "Maintenance-blocked room",
+        detail: `${unit.unitLabel} cannot be marked Ready for Arrival`,
+        href: "/admin/maintenance",
+        urgency: 40,
+        tone: "danger",
+        meta: unit.openMaintenance?.issue_title ?? "Maintenance Needs Attention",
+      });
+    });
+
+  occupancyUnits
+    .filter((unit) => unit.effectiveCleaningStatus === "cleaning_required")
+    .forEach((unit) => {
+      actions.push({
+        id: `cleaning-required-${unit.room.id}`,
+        title: "Cleaning required",
+        detail: `${unit.unitLabel} is not Ready for Arrival`,
+        href: "/admin/occupancy",
+        urgency: 50,
+        tone: "warning",
+        meta: unit.inferredTurnoverNeeded ? "Turnover likely after departure" : "Housekeeping Needs Attention",
+      });
+    });
+
+  checkins
     .filter((checkin) => checkin.check_in_date === today && !checkin.assigned_room_id)
     .forEach((checkin) => {
       actions.push({
         id: `arrival-room-${checkin.id}`,
-        title: "Check-ins today without unit",
-        detail: `${checkin.full_name} needs a unit before arrival`,
+        title: "Arriving today but room not ready",
+        detail: `${checkin.full_name} needs a room before arrival`,
         href: `/admin/guest-records/${checkin.id}`,
-        urgency: 20,
+        urgency: 15,
         tone: "danger",
-        meta: formatEnumLabel(checkin.booking_source),
-      });
-    });
-
-  openCheckins
-    .filter((checkin) => !checkin.cnic_verified || rejectedDocuments.has(checkin.id))
-    .forEach((checkin) => {
-      actions.push({
-        id: `cnic-${checkin.id}`,
-        title: "CNIC not verified",
-        detail: `${checkin.full_name}${rejectedDocuments.has(checkin.id) ? " has a rejected document" : " needs identity verification"}`,
-        href: `/admin/guest-records/${checkin.id}`,
-        urgency: 30,
-        tone: "warning",
-        meta: roomLabel(roomNames, checkin.assigned_room_id),
-      });
-    });
-
-  openCheckins
-    .filter((checkin) => !checkin.payment_verified)
-    .forEach((checkin) => {
-      actions.push({
-        id: `payment-${checkin.id}`,
-        title: "Payment not verified",
-        detail: `${checkin.full_name} payment proof is pending`,
-        href: `/admin/guest-records/${checkin.id}`,
-        urgency: 40,
-        tone: "warning",
-        meta: formatEnumLabel(checkin.payment_status),
-      });
-    });
-
-  openCheckins.forEach((checkin) => {
-    const financialSummary = getGuestFinancialSummary({
-      checkin,
-      charges: chargesByCheckin.get(checkin.id) ?? [],
-    });
-
-    if (financialSummary.outstanding > 0) {
-      actions.push({
-        id: `balance-${checkin.id}`,
-        title: "Balances Due",
-        detail: `${checkin.full_name} owes ${formatPkr(financialSummary.outstanding)}`,
-        href: `/admin/guest-records/${checkin.id}`,
-        urgency: 50,
-        tone: "warning",
-        meta: roomLabel(roomNames, checkin.assigned_room_id),
-      });
-    }
-  });
-
-  maintenanceLogs.forEach((log) => {
-    actions.push({
-      id: `maintenance-${log.id}`,
-      title: "Maintenance issues",
-      detail: `${roomLabel(roomNames, log.room_id)} - ${log.issue_title}`,
-      href: "/admin/maintenance",
-      urgency: log.status === "reported" ? 60 : 70,
-      tone: log.status === "reported" ? "warning" : "info",
-      meta: formatEnumLabel(log.status),
-    });
-  });
-
-  openCheckins
-    .filter((checkin) => !checkin.check_out_date)
-    .forEach((checkin) => {
-      actions.push({
-        id: `missing-checkout-${checkin.id}`,
-        title: "Missing checkout date",
-        detail: `${checkin.full_name} needs an expected departure date`,
-        href: `/admin/guest-records/${checkin.id}`,
-        urgency: 80,
-        tone: "info",
-        meta: roomLabel(roomNames, checkin.assigned_room_id),
+        meta: "No room assigned",
       });
     });
 
   return actions.sort((a, b) => a.urgency - b.urgency);
 }
 
-function Metric({ label, value, href }: { label: string; value: string | number; href?: string }) {
+function Metric({ label, value, href, tone = "neutral" }: SnapshotMetric) {
   const content = (
-    <div className="rounded-lg border border-brand-sage bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+    <div className={`rounded-lg border p-4 ${readinessTone(tone)}`}>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">{label}</p>
       <p className="mt-2 font-serif text-3xl font-semibold text-brand-deep">{value}</p>
     </div>
   );
@@ -246,6 +294,30 @@ function Metric({ label, value, href }: { label: string; value: string | number;
   );
 }
 
+function countMultiRoomBookingsNeedingAttention({
+  checkins,
+  chargesByCheckin,
+  rejectedDocuments,
+}: {
+  checkins: Checkin[];
+  chargesByCheckin: Map<string, GuestCharge[]>;
+  rejectedDocuments: Set<string>;
+}) {
+  const groups = new Set<string>();
+
+  checkins.forEach((checkin) => {
+    if (!checkin.booking_group_id) {
+      return;
+    }
+
+    if (checkinNeedsAttention({ checkin, chargesByCheckin, rejectedDocuments })) {
+      groups.add(checkin.booking_group_id);
+    }
+  });
+
+  return groups.size;
+}
+
 export default async function CommandCentrePage() {
   const today = getBusinessTodayDate();
   const tomorrow = addDays(today, 1);
@@ -257,7 +329,7 @@ export default async function CommandCentrePage() {
     supabase
       .from("guest_checkins")
       .select(
-        "id,full_name,phone,booking_source,check_in_date,check_out_date,status,assigned_room_id,cnic_verified,payment_verified,payment_status,payment_method,total_expected_amount_pkr,agreed_room_rate_pkr,amount_paid_pkr,issue_type,guest_tag",
+        "id,full_name,phone,booking_source,check_in_date,check_out_date,status,assigned_room_id,cnic_verified,payment_verified,payment_status,payment_method,total_expected_amount_pkr,agreed_room_rate_pkr,amount_paid_pkr,issue_type,guest_tag,booking_group_id",
       )
       .neq("status", "checked_out")
       .order("check_in_date", { ascending: true }),
@@ -295,12 +367,10 @@ export default async function CommandCentrePage() {
   const chargesByCheckin = getChargesByCheckin(charges);
   const rejectedDocuments = new Set(((rejectedDocumentsResult.data ?? []) as RejectedDocument[]).map((document) => document.checkin_id));
   const maintenanceLogs = (maintenanceResult.data ?? []) as MaintenanceLog[];
-  const actions = buildImmediateActions({
+  const actions = buildPriorityActions({
     checkins,
-    chargesByCheckin,
     rejectedDocuments,
-    maintenanceLogs,
-    roomNames,
+    occupancyUnits: occupancy.units,
     today,
   });
   const checkInsToday = checkins.filter((checkin) => checkin.check_in_date === today);
@@ -310,6 +380,36 @@ export default async function CommandCentrePage() {
     return sum + summary.outstanding;
   }, 0);
   const newChargesToday = ((todayChargesResult.data ?? []) as GuestCharge[]).reduce((sum, charge) => sum + charge.total_amount_pkr, 0);
+  const roomsNeedingCleaning = occupancy.units.filter((unit) => unit.effectiveCleaningStatus === "cleaning_required").length;
+  const roomsNotReady = occupancy.units.filter((unit) => unit.effectiveCleaningStatus !== "ready" || unit.room.status !== "active" || unit.openMaintenance).length;
+  const maintenanceBlockedRooms = occupancy.units.filter((unit) => unit.effectiveCleaningStatus === "maintenance_blocked").length;
+  const readyForArrivalRooms = occupancy.units.filter((unit) => unit.effectiveCleaningStatus === "ready" && unit.room.status === "active" && !unit.openMaintenance).length;
+  const pendingVerification = checkins.filter((checkin) => isVerificationPending(checkin, rejectedDocuments)).length;
+  const multiRoomBookingsNeedingAttention = countMultiRoomBookingsNeedingAttention({
+    checkins,
+    chargesByCheckin,
+    rejectedDocuments,
+  });
+  const todayMetrics: SnapshotMetric[] = [
+    { label: "Arrivals Today", value: checkInsToday.length, href: "/admin/guest-records?view=needs_review", tone: checkInsToday.length ? "info" : "success" },
+    { label: "Departures Today", value: checkOutsToday.length, href: "/admin/guest-records?view=active", tone: checkOutsToday.length ? "warning" : "success" },
+    { label: "Rooms Needing Cleaning", value: roomsNeedingCleaning, href: "/admin/occupancy", tone: roomsNeedingCleaning ? "warning" : "success" },
+    { label: "Rooms Not Ready", value: roomsNotReady, href: "/admin/occupancy", tone: roomsNotReady ? "warning" : "success" },
+    { label: "Maintenance Blocked", value: maintenanceBlockedRooms, href: "/admin/maintenance", tone: maintenanceBlockedRooms ? "danger" : "success" },
+    { label: "Balance Due", value: formatPkr(openOutstanding), href: "/admin/guest-records?view=active", tone: openOutstanding ? "warning" : "success" },
+    {
+      label: "Pending ID / Payment Confirmation",
+      value: pendingVerification,
+      href: "/admin/guest-records?verification=payment",
+      tone: pendingVerification ? "warning" : "success",
+    },
+    {
+      label: "Multi-room bookings needing attention",
+      value: multiRoomBookingsNeedingAttention,
+      href: "/admin/guest-records?view=active",
+      tone: multiRoomBookingsNeedingAttention ? "warning" : "success",
+    },
+  ];
   const errors = [
     ...occupancy.errors,
     ...reportInputs.errors,
@@ -328,7 +428,7 @@ export default async function CommandCentrePage() {
             <p className="text-sm font-semibold uppercase text-brand-fresh">Daily operations</p>
             <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">Command Centre</h1>
             <p className="mt-2 text-sm text-slate-600">
-              Action list for {today}: arrivals, departures, verification, balances, units, and maintenance.
+              Today&apos;s calm operating view for arrivals, departures, room readiness, Balance Due, and stays that Need Attention.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -350,12 +450,31 @@ export default async function CommandCentrePage() {
           </div>
         ) : null}
 
+        <section aria-labelledby="today-at-greenlux">
+          <Card>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle id="today-at-greenlux">Today at GreenLux</CardTitle>
+                <CardDescription>
+                  Operating snapshot for {today}. Green means calm; amber or red means staff should open the linked workflow.
+                </CardDescription>
+              </div>
+              <Badge tone={actions.length ? "warning" : "success"}>{actions.length ? "Needs Attention" : "Ready for Arrival"}</Badge>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {todayMetrics.map((metric) => (
+                <Metric key={metric.label} {...metric} />
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+
         <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
           <Card>
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle>Immediate Actions</CardTitle>
-                <CardDescription>Sorted by front-desk urgency.</CardDescription>
+                <CardTitle>Priority Actions</CardTitle>
+                <CardDescription>Ordered by what can disrupt today&apos;s guest stay first.</CardDescription>
               </div>
               <Badge tone={actions.length ? "warning" : "success"}>{actions.length} open</Badge>
             </CardHeader>
@@ -379,7 +498,7 @@ export default async function CommandCentrePage() {
                 ))
               ) : (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-                  No urgent operational actions right now.
+                  No priority actions right now. Rooms and Guest Stay follow-ups look calm.
                 </div>
               )}
             </CardContent>
@@ -453,18 +572,18 @@ export default async function CommandCentrePage() {
           <Card>
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle>Unit Snapshot</CardTitle>
-                <CardDescription>Live 11-unit operational position.</CardDescription>
+                <CardTitle>Room Readiness</CardTitle>
+                <CardDescription>Live 11-unit readiness position from the Room Reality Board.</CardDescription>
               </div>
               <Button asChild size="sm" variant="outline">
                 <Link href="/admin/occupancy">Open occupancy</Link>
               </Button>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
-              <Metric label="Total units" value={occupancy.summary.totalUnits} href="/admin/occupancy" />
+              <Metric label="Ready for Arrival" value={readyForArrivalRooms} href="/admin/occupancy" tone="success" />
               <Metric label="Occupied" value={occupancy.summary.occupiedUnits} href="/admin/occupancy" />
-              <Metric label="Vacant" value={occupancy.summary.vacantUnits} href="/admin/occupancy" />
-              <Metric label="Maintenance" value={occupancy.summary.maintenanceUnits} href="/admin/occupancy" />
+              <Metric label="Rooms Not Ready" value={roomsNotReady} href="/admin/occupancy" tone={roomsNotReady ? "warning" : "success"} />
+              <Metric label="Active maintenance" value={maintenanceLogs.length} href="/admin/maintenance" tone={maintenanceLogs.length ? "warning" : "success"} />
             </CardContent>
           </Card>
         </section>

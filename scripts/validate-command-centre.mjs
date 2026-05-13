@@ -27,21 +27,43 @@ test("command centre reuses existing operational sources", () => {
 test("command centre renders required action-first sections", () => {
   const source = pageSource();
 
-  for (const section of ["Immediate Actions", "Today Timeline", "Unit Snapshot", "Money Snapshot", "Quick Actions"]) {
+  for (const section of ["Today at GreenLux", "Priority Actions", "Today Timeline", "Room Readiness", "Money Snapshot", "Quick Actions"]) {
     assert.match(source, new RegExp(section), `${section} section missing`);
   }
 
   for (const action of [
-    "Check-outs due today",
-    "Check-ins today without unit",
-    "CNIC not verified",
-    "Payment not verified",
-    "Outstanding balances",
-    "Maintenance issues",
-    "Missing checkout date",
+    "Arriving today but room not ready",
+    "Departing today with Balance Due",
+    "Guest Stay missing ID or Payment Confirmation",
+    "Maintenance-blocked room",
+    "Cleaning required",
   ]) {
     assert.match(source, new RegExp(action), `${action} action missing`);
   }
+});
+
+test("command centre surfaces the v2 operating snapshot", () => {
+  const source = pageSource();
+
+  for (const label of [
+    "Arrivals Today",
+    "Departures Today",
+    "Rooms Needing Cleaning",
+    "Rooms Not Ready",
+    "Maintenance Blocked",
+    "Balance Due",
+    "Pending ID / Payment Confirmation",
+    "Multi-room bookings needing attention",
+  ]) {
+    assert.match(source, new RegExp(label), `${label} snapshot metric missing`);
+  }
+
+  assert.match(source, /booking_group_id/, "multi-room attention should use the existing guest_checkins booking_group_id link");
+  assert.match(source, /Ready for Arrival/, "hospitality readiness language missing");
+  assert.match(source, /Needs Attention/, "hospitality attention language missing");
+  assert.match(source, /Guest Stay/, "admin language should use Guest Stay");
+  assert.match(source, /Payment Confirmation/, "payment language should use Payment Confirmation");
+  assert.match(source, /Balance Due/, "financial language should use Balance Due");
 });
 
 test("command centre links staff to real admin fix screens", () => {
@@ -52,4 +74,5 @@ test("command centre links staff to real admin fix screens", () => {
   }
 
   assert.doesNotMatch(source, /seed|fake|mock/i, "must not use fake seed data");
+  assert.doesNotMatch(source, /command palette|realtime|activity feed|AI summary/i, "Phase 6.6 must not add command palettes, realtime feeds, or AI summaries");
 });
