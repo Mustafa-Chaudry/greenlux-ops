@@ -35,7 +35,7 @@ export const checkInFormSchema = z
       .union([z.literal(""), purposeOfVisitSchema])
       .refine((value) => value !== "", "Please select the purpose of visit.")
       .transform((value) => value as z.infer<typeof purposeOfVisitSchema>),
-    booking_source: z.enum(["booking_com", "airbnb", "direct_whatsapp_call", "referral", "other"]),
+    booking_source: z.enum(["booking_com", "airbnb", "agoda", "direct_whatsapp_call", "referral", "other"]),
     has_stayed_before: z.enum(["yes", "no"]),
     payment_method: z.enum(["cash", "bank_transfer", "online_payment", "other"]),
     advance_paid_amount_pkr: optionalNumber,

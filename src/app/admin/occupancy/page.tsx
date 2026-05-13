@@ -29,6 +29,7 @@ import {
   roomCleaningStatusOptions,
   type RoomCleaningStatus,
 } from "@/lib/check-in/options";
+import { formatStayRangeWithNights } from "@/lib/check-in/stay-dates";
 import { fetchOccupancySnapshot, type UnitOccupancyRow, type VerificationSignal } from "@/lib/occupancy/snapshot";
 import { cn } from "@/lib/utils";
 
@@ -134,7 +135,7 @@ function formatStayDateRange(unit: UnitOccupancyRow) {
     return null;
   }
 
-  return `${stay.check_in_date} to ${stay.check_out_date || "No checkout date"}`;
+  return formatStayRangeWithNights(stay.check_in_date, stay.check_out_date);
 }
 
 function isActionRequired(unit: UnitOccupancyRow) {

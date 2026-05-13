@@ -124,6 +124,7 @@ function formatNoteAmount(value: number | null | undefined) {
 const updateGuestRecordSchema = z.object({
   id: z.uuid(),
   assigned_room_id: z.uuid().nullable(),
+  booking_group_id: z.uuid().nullable(),
   agreed_room_rate_pkr: z.number().min(0).nullable(),
   advance_paid_amount_pkr: z.number().min(0).nullable(),
   total_expected_amount_pkr: z.number().min(0).nullable(),
@@ -137,11 +138,12 @@ const updateGuestRecordSchema = z.object({
 });
 
 export async function updateGuestRecord(formData: FormData) {
-  const { supabase } = await requireRole(managementRoles);
+  const { supabase, profile } = await requireRole(managementRoles);
 
   const parsed = updateGuestRecordSchema.safeParse({
     id: formData.get("id"),
     assigned_room_id: nullableString(formData.get("assigned_room_id")),
+    booking_group_id: nullableString(formData.get("booking_group_id")),
     agreed_room_rate_pkr: nullableNumber(formData.get("agreed_room_rate_pkr")),
     advance_paid_amount_pkr: nullableNumber(formData.get("advance_paid_amount_pkr")),
     total_expected_amount_pkr: nullableNumber(formData.get("total_expected_amount_pkr")),
@@ -161,7 +163,7 @@ export async function updateGuestRecord(formData: FormData) {
   const { id, cnic_verified, payment_verified, payment_status, ...payload } = parsed.data;
   const { data: currentRecord, error: currentRecordError } = await supabase
     .from("guest_checkins")
-    .select("status,assigned_room_id,check_in_date,check_out_date")
+    .select("status,assigned_room_id,booking_group_id,check_in_date,check_out_date")
     .eq("id", id)
     .single();
 
@@ -226,9 +228,94 @@ export async function updateGuestRecord(formData: FormData) {
     redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(error.message)}`);
   }
 
+  if (payload.booking_group_id !== currentRecord.booking_group_id) {
+    await supabase.from("audit_logs").insert({
+      actor_user_id: profile.id,
+      action: "guest_booking_group_updated",
+      entity_type: "guest_checkins",
+      entity_id: id,
+      metadata: {
+        old_booking_group_id: currentRecord.booking_group_id,
+        new_booking_group_id: payload.booking_group_id,
+      },
+    });
+  }
+
   revalidatePath("/admin/guest-records");
   revalidatePath(`/admin/guest-records/${id}`);
   redirect(`/admin/guest-records/${id}?message=${encodeURIComponent("Guest record updated.")}`);
+}
+
+const createBookingGroupFromGuestRecordSchema = z.object({
+  id: z.uuid(),
+});
+
+export async function createBookingGroupFromGuestRecord(formData: FormData) {
+  const { supabase, profile } = await requireRole(managementRoles);
+  const parsed = createBookingGroupFromGuestRecordSchema.safeParse({ id: formData.get("id") });
+
+  if (!parsed.success) {
+    redirect(`/admin/guest-records?message=${encodeURIComponent("Invalid booking group request.")}`);
+  }
+
+  const { id } = parsed.data;
+  const { data: record, error: recordError } = await supabase
+    .from("guest_checkins")
+    .select(
+      "id,full_name,phone,email,booking_source,check_in_date,check_out_date,total_expected_amount_pkr,agreed_room_rate_pkr,amount_paid_pkr,booking_group_id,internal_notes",
+    )
+    .eq("id", id)
+    .single();
+
+  if (recordError || !record) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(recordError?.message ?? "Guest record not found.")}`);
+  }
+
+  if (record.booking_group_id) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent("This stay is already linked to a multi-room booking.")}`);
+  }
+
+  const { data: bookingGroup, error: bookingGroupError } = await supabase
+    .from("booking_groups")
+    .insert({
+      lead_guest_name: record.full_name,
+      lead_guest_phone: record.phone,
+      lead_guest_email: record.email,
+      booking_source: record.booking_source,
+      check_in_date: record.check_in_date,
+      check_out_date: record.check_out_date,
+      expected_total_amount: record.total_expected_amount_pkr ?? record.agreed_room_rate_pkr,
+      paid_total_amount: record.amount_paid_pkr,
+      notes: record.internal_notes,
+      created_by: profile.id,
+    })
+    .select("id")
+    .single();
+
+  if (bookingGroupError || !bookingGroup) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(bookingGroupError?.message ?? "Could not create booking group.")}`);
+  }
+
+  const { error: updateError } = await supabase.from("guest_checkins").update({ booking_group_id: bookingGroup.id }).eq("id", id);
+
+  if (updateError) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(updateError.message)}`);
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_user_id: profile.id,
+    action: "booking_group_created",
+    entity_type: "booking_groups",
+    entity_id: bookingGroup.id,
+    metadata: {
+      source: "guest_record_detail",
+      first_guest_checkin_id: id,
+    },
+  });
+
+  revalidatePath("/admin/guest-records");
+  revalidatePath(`/admin/guest-records/${id}`);
+  redirect(`/admin/guest-records/${id}?message=${encodeURIComponent("Multi-room booking created and linked to this stay.")}`);
 }
 
 const statusActionSchema = z.object({

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ExternalLink, LogIn, LogOut, MessageCircle, TriangleAlert } from "lucide-react";
 import {
+  createBookingGroupFromGuestRecord,
   createGuestCharge,
   extendGuestStay,
   markGuestChargePaid,
@@ -47,6 +48,7 @@ import {
   purposeOptions,
   roomCleaningStatusLabels,
 } from "@/lib/check-in/options";
+import { formatStayRangeWithNights } from "@/lib/check-in/stay-dates";
 import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -62,6 +64,21 @@ type GuestDocument = Database["public"]["Tables"]["guest_documents"]["Row"] & {
   signedUrl: string | null;
 };
 type GuestCharge = Database["public"]["Tables"]["guest_charges"]["Row"];
+type BookingGroup = Database["public"]["Tables"]["booking_groups"]["Row"];
+type LinkedStay = Pick<
+  Database["public"]["Tables"]["guest_checkins"]["Row"],
+  | "id"
+  | "full_name"
+  | "assigned_room_id"
+  | "check_in_date"
+  | "check_out_date"
+  | "status"
+  | "cnic_verified"
+  | "payment_verified"
+  | "total_expected_amount_pkr"
+  | "agreed_room_rate_pkr"
+  | "amount_paid_pkr"
+>;
 
 function findLabel<T extends string>(options: Array<{ value: T; label: string }>, value: T) {
   return options.find((option) => option.value === value)?.label ?? formatEnumLabel(value);
@@ -86,6 +103,14 @@ function documentStatusTone(status: GuestDocument["document_status"]) {
   }
 
   return "warning";
+}
+
+function groupOutstanding(expected: number | null | undefined, paid: number | null | undefined) {
+  if (expected === null || expected === undefined) {
+    return null;
+  }
+
+  return Math.max(expected - (paid ?? 0), 0);
 }
 
 function DocumentGroup({ title, documents }: { title: string; documents: GuestDocument[] }) {
@@ -179,6 +204,38 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
     );
   }
 
+  const [{ data: bookingGroups }, bookingGroupResult, linkedStaysResult] = await Promise.all([
+    supabase
+      .from("booking_groups")
+      .select("id,lead_guest_name,lead_guest_phone,booking_source,check_in_date,check_out_date,expected_total_amount,paid_total_amount")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    record.booking_group_id
+      ? supabase.from("booking_groups").select("*").eq("id", record.booking_group_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    record.booking_group_id
+      ? supabase
+          .from("guest_checkins")
+          .select(
+            "id,full_name,assigned_room_id,check_in_date,check_out_date,status,cnic_verified,payment_verified,total_expected_amount_pkr,agreed_room_rate_pkr,amount_paid_pkr",
+          )
+          .eq("booking_group_id", record.booking_group_id)
+          .order("check_in_date", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  const bookingGroup = (bookingGroupResult.data ?? null) as BookingGroup | null;
+  const linkedStays = (linkedStaysResult.data ?? []) as LinkedStay[];
+  const linkedStayIds = linkedStays.map((stay) => stay.id);
+  const { data: linkedCharges } = linkedStayIds.length
+    ? await supabase.from("guest_charges").select("guest_checkin_id,total_amount_pkr,is_paid").in("guest_checkin_id", linkedStayIds)
+    : { data: [] };
+  const linkedChargesByStay = new Map<string, Array<{ total_amount_pkr: number; is_paid: boolean }>>();
+  (linkedCharges ?? []).forEach((charge) => {
+    const stayCharges = linkedChargesByStay.get(charge.guest_checkin_id) ?? [];
+    stayCharges.push(charge);
+    linkedChargesByStay.set(charge.guest_checkin_id, stayCharges);
+  });
+
   const documentsWithUrls: GuestDocument[] = await Promise.all(
     (documents ?? []).map(async (document) => {
       const { data } = await supabase.storage.from("guest-documents").createSignedUrl(document.file_path, 60 * 10);
@@ -204,6 +261,24 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const assignedRoomNotReady = Boolean(assignedRoom && assignedRoom.cleaning_status !== "ready");
   const roomName = assignedRoom ? formatUnitRoomLabel(assignedRoom) : "To be assigned";
   const financialSummary = getGuestFinancialSummary({ checkin: record, charges: guestCharges });
+  const linkedFinancialSummary = linkedStays.reduce(
+    (summary, stay) => {
+      const staySummary = getGuestFinancialSummary({
+        checkin: stay,
+        charges: linkedChargesByStay.get(stay.id) ?? [],
+      });
+
+      return {
+        totalExpected: summary.totalExpected + staySummary.totalExpected,
+        totalPaid: summary.totalPaid + staySummary.totalPaid,
+        outstanding: summary.outstanding + staySummary.outstanding,
+      };
+    },
+    { totalExpected: 0, totalPaid: 0, outstanding: 0 },
+  );
+  const combinedExpected = bookingGroup?.expected_total_amount ?? linkedFinancialSummary.totalExpected;
+  const combinedPaid = bookingGroup?.paid_total_amount ?? linkedFinancialSummary.totalPaid;
+  const combinedOutstanding = groupOutstanding(combinedExpected, combinedPaid) ?? linkedFinancialSummary.outstanding;
   const requirements = [
     { label: "Unit assigned", complete: Boolean(record.assigned_room_id), missing: "Unit not assigned" },
     { label: "CNIC verified", complete: record.cnic_verified, missing: "CNIC not verified" },
@@ -256,7 +331,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
             <p className="text-sm font-semibold uppercase text-brand-fresh">Guest record</p>
             <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">{record.full_name}</h1>
             <p className="mt-2 text-sm text-slate-600">
-              {record.check_in_date} to {record.check_out_date} - {record.number_of_guests} guest(s)
+              {formatStayRangeWithNights(record.check_in_date, record.check_out_date)} - {record.number_of_guests} guest(s)
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -289,6 +364,127 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           </div>
         ) : null}
 
+        <Card>
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>{bookingGroup ? "Part of multi-room booking" : "Multi-room booking"}</CardTitle>
+              <CardDescription>
+                {bookingGroup
+                  ? "Lead booking context for this stay. Room readiness, check-in, folio, documents, and cleaning remain per room."
+                  : "This stay is currently a normal single-room stay. Create a lead booking only when this guest is booking multiple units."}
+              </CardDescription>
+            </div>
+            {!bookingGroup ? (
+              <form action={createBookingGroupFromGuestRecord}>
+                <input type="hidden" name="id" value={record.id} />
+                <Button type="submit" variant="outline">Create multi-room booking from this stay</Button>
+              </form>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {bookingGroup ? (
+              <>
+                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <InfoRow label="Lead guest/contact" value={`${bookingGroup.lead_guest_name} - ${bookingGroup.lead_guest_phone}`} />
+                  <InfoRow label="Lead email" value={bookingGroup.lead_guest_email} />
+                  <InfoRow label="Stay dates" value={formatStayRangeWithNights(bookingGroup.check_in_date, bookingGroup.check_out_date)} />
+                  <InfoRow label="Booking source" value={findLabel(bookingSourceOptions, bookingGroup.booking_source)} />
+                  <InfoRow label="Combined expected" value={formatPkr(combinedExpected)} />
+                  <InfoRow label="Combined paid" value={formatPkr(combinedPaid)} />
+                  <InfoRow label="Combined outstanding" value={formatPkr(combinedOutstanding)} />
+                  <InfoRow label="Linked stays" value={linkedStays.length} />
+                </dl>
+
+                <div className="rounded-lg border border-brand-sage bg-white p-4">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-brand-deep">Linked rooms/stays</p>
+                      <p className="text-sm text-slate-600">Each row remains its own operational room record.</p>
+                    </div>
+                    <Badge tone="info">{linkedStays.length} stay(s)</Badge>
+                  </div>
+
+                  {linkedStays.length ? (
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full min-w-[900px] text-left text-sm">
+                        <thead className="border-b border-brand-sage bg-brand-ivory text-xs uppercase tracking-[0.12em] text-brand-deep">
+                          <tr>
+                            <th className="px-4 py-3">Guest / stay</th>
+                            <th className="px-4 py-3">Room</th>
+                            <th className="px-4 py-3">Per-room allocation</th>
+                            <th className="px-4 py-3">Documents/payment</th>
+                            <th className="px-4 py-3">Readiness</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-sage/70">
+                          {linkedStays.map((stay) => {
+                            const room = stay.assigned_room_id ? rooms?.find((candidate) => candidate.id === stay.assigned_room_id) : null;
+                            const staySummary = getGuestFinancialSummary({
+                              checkin: stay,
+                              charges: linkedChargesByStay.get(stay.id) ?? [],
+                            });
+
+                            return (
+                              <tr key={stay.id} className={stay.id === record.id ? "bg-brand-ivory" : "bg-white"}>
+                                <td className="px-4 py-3">
+                                  <Link href={`/admin/guest-records/${stay.id}`} className="font-semibold text-brand-deep underline-offset-2 hover:underline">
+                                    {stay.full_name}
+                                  </Link>
+                                  <p className="text-xs text-slate-500">{formatStayRangeWithNights(stay.check_in_date, stay.check_out_date)}</p>
+                                  <Badge tone={checkinStatusTone[stay.status]} className="mt-2">{getCheckinStatusLabel(stay.status)}</Badge>
+                                </td>
+                                <td className="px-4 py-3">{room ? formatUnitRoomLabel(room) : "Not assigned"}</td>
+                                <td className="px-4 py-3">
+                                  <p>{formatPkr(staySummary.totalExpected)} expected</p>
+                                  <p className="text-xs text-slate-500">{formatPkr(staySummary.totalPaid)} paid</p>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex flex-wrap gap-2">
+                                    <Badge tone={stay.cnic_verified ? "success" : "warning"}>CNIC {stay.cnic_verified ? "verified" : "pending"}</Badge>
+                                    <Badge tone={stay.payment_verified ? "success" : "warning"}>
+                                      Payment proof {stay.payment_verified ? "verified" : "pending"}
+                                    </Badge>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {room ? (
+                                    <div className="flex flex-wrap gap-2">
+                                      <Badge tone={room.status === "active" ? "success" : "warning"}>{formatEnumLabel(room.status)}</Badge>
+                                      <Badge tone={room.cleaning_status === "ready" ? "success" : "warning"}>
+                                        {roomCleaningStatusLabels[room.cleaning_status]}
+                                      </Badge>
+                                    </div>
+                                  ) : (
+                                    <Badge tone="warning">Unit not assigned</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="mt-3 rounded-lg bg-brand-ivory p-3 text-sm text-slate-600">No linked stays found.</p>
+                  )}
+                </div>
+
+                {bookingGroup.notes ? (
+                  <div className="rounded-lg bg-brand-ivory p-3">
+                    <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Lead booking notes</dt>
+                    <dd className="mt-1 text-sm leading-6 text-brand-deep">{bookingGroup.notes}</dd>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm text-slate-700">
+                Single-room stays continue exactly as before. For a multi-room booking, create the lead booking here,
+                then attach the other room stays to that lead booking from their admin record.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
           <div className="space-y-6">
             <Card className="print-summary">
@@ -306,7 +502,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   <InfoRow label="Guest" value={record.full_name} />
                   <InfoRow label="Phone" value={record.phone} />
                   <InfoRow label="CNIC / passport" value={maskSensitiveId(record.cnic_passport_number)} />
-                  <InfoRow label="Stay dates" value={`${record.check_in_date} to ${record.check_out_date}`} />
+                  <InfoRow label="Stay dates" value={formatStayRangeWithNights(record.check_in_date, record.check_out_date)} />
                   <InfoRow label="Unit" value={roomName} />
                   <InfoRow label="Base stay expected" value={formatPkr(financialSummary.baseExpected)} />
                   <InfoRow label="Base stay paid" value={formatPkr(financialSummary.basePaid)} />
@@ -736,6 +932,21 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
               <form action={updateGuestRecord} className="space-y-4">
                 <input type="hidden" name="id" value={record.id} />
+
+                <div className="space-y-2">
+                  <Label htmlFor="booking_group_id">Lead booking group</Label>
+                  <Select id="booking_group_id" name="booking_group_id" defaultValue={record.booking_group_id ?? ""}>
+                    <option value="">No multi-room booking</option>
+                    {(bookingGroups ?? []).map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.lead_guest_name} - {group.lead_guest_phone} - {formatStayRangeWithNights(group.check_in_date, group.check_out_date)}
+                      </option>
+                    ))}
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    Attach this stay to a lead booking only when it is one room within a multi-room booking.
+                  </p>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="assigned_room_id">Assigned unit</Label>

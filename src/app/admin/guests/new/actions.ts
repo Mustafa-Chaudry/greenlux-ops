@@ -73,6 +73,11 @@ const manualGuestSchema = z
     payment_status: z.enum(manualPaymentStatuses),
     status: z.enum(manualInitialStatuses),
     assigned_room_id: z.uuid().nullable(),
+    booking_group_id: z.uuid().nullable(),
+    create_new_booking_group: z.boolean(),
+    booking_group_expected_total: z.number().min(0).nullable(),
+    booking_group_paid_total: z.number().min(0).nullable(),
+    booking_group_notes: z.string().trim().nullable(),
     agreed_room_rate_pkr: z.number().min(0).nullable(),
     advance_paid_amount_pkr: z.number().min(0).nullable(),
     total_expected_amount_pkr: z.number().min(0).nullable(),
@@ -249,6 +254,11 @@ function parseManualGuest(formData: FormData) {
     payment_status: formData.get("payment_status") || "pending",
     status: formData.get("status") || "under_review",
     assigned_room_id: nullableString(formData.get("assigned_room_id")),
+    booking_group_id: nullableString(formData.get("booking_group_id")),
+    create_new_booking_group: formData.get("create_new_booking_group") === "on",
+    booking_group_expected_total: nullableNumber(formData.get("booking_group_expected_total")),
+    booking_group_paid_total: nullableNumber(formData.get("booking_group_paid_total")),
+    booking_group_notes: nullableString(formData.get("booking_group_notes")),
     agreed_room_rate_pkr: nullableNumber(formData.get("agreed_room_rate_pkr")),
     advance_paid_amount_pkr: nullableNumber(formData.get("advance_paid_amount_pkr")),
     total_expected_amount_pkr: nullableNumber(formData.get("total_expected_amount_pkr")),
@@ -302,6 +312,35 @@ export async function createManualGuest(formData: FormData) {
     }
   }
 
+  let bookingGroupId = values.booking_group_id;
+  let createdBookingGroupId: string | null = null;
+
+  if (values.create_new_booking_group) {
+    const { data: bookingGroup, error: bookingGroupError } = await supabase
+      .from("booking_groups")
+      .insert({
+        lead_guest_name: values.full_name,
+        lead_guest_phone: values.phone,
+        lead_guest_email: values.email,
+        booking_source: values.booking_source,
+        check_in_date: values.check_in_date,
+        check_out_date: values.check_out_date,
+        expected_total_amount: values.booking_group_expected_total ?? expectedAmount,
+        paid_total_amount: values.booking_group_paid_total ?? values.amount_paid_pkr,
+        notes: values.booking_group_notes,
+        created_by: profile.id,
+      })
+      .select("id")
+      .single();
+
+    if (bookingGroupError || !bookingGroup) {
+      redirect(`/admin/guests/new?message=${encodeURIComponent(bookingGroupError?.message ?? "Could not create booking group.")}`);
+    }
+
+    bookingGroupId = bookingGroup.id;
+    createdBookingGroupId = bookingGroup.id;
+  }
+
   const { error } = await supabase.from("guest_checkins").insert({
     id: guestId,
     guest_user_id: guestUserId,
@@ -323,6 +362,7 @@ export async function createManualGuest(formData: FormData) {
     payment_status: values.payment_status,
     status: values.status,
     assigned_room_id: values.assigned_room_id,
+    booking_group_id: bookingGroupId,
     agreed_room_rate_pkr: values.agreed_room_rate_pkr,
     advance_paid_amount_pkr: values.advance_paid_amount_pkr,
     total_expected_amount_pkr: expectedAmount,
@@ -335,7 +375,25 @@ export async function createManualGuest(formData: FormData) {
   });
 
   if (error) {
+    if (createdBookingGroupId) {
+      await supabase.from("booking_groups").delete().eq("id", createdBookingGroupId);
+    }
+
     redirect(`/admin/guests/new?message=${encodeURIComponent(error.message)}`);
+  }
+
+  if (createdBookingGroupId) {
+    await supabase.from("audit_logs").insert({
+      actor_user_id: profile.id,
+      action: "booking_group_created",
+      entity_type: "booking_groups",
+      entity_id: createdBookingGroupId,
+      metadata: {
+        source: "manual_guest_creation",
+        lead_guest_name: values.full_name,
+        first_guest_checkin_id: guestId,
+      },
+    });
   }
 
   try {

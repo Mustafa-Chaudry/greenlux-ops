@@ -71,6 +71,31 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["rooms"]["Insert"]>;
         Relationships: [];
       };
+      booking_groups: {
+        Row: {
+          id: string;
+          lead_guest_name: string;
+          lead_guest_phone: string;
+          lead_guest_email: string | null;
+          booking_source: Database["public"]["Enums"]["booking_source"];
+          check_in_date: string;
+          check_out_date: string;
+          expected_total_amount: number | null;
+          paid_total_amount: number | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["booking_groups"]["Row"]> & {
+          lead_guest_name: string;
+          lead_guest_phone: string;
+          check_in_date: string;
+          check_out_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["booking_groups"]["Row"]>;
+        Relationships: [];
+      };
       guest_checkins: {
         Row: {
           id: string;
@@ -98,6 +123,7 @@ export type Database = {
           status: Database["public"]["Enums"]["checkin_status"];
           issue_type: string | null;
           assigned_room_id: string | null;
+          booking_group_id: string | null;
           special_requests: string | null;
           internal_notes: string | null;
           guest_tag: Database["public"]["Enums"]["guest_tag"];
@@ -276,7 +302,7 @@ export type Database = {
       room_status: "active" | "inactive" | "maintenance";
       room_cleaning_status: "ready" | "cleaning_required" | "cleaning_in_progress" | "maintenance_blocked";
       purpose_of_visit: "family_visit" | "business" | "medical" | "tourism" | "event_wedding" | "other";
-      booking_source: "booking_com" | "airbnb" | "direct_whatsapp_call" | "referral" | "other";
+      booking_source: "booking_com" | "airbnb" | "agoda" | "direct_whatsapp_call" | "referral" | "other";
       payment_method: "cash" | "bank_transfer" | "online_payment" | "other";
       payment_status: "pending" | "partial" | "paid" | "refunded";
       checkin_status: "submitted" | "under_review" | "approved" | "checked_in" | "checked_out" | "issue";

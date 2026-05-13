@@ -36,6 +36,7 @@ export const purposeOptions: Array<{ value: PurposeOfVisit; label: string }> = [
 export const bookingSourceOptions: Array<{ value: BookingSource; label: string }> = [
   { value: "booking_com", label: "Booking.com" },
   { value: "airbnb", label: "Airbnb" },
+  { value: "agoda", label: "Agoda" },
   { value: "direct_whatsapp_call", label: "Direct WhatsApp / call" },
   { value: "referral", label: "Referral" },
   { value: "other", label: "Other" },

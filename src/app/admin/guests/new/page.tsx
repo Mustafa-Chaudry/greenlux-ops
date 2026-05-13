@@ -23,6 +23,7 @@ import {
   purposeOptions,
   roomCleaningStatusLabels,
 } from "@/lib/check-in/options";
+import { formatStayRangeWithNights } from "@/lib/check-in/stay-dates";
 
 export const metadata: Metadata = {
   title: "Add Guest / Walk-in",
@@ -44,10 +45,17 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
   const { supabase } = await requireRole(staffGuestCreationRoles);
   const today = getBusinessTodayDate();
   const tomorrow = addDaysIso(today, 1);
-  const { data: rooms } = await supabase
-    .from("rooms")
-    .select("id,unit_number,name,status,cleaning_status,base_price_pkr")
-    .order("unit_number", { nullsFirst: false });
+  const [{ data: rooms }, { data: bookingGroups }] = await Promise.all([
+    supabase
+      .from("rooms")
+      .select("id,unit_number,name,status,cleaning_status,base_price_pkr")
+      .order("unit_number", { nullsFirst: false }),
+    supabase
+      .from("booking_groups")
+      .select("id,lead_guest_name,lead_guest_phone,booking_source,check_in_date,check_out_date,expected_total_amount,paid_total_amount")
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
   const hasRoomsNotReady = Boolean(rooms?.some((room) => room.cleaning_status !== "ready"));
   const paymentOptions = paymentStatusOptions.filter((option) => option.value !== "refunded");
   const initialStatusOptions = checkinStatusOptions.filter(
@@ -250,6 +258,72 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
                   Payment proof verified
                 </label>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Multi-room booking</CardTitle>
+              <CardDescription>
+                Keep this empty for normal single-room stays. Use it when one lead guest is booking more than one unit.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <label className="flex gap-3 rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm font-medium text-brand-deep md:col-span-2">
+                <input type="checkbox" name="create_new_booking_group" className="mt-1 h-4 w-4 accent-brand-fresh" />
+                <span>
+                  Create new lead booking from this stay
+                  <span className="mt-1 block text-sm font-normal text-slate-600">
+                    Use this for the first room in a multi-room booking. The guest name, phone, booking source, and dates above become the lead booking details.
+                  </span>
+                </span>
+              </label>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="booking_group_id">Attach to existing lead booking</Label>
+                <Select id="booking_group_id" name="booking_group_id" defaultValue="">
+                  <option value="">No multi-room booking</option>
+                  {(bookingGroups ?? []).map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.lead_guest_name} - {group.lead_guest_phone} - {formatStayRangeWithNights(group.check_in_date, group.check_out_date)} -{" "}
+                      {formatEnumLabel(group.booking_source)}
+                    </option>
+                  ))}
+                </Select>
+                <p className="text-xs text-slate-500">
+                  Select this for the second or later room under the same lead guest booking.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="booking_group_expected_total">Lead booking expected total optional</Label>
+                <Input id="booking_group_expected_total" name="booking_group_expected_total" type="number" min={0} inputMode="numeric" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="booking_group_paid_total">Lead booking paid total optional</Label>
+                <Input id="booking_group_paid_total" name="booking_group_paid_total" type="number" min={0} inputMode="numeric" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="booking_group_notes">Lead booking notes optional</Label>
+                <Textarea id="booking_group_notes" name="booking_group_notes" rows={3} />
+              </div>
+
+              {bookingGroups?.length ? (
+                <div className="rounded-lg border border-brand-sage bg-white p-4 text-sm md:col-span-2">
+                  <p className="font-semibold text-brand-deep">Recent lead bookings</p>
+                  <div className="mt-3 grid gap-2">
+                    {bookingGroups.slice(0, 5).map((group) => (
+                      <div key={group.id} className="flex flex-col gap-1 rounded-lg bg-brand-ivory p-3 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="font-medium text-brand-deep">{group.lead_guest_name}</span>
+                        <span className="text-slate-600">{formatStayRangeWithNights(group.check_in_date, group.check_out_date)}</span>
+                        <span className="text-slate-600">
+                          {formatPkr(group.paid_total_amount)} paid / {formatPkr(group.expected_total_amount)} expected
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
