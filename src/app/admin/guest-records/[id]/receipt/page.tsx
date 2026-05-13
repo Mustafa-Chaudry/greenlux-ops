@@ -53,10 +53,27 @@ function receiptReference(record: Pick<Checkin, "id" | "check_in_date">) {
 function ReceiptField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</dt>
+      <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</dt>
       <dd className="mt-1 text-sm font-medium text-slate-950">{value || "Not provided"}</dd>
     </div>
   );
+}
+
+function receiptStayStatusLabel(status: Checkin["status"]) {
+  const labels: Record<Checkin["status"], string> = {
+    submitted: "Details Received",
+    under_review: "Pending Team Review",
+    approved: "Approved for Arrival",
+    checked_in: "In Residence",
+    checked_out: "Stay Completed",
+    issue: "Needs Attention",
+  };
+
+  return labels[status] ?? getCheckinStatusLabel(status);
+}
+
+function paymentConfirmationLabel(verified: boolean) {
+  return verified ? "Confirmed" : "Pending team confirmation";
 }
 
 function money(value: number | null | undefined) {
@@ -107,22 +124,61 @@ export default async function AccommodationReceiptPage({ params, searchParams }:
   const linkedRoomNames = new Map(((linkedRooms ?? []) as Room[]).map((room) => [room.id, formatUnitRoomLabel(room)]));
   const financialSummary = getGuestFinancialSummary({ checkin: record, charges: guestCharges });
   const stayNights = getStayNights(record.check_in_date, record.check_out_date);
-  const receiptMessage = `Hello ${record.full_name}, your GreenLux Accommodation Receipt is ready. Our team can share the receipt PDF here.`;
+  const nightsLabel = stayNights === null ? "Not set" : `${stayNights} ${stayNights === 1 ? "night" : "nights"}`;
+  const receiptMessage = `Hello ${record.full_name}, your GreenLux Residency Accommodation Receipt is ready. Our team can share the PDF here for your records or workplace reimbursement. Thank you for choosing GreenLux Residency.`;
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-900 print:bg-white print:px-0 print:py-0">
+    <main className="receipt-page min-h-screen bg-slate-100 px-4 py-8 text-slate-900 print:bg-white print:px-0 print:py-0">
       <style>{`
+        @page {
+          size: A4;
+          margin: 12mm;
+        }
+
         @media print {
-          .receipt-actions { display: none !important; }
-          .receipt-sheet { box-shadow: none !important; border: 0 !important; max-width: none !important; }
-          body { background: #ffffff !important; }
+          body {
+            background: #ffffff !important;
+          }
+
+          body * {
+            visibility: visible !important;
+          }
+
+          .receipt-actions {
+            display: none !important;
+          }
+
+          .receipt-page {
+            min-height: auto !important;
+            background: #ffffff !important;
+            padding: 0 !important;
+          }
+
+          .receipt-sheet {
+            width: 100% !important;
+            max-width: none !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+          }
+
+          .print-avoid-break {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
         }
       `}</style>
-      <div className="receipt-actions mx-auto mb-5 flex max-w-5xl flex-wrap gap-2">
+
+      <div className="receipt-actions mx-auto mb-5 flex max-w-4xl flex-wrap gap-2">
         <Button asChild variant="ghost">
           <Link href={`/admin/guest-records/${record.id}`}>
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to guest record
+            Back to guest stay
           </Link>
         </Button>
         <PrintButton label="Print / Download Receipt" autoPrint={queryParams.print === "1"} />
@@ -134,33 +190,41 @@ export default async function AccommodationReceiptPage({ params, searchParams }:
         </Button>
       </div>
 
-      <article className="receipt-sheet mx-auto max-w-5xl border border-slate-200 bg-white p-8 shadow-sm print:p-0">
-        <header className="flex flex-col gap-6 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">{siteConfig.name}</p>
-            <h1 className="mt-3 font-serif text-4xl font-semibold text-slate-950">Accommodation Receipt</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Professional stay receipt for accommodation records and workplace reimbursement.
-            </p>
+      <article className="receipt-sheet mx-auto max-w-4xl border border-slate-200 bg-white p-8 shadow-sm">
+        <header className="print-avoid-break border-b-2 border-slate-950 pb-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center border-2 border-slate-950 font-serif text-xl font-semibold tracking-[0.12em] text-slate-950">
+                GLR
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">GreenLux Residency</p>
+                <h1 className="mt-2 font-serif text-4xl font-semibold text-slate-950">Accommodation Receipt</h1>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+                  Prepared for accommodation records and workplace reimbursement.
+                </p>
+              </div>
+            </div>
+
+            <dl className="grid gap-2 text-sm sm:text-right">
+              <ReceiptField label="Receipt Reference" value={receiptReference(record)} />
+              <ReceiptField label="Issue Date" value={new Date().toLocaleDateString("en-GB")} />
+            </dl>
           </div>
-          <dl className="grid gap-2 text-right text-sm">
-            <ReceiptField label="Receipt reference" value={receiptReference(record)} />
-            <ReceiptField label="Issue date" value={new Date().toLocaleDateString("en-GB")} />
-          </dl>
         </header>
 
-        <section className="grid gap-5 border-b border-slate-200 py-6 sm:grid-cols-2">
+        <section className="print-avoid-break grid gap-6 border-b border-slate-200 py-6 sm:grid-cols-[1fr_1.1fr]">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Business</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Business Details</h2>
             <p className="mt-3 text-lg font-semibold text-slate-950">{siteConfig.name}</p>
             <p className="mt-1 text-sm leading-6 text-slate-600">{siteConfig.addressLine}</p>
             <p className="text-sm leading-6 text-slate-600">{siteConfig.phoneDisplay}</p>
             <p className="text-sm leading-6 text-slate-600">{siteConfig.email}</p>
           </div>
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Guest</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Prepared for</h2>
             <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-              <ReceiptField label="Guest name" value={record.full_name} />
+              <ReceiptField label="Guest Name" value={record.full_name} />
               <ReceiptField label="Phone" value={record.phone} />
               <ReceiptField label="Email" value={record.email} />
               <ReceiptField label="Guests" value={record.number_of_guests} />
@@ -168,56 +232,56 @@ export default async function AccommodationReceiptPage({ params, searchParams }:
           </div>
         </section>
 
-        <section className="border-b border-slate-200 py-6">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Stay details</h2>
+        <section className="print-avoid-break border-b border-slate-200 py-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Stay Details</h2>
           <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <ReceiptField label="Room / unit" value={assignedRoom ? formatUnitRoomLabel(assignedRoom) : "To be assigned"} />
-            <ReceiptField label="Room type" value={assignedRoom ? formatEnumLabel(assignedRoom.type) : null} />
-            <ReceiptField label="Booking source" value={findLabel(bookingSourceOptions, record.booking_source)} />
-            <ReceiptField label="Stay status" value={getCheckinStatusLabel(record.status)} />
-            <ReceiptField label="Check-in date" value={formatDisplayDate(record.check_in_date)} />
-            <ReceiptField label="Check-out date" value={formatDisplayDate(record.check_out_date)} />
-            <ReceiptField label="Stay dates" value={formatStayRangeWithNights(record.check_in_date, record.check_out_date)} />
-            <ReceiptField label="Number of nights" value={stayNights === null ? "Not set" : `${stayNights} ${stayNights === 1 ? "night" : "nights"}`} />
+            <ReceiptField label="Room / Suite" value={assignedRoom ? formatUnitRoomLabel(assignedRoom) : "To be assigned"} />
+            <ReceiptField label="Room Type" value={assignedRoom ? formatEnumLabel(assignedRoom.type) : null} />
+            <ReceiptField label="Booking Source" value={findLabel(bookingSourceOptions, record.booking_source)} />
+            <ReceiptField label="Stay Status" value={receiptStayStatusLabel(record.status)} />
+            <ReceiptField label="Check-in Date" value={formatDisplayDate(record.check_in_date)} />
+            <ReceiptField label="Check-out Date" value={formatDisplayDate(record.check_out_date)} />
+            <ReceiptField label="Stay Period" value={formatStayRangeWithNights(record.check_in_date, record.check_out_date)} />
+            <ReceiptField label="Nights" value={nightsLabel} />
           </dl>
         </section>
 
         {bookingGroup ? (
-          <section className="border-b border-slate-200 py-6">
+          <section className="print-avoid-break border-b border-slate-200 py-6">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Multi-room booking reference</h2>
-              <Badge tone="info">Part of multi-room booking</Badge>
+              <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Multi-Room Booking Reference</h2>
+              <Badge tone="info">Part of a multi-room booking</Badge>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               This receipt covers the room/stay listed above. Linked rooms may have separate receipts unless a combined receipt is issued.
             </p>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <ReceiptField label="Lead guest/contact" value={`${bookingGroup.lead_guest_name} - ${bookingGroup.lead_guest_phone}`} />
-              <ReceiptField label="Lead email" value={bookingGroup.lead_guest_email} />
-              <ReceiptField label="Lead booking dates" value={formatStayRangeWithNights(bookingGroup.check_in_date, bookingGroup.check_out_date)} />
-              <ReceiptField label="Lead source" value={findLabel(bookingSourceOptions, bookingGroup.booking_source)} />
+              <ReceiptField label="Lead Guest / Contact" value={`${bookingGroup.lead_guest_name} - ${bookingGroup.lead_guest_phone}`} />
+              <ReceiptField label="Lead Email" value={bookingGroup.lead_guest_email} />
+              <ReceiptField label="Lead Stay Period" value={formatStayRangeWithNights(bookingGroup.check_in_date, bookingGroup.check_out_date)} />
+              <ReceiptField label="Lead Source" value={findLabel(bookingSourceOptions, bookingGroup.booking_source)} />
             </dl>
             <div className="mt-4">
               <p className="text-sm font-semibold text-slate-950">Linked rooms/stays</p>
               {linkedStays.length ? (
                 <div className="mt-3 overflow-x-auto">
                   <table className="w-full min-w-[620px] border-collapse text-left text-sm">
-                    <thead className="border-y border-slate-200 bg-slate-50 text-xs uppercase tracking-[0.12em] text-slate-500">
+                    <thead className="border-y border-slate-300 text-xs uppercase tracking-[0.12em] text-slate-500">
                       <tr>
-                        <th className="py-2 pr-3">Guest / stay</th>
-                        <th className="py-2 pr-3">Room</th>
-                        <th className="py-2 pr-3">Dates</th>
+                        <th className="py-2 pr-3">Guest Stay</th>
+                        <th className="py-2 pr-3">Room / Suite</th>
+                        <th className="py-2 pr-3">Stay Period</th>
                         <th className="py-2 pr-3">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-200">
                       {linkedStays.map((stay) => (
                         <tr key={stay.id}>
                           <td className="py-2 pr-3 font-medium text-slate-950">{stay.full_name}</td>
                           <td className="py-2 pr-3">{stay.assigned_room_id ? linkedRoomNames.get(stay.assigned_room_id) ?? "Assigned unit" : "To be assigned"}</td>
                           <td className="py-2 pr-3">{formatStayRangeWithNights(stay.check_in_date, stay.check_out_date)}</td>
                           <td className="py-2 pr-3">
-                            <Badge tone={checkinStatusTone[stay.status]}>{getCheckinStatusLabel(stay.status)}</Badge>
+                            <Badge tone={checkinStatusTone[stay.status]}>{receiptStayStatusLabel(stay.status)}</Badge>
                           </td>
                         </tr>
                       ))}
@@ -231,23 +295,23 @@ export default async function AccommodationReceiptPage({ params, searchParams }:
           </section>
         ) : null}
 
-        <section className="py-6">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Financial summary</h2>
+        <section className="border-b border-slate-200 py-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Financial Summary</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[620px] border-collapse text-left text-sm">
-              <thead className="border-y border-slate-200 bg-slate-50 text-xs uppercase tracking-[0.12em] text-slate-500">
+              <thead className="border-y border-slate-300 text-xs uppercase tracking-[0.12em] text-slate-500">
                 <tr>
                   <th className="py-2 pr-3">Description</th>
-                  <th className="py-2 pr-3">Quantity</th>
-                  <th className="py-2 pr-3">Status</th>
+                  <th className="py-2 pr-3">Quantity / Nights</th>
+                  <th className="py-2 pr-3">Status / Rate</th>
                   <th className="py-2 text-right">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-200">
                 <tr>
                   <td className="py-3 pr-3 font-medium text-slate-950">Room/stay charge</td>
                   <td className="py-3 pr-3">{stayNights === null ? 1 : stayNights}</td>
-                  <td className="py-3 pr-3">Stay amount</td>
+                  <td className="py-3 pr-3">Accommodation</td>
                   <td className="py-3 text-right">{money(financialSummary.baseExpected)}</td>
                 </tr>
                 {guestCharges.map((charge) => (
@@ -263,43 +327,49 @@ export default async function AccommodationReceiptPage({ params, searchParams }:
                 ))}
                 {!guestCharges.length ? (
                   <tr>
-                    <td className="py-3 pr-3 text-slate-600" colSpan={4}>Additional charges: none recorded.</td>
+                    <td className="py-3 pr-3 text-slate-600" colSpan={4}>Additional Charges: none recorded.</td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
           </div>
 
-          <dl className="ml-auto mt-6 grid max-w-md gap-3 border-t border-slate-200 pt-4">
+          <dl className="print-avoid-break ml-auto mt-6 grid max-w-md gap-3 border border-slate-300 p-4">
             <div className="flex items-center justify-between gap-4">
-              <dt className="font-medium text-slate-600">Additional charges</dt>
-              <dd className="font-semibold text-slate-950">{formatPkr(financialSummary.chargesTotal)}</dd>
+              <dt className="font-medium text-slate-600">Room/stay charge</dt>
+              <dd className="font-semibold text-slate-950">{formatPkr(financialSummary.baseExpected)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="font-medium text-slate-600">Total amount</dt>
+              <dt className="font-medium text-slate-600">Additional Charges</dt>
+              <dd className="font-semibold text-slate-950">{formatPkr(financialSummary.chargesTotal)}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-3">
+              <dt className="font-medium text-slate-600">Total Amount</dt>
               <dd className="font-semibold text-slate-950">{formatPkr(financialSummary.totalExpected)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="font-medium text-slate-600">Amount paid</dt>
+              <dt className="font-medium text-slate-600">Amount Paid</dt>
               <dd className="font-semibold text-slate-950">{formatPkr(financialSummary.totalPaid)}</dd>
             </div>
-            <div className="flex items-center justify-between gap-4 text-lg">
-              <dt className="font-semibold text-slate-950">Outstanding balance</dt>
+            <div className="flex items-center justify-between gap-4 border-t-2 border-slate-950 pt-3 text-lg">
+              <dt className="font-semibold text-slate-950">Balance Due</dt>
               <dd className="font-bold text-slate-950">{formatPkr(financialSummary.outstanding)}</dd>
             </div>
           </dl>
+        </section>
 
-          <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-3">
-            <ReceiptField label="Payment method" value={findLabel(paymentMethodOptions, record.payment_method)} />
-            <ReceiptField label="Payment status" value={findLabel(paymentStatusOptions, record.payment_status)} />
-            <ReceiptField label="Payment proof" value={record.payment_verified ? "Verified" : "Pending / not verified"} />
+        <section className="print-avoid-break border-b border-slate-200 py-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Payment Details</h2>
+          <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+            <ReceiptField label="Payment Method" value={findLabel(paymentMethodOptions, record.payment_method)} />
+            <ReceiptField label="Payment Status" value={findLabel(paymentStatusOptions, record.payment_status)} />
+            <ReceiptField label="Payment Confirmation" value={paymentConfirmationLabel(record.payment_verified)} />
           </dl>
         </section>
 
-        <footer className="border-t border-slate-200 pt-5 text-xs leading-5 text-slate-500">
-          <p>
-            Receipt generated from GreenLux Ops stay records. Room readiness, cleaning, documents, and operational status remain managed on the guest record.
-          </p>
+        <footer className="pt-5 text-xs leading-5 text-slate-500">
+          <p>This accommodation receipt is prepared from GreenLux Residency stay records for accommodation and reimbursement purposes.</p>
+          <p className="mt-2 text-slate-600">Thank you for choosing GreenLux Residency.</p>
         </footer>
       </article>
     </main>

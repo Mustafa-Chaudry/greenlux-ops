@@ -35,21 +35,8 @@ a {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
-  }
-
-  .print-summary,
-  .print-summary * {
-    visibility: visible;
-  }
-
-  .print-summary {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
-    padding: 24px;
-    background: white;
+  body {
+    background: white !important;
   }
 
   .no-print {

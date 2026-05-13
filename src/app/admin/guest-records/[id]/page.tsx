@@ -12,7 +12,6 @@ import {
   uploadGuestRecordDocuments,
 } from "@/app/admin/guest-records/actions";
 import { ExceptionCheckinButton } from "@/components/admin/exception-checkin-button";
-import { PrintButton } from "@/components/admin/print-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -315,7 +314,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
       message: `Hello ${record.full_name}, thank you for staying with GreenLux Residency. We hope you had a comfortable stay and wish you safe travels.`,
     },
   ];
-  const receiptMessage = `Hello ${record.full_name}, your GreenLux Accommodation Receipt is ready. Our team can share the receipt PDF here.`;
+  const receiptMessage = `Hello ${record.full_name}, your GreenLux Residency Accommodation Receipt is ready. Our team can share the PDF here for your records or workplace reimbursement. Thank you for choosing GreenLux Residency.`;
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -369,7 +368,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           <CardHeader>
             <CardTitle>Accommodation Receipt</CardTitle>
             <CardDescription>
-              Open a clean receipt for workplace reimbursement or management records. Use browser print to save as PDF.
+              Prepare a polished accommodation receipt for the guest&apos;s records, workplace reimbursement, or management file.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -535,14 +534,13 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
         <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
           <div className="space-y-6">
-            <Card className="print-summary">
+            <Card>
               <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <CardTitle>Printable guest receipt</CardTitle>
-                  <CardDescription>GreenLux Residency stay receipt for front desk or guest records.</CardDescription>
-                </div>
-                <div className="no-print">
-                  <PrintButton label="Print receipt" />
+                  <CardTitle>Front Desk Stay Summary</CardTitle>
+                  <CardDescription>
+                    Internal stay, payment, ID, and additional charge snapshot for staff. Use the Accommodation Receipt above for guest or workplace documents.
+                  </CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
