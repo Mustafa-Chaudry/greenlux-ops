@@ -9,8 +9,8 @@ import { fetchOccupancySnapshot } from "@/lib/occupancy/snapshot";
 
 const adminAreas = [
   {
-    title: "Guest Records",
-    description: "Search check-ins, review verification status, open records, and update operational fields.",
+    title: "Guest Stays",
+    description: "Search guest stays, review verification status, open stay details, and update operational fields.",
     href: "/admin/guest-records",
     icon: ClipboardList,
   },
@@ -134,7 +134,7 @@ export default async function AdminPage() {
               <Button asChild>
                 <Link href="/admin/guests/new">
                   <UserPlus className="h-4 w-4" aria-hidden="true" />
-                Add Guest / Walk-in
+                  Add Guest Stay
                 </Link>
               </Button>
             ) : null}
@@ -175,9 +175,9 @@ export default async function AdminPage() {
             <Card>
               <CardHeader>
                 <UserPlus className="h-5 w-5 text-brand-fresh" aria-hidden="true" />
-                <CardTitle>Add Guest / Walk-in</CardTitle>
+                <CardTitle>Add Guest Stay</CardTitle>
                 <CardDescription>
-                  Create a staff-managed guest record for WhatsApp bookings, walk-ins, VIPs, or non-email guests.
+                  Create a staff-managed guest stay for WhatsApp bookings, walk-ins, VIPs, or non-email guests.
                 </CardDescription>
               </CardHeader>
               <CardContent>

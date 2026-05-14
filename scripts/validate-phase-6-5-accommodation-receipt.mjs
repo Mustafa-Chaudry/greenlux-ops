@@ -96,7 +96,7 @@ test("guest record page links to receipt and WhatsApp receipt action", () => {
   assert.match(page, /Accommodation Receipt is ready/, "WhatsApp receipt message must be prefilled");
   assert.match(page, /workplace reimbursement/, "WhatsApp receipt message must mention reimbursement use");
   assert.match(page, /Thank you for choosing GreenLux Residency/, "WhatsApp receipt message must use premium hospitality wording");
-  assert.match(page, /Front Desk Stay Summary|Internal Stay Summary/, "old receipt section must be renamed as an internal summary");
+  assert.match(page, /Guest Stay Details|Internal Stay Summary/, "old receipt section must be merged or renamed as an internal stay section");
   assert.doesNotMatch(page, /Printable guest receipt/, "old printable guest receipt wording must be removed");
   assert.doesNotMatch(page, /Print receipt/, "old duplicate print receipt action must be removed from guest record detail");
   const receiptMessageLine = page.split("\n").find((line) => line.includes("const receiptMessage")) ?? "";

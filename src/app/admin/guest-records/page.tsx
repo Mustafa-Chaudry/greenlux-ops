@@ -27,7 +27,7 @@ import {
 import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
-  title: "Guest Records",
+  title: "Guest Stays",
 };
 
 type PageProps = {
@@ -211,8 +211,8 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
         <header className="flex flex-col gap-4 rounded-xl border border-brand-sage bg-white/85 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase text-brand-fresh">Operations</p>
-            <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">Guest Records</h1>
-            <p className="mt-2 text-sm text-slate-600">Search check-ins, review payments, and verify documents.</p>
+            <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">Guest Stays</h1>
+            <p className="mt-2 text-sm text-slate-600">Search guest stays, review payments, and verify documents.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
@@ -222,7 +222,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
               <Button asChild>
                 <Link href="/admin/guests/new">
                   <UserPlus className="h-4 w-4" aria-hidden="true" />
-                  Add Guest / Walk-in
+                  Add Guest Stay
                 </Link>
               </Button>
             ) : null}
@@ -236,7 +236,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
           <div className="rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm text-brand-deep">{params.message}</div>
         ) : null}
 
-        <nav className="flex gap-2 overflow-x-auto rounded-xl border border-brand-sage bg-white/85 p-2 shadow-sm" aria-label="Guest record views">
+        <nav className="flex gap-2 overflow-x-auto rounded-xl border border-brand-sage bg-white/85 p-2 shadow-sm" aria-label="Guest stay views">
           {operatorViews.map((view) => (
             <Button
               key={view.value}
@@ -284,7 +284,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
               <Select name="verification" defaultValue={params.verification ?? ""} aria-label="Verification pending">
                 <option value="">All verification</option>
                 <option value="any">Any pending</option>
-                <option value="cnic">CNIC pending</option>
+                <option value="cnic">ID pending</option>
                 <option value="payment">Payment pending</option>
               </Select>
               <div className="flex gap-2 md:col-span-2 xl:col-span-5">
@@ -302,7 +302,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
             {error ? (
               <div className="p-5 text-sm text-red-700">{error.message}</div>
             ) : !visibleRecords.length ? (
-              <div className="p-5 text-sm text-slate-600">No guest records found.</div>
+              <div className="p-5 text-sm text-slate-600">No guest stays found.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1800px] text-left text-sm">
@@ -321,8 +321,8 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
                       <th className="px-4 py-3">Paid</th>
                       <th className="px-4 py-3">Balance</th>
                       <th className="px-4 py-3">Unit</th>
-                      <th className="px-4 py-3">CNIC</th>
-                      <th className="px-4 py-3">Proof</th>
+                      <th className="px-4 py-3">ID</th>
+                      <th className="px-4 py-3">Payment Confirmation</th>
                       <th className="px-4 py-3">Created</th>
                       <th className="px-4 py-3">Actions</th>
                     </tr>

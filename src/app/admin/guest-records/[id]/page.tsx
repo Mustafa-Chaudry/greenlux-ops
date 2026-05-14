@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, ExternalLink, FileText, LogIn, LogOut, MessageCircle, Printer, TriangleAlert } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, ExternalLink, FileText, LogIn, LogOut, MessageCircle, Printer, TriangleAlert } from "lucide-react";
 import {
   createBookingGroupFromGuestRecord,
   createGuestCharge,
@@ -112,12 +112,60 @@ function groupOutstanding(expected: number | null | undefined, paid: number | nu
   return Math.max(expected - (paid ?? 0), 0);
 }
 
+function verificationState(verified: boolean, documents: GuestDocument[]) {
+  const latestDocument = documents[0];
+
+  if (verified) {
+    return { label: "Verified", tone: "success" as const };
+  }
+
+  if (latestDocument?.document_status === "rejected") {
+    return { label: "Rejected", tone: "danger" as const };
+  }
+
+  if (latestDocument) {
+    return { label: "Pending Team Review", tone: "warning" as const };
+  }
+
+  return { label: "Missing", tone: "warning" as const };
+}
+
+function roomReadinessState(
+  room: { status: Database["public"]["Enums"]["room_status"]; cleaning_status: Database["public"]["Enums"]["room_cleaning_status"] } | null,
+) {
+  if (!room) {
+    return { label: "Room to be assigned", tone: "warning" as const };
+  }
+
+  if (room.status !== "active") {
+    return { label: "Maintenance Blocked", tone: "danger" as const };
+  }
+
+  if (room.cleaning_status === "ready") {
+    return { label: "Ready for Arrival", tone: "success" as const };
+  }
+
+  return { label: roomCleaningStatusLabels[room.cleaning_status], tone: "warning" as const };
+}
+
+function alertToneClass(tone: "danger" | "warning" | "info") {
+  if (tone === "danger") {
+    return "border-red-200 bg-red-50 text-red-900";
+  }
+
+  if (tone === "warning") {
+    return "border-amber-200 bg-amber-50 text-amber-950";
+  }
+
+  return "border-sky-200 bg-sky-50 text-sky-900";
+}
+
 function DocumentGroup({ title, documents }: { title: string; documents: GuestDocument[] }) {
   const latestDocument = documents[0];
   const status = !latestDocument ? "No document uploaded" : getDocumentStatusLabel(latestDocument.document_status);
 
   return (
-    <div className="rounded-lg border border-brand-sage bg-white p-4">
+    <div className="rounded-lg border border-brand-sage bg-white p-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="font-semibold text-brand-deep">{title}</h3>
         <Badge tone={!latestDocument ? "neutral" : documentStatusTone(latestDocument.document_status)}>{status}</Badge>
@@ -127,7 +175,7 @@ function DocumentGroup({ title, documents }: { title: string; documents: GuestDo
       ) : (
         <div className="mt-3 space-y-2">
           {documents.map((document, index) => (
-            <div key={document.id} className="flex flex-col gap-2 rounded-lg bg-brand-ivory p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div key={document.id} className="flex flex-col gap-2 rounded-lg bg-brand-ivory p-2.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-brand-deep">
                   {document.file_path.split("/").pop()}
@@ -251,12 +299,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const canApprove = isReadyToApprove(record);
   const showApproveAction = record.status === "submitted" || record.status === "under_review";
   const readyForCheckin = isReadyForCheckin(record);
-  const fullyVerified = Boolean(record.assigned_room_id) && record.cnic_verified && record.payment_verified;
   const showCheckInAction = record.status !== "checked_in" && record.status !== "checked_out";
   const showCheckOutAction = record.status === "checked_in";
   const isCompleted = record.status === "checked_out";
   const showIssueAction = record.status !== "issue" && record.status !== "checked_out";
-  const assignedRoom = record.assigned_room_id ? rooms?.find((room) => room.id === record.assigned_room_id) : null;
+  const assignedRoom = record.assigned_room_id ? rooms?.find((room) => room.id === record.assigned_room_id) ?? null : null;
   const assignedRoomNotReady = Boolean(assignedRoom && assignedRoom.cleaning_status !== "ready");
   const roomName = assignedRoom ? formatUnitRoomLabel(assignedRoom) : "To be assigned";
   const financialSummary = getGuestFinancialSummary({ checkin: record, charges: guestCharges });
@@ -280,34 +327,28 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const combinedOutstanding = groupOutstanding(combinedExpected, combinedPaid) ?? linkedFinancialSummary.outstanding;
   const requirements = [
     { label: "Unit assigned", complete: Boolean(record.assigned_room_id), missing: "Unit not assigned" },
-    { label: "CNIC verified", complete: record.cnic_verified, missing: "CNIC not verified" },
-    { label: "Payment verified", complete: record.payment_verified, missing: "Payment not confirmed" },
+    { label: "ID Verification", complete: record.cnic_verified, missing: "ID not verified" },
+    { label: "Payment Confirmation", complete: record.payment_verified, missing: "Payment Confirmation not verified" },
   ];
-  const missingCheckinRequirements = [
-    !record.assigned_room_id ? "Unit may not be assigned" : null,
-    !record.cnic_verified ? "ID may be missing or unverified" : null,
-    !record.payment_verified ? "Payment may be pending" : null,
-    record.status === "issue" ? "Record is marked as an issue" : null,
-  ].filter((requirement): requirement is string => Boolean(requirement));
   const whatsappActions = [
     {
       label: "Confirm arrival details",
       message: `Hello ${record.full_name}, your GreenLux Residency Arrival Details are approved. Unit: ${roomName}. Dates: ${record.check_in_date} to ${record.check_out_date}. We look forward to welcoming you.`,
     },
     {
-      label: "Request corrected CNIC",
+      label: "Request corrected ID",
       message:
-        "Assalam o Alaikum, this is GreenLux Residency. We need a corrected CNIC/passport image for your stay details. Please send a clear photo on WhatsApp so we can complete verification.",
+        "Assalam o Alaikum, this is GreenLux Residency. We need a corrected ID/passport image for your stay details. Please send a clear photo on WhatsApp so we can complete verification.",
     },
     {
-      label: "Request payment proof",
+      label: "Request Payment Confirmation",
       message:
         "Assalam o Alaikum, this is GreenLux Residency. Please send your Payment Confirmation on WhatsApp so we can complete your booking.",
     },
     {
-      label: "Request additional guest CNICs",
+      label: "Request additional guest IDs",
       message:
-        "Assalam o Alaikum, this is GreenLux Residency. Please send clear CNIC/passport images for the additional guests staying with you so we can complete the check-in record.",
+        "Assalam o Alaikum, this is GreenLux Residency. Please send clear ID/passport images for the additional guests staying with you so we can complete the check-in record.",
     },
     {
       label: "Send checkout thanks",
@@ -315,6 +356,53 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
     },
   ];
   const receiptMessage = `Hello ${record.full_name}, your GreenLux Residency Accommodation Receipt is ready. Our team can share the PDF here for your records or workplace reimbursement. Thank you for choosing GreenLux Residency.`;
+  const idVerification = verificationState(record.cnic_verified, primaryDocuments);
+  const paymentConfirmation = verificationState(record.payment_verified, paymentDocuments);
+  const roomReadiness = roomReadinessState(assignedRoom);
+  const priorityAlerts = [
+    idVerification.label !== "Verified"
+      ? {
+          title: "ID Verification Needs Attention",
+          detail: idVerification.label === "Missing" ? "No ID document has been received yet." : `ID status: ${idVerification.label}.`,
+          tone: idVerification.tone === "danger" ? "danger" as const : "warning" as const,
+        }
+      : null,
+    paymentConfirmation.label !== "Verified"
+      ? {
+          title: "Payment Confirmation Needs Attention",
+          detail: paymentConfirmation.label === "Missing" ? "No Payment Confirmation document has been received yet." : `Payment Confirmation status: ${paymentConfirmation.label}.`,
+          tone: paymentConfirmation.tone === "danger" ? "danger" as const : "warning" as const,
+        }
+      : null,
+    financialSummary.outstanding > 0
+      ? {
+          title: "Balance Due",
+          detail: `${formatPkr(financialSummary.outstanding)} remains due for this Guest Stay.`,
+          tone: "warning" as const,
+        }
+      : null,
+    assignedRoomNotReady
+      ? {
+          title: "Room is not Ready for Arrival",
+          detail: `${roomName} is currently marked ${roomReadiness.label}. This is visible for staff review, not a hard blocker.`,
+          tone: roomReadiness.tone === "danger" ? "danger" as const : "warning" as const,
+        }
+      : null,
+    bookingGroup
+      ? {
+          title: "Multi-room booking finance check",
+          detail: "Keep this room/stay amount separate from lead booking reference totals to avoid double-counting.",
+          tone: "info" as const,
+        }
+      : null,
+    record.status === "issue" || record.guest_tag === "issue" || record.issue_type
+      ? {
+          title: "Existing Needs Attention state",
+          detail: getIssueTypeLabel(record.issue_type),
+          tone: "danger" as const,
+        }
+      : null,
+  ].filter((alert): alert is { title: string; detail: string; tone: "danger" | "warning" | "info" } => Boolean(alert));
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -337,11 +425,10 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           <div className="flex flex-wrap gap-2">
             <Badge tone={checkinStatusTone[record.status]}>{getCheckinStatusLabel(record.status)}</Badge>
             <Badge tone={record.guest_type === "admin_created" ? "info" : "neutral"}>{guestTypeLabel}</Badge>
-            <Badge tone={record.cnic_verified ? "success" : "warning"}>CNIC {record.cnic_verified ? "verified" : "pending"}</Badge>
-            <Badge tone={record.payment_verified ? "success" : "warning"}>
-              Payment proof {record.payment_verified ? "verified" : "pending"}
-            </Badge>
-            <Badge tone="info">{formatEnumLabel(record.payment_status)}</Badge>
+            <Badge tone={idVerification.tone}>ID Verification {idVerification.label}</Badge>
+            <Badge tone={paymentConfirmation.tone}>Payment Confirmation {paymentConfirmation.label}</Badge>
+            <Badge tone={roomReadiness.tone}>{roomReadiness.label}</Badge>
+            {bookingGroup ? <Badge tone="info">Part of a multi-room booking</Badge> : null}
             {record.issue_type ? <Badge tone="danger">{getIssueTypeLabel(record.issue_type)}</Badge> : null}
           </div>
         </header>
@@ -350,32 +437,87 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           <div className="rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm text-brand-deep">{queryParams.message}</div>
         ) : null}
 
-        {!fullyVerified ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-            <p className="flex items-center gap-2 font-semibold">
-              <TriangleAlert className="h-4 w-4" aria-hidden="true" />
-              Guest is not fully verified
-            </p>
-            <ul className="mt-2 list-inside list-disc">
-              {missingCheckinRequirements.map((requirement) => (
-                <li key={requirement}>{requirement}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Operational Summary</CardTitle>
+            <CardDescription>Who this is, where they are staying, and what needs staff attention.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <InfoRow label="Guest name" value={record.full_name} />
+              <InfoRow label="Stay status" value={<Badge tone={checkinStatusTone[record.status]}>{getCheckinStatusLabel(record.status)}</Badge>} />
+              <InfoRow label="Room / Suite" value={roomName} />
+              <InfoRow label="Stay period" value={formatStayRangeWithNights(record.check_in_date, record.check_out_date)} />
+              <InfoRow label="Booking source" value={findLabel(bookingSourceOptions, record.booking_source)} />
+              <InfoRow label="Balance Due" value={formatPkr(financialSummary.outstanding)} />
+              <InfoRow label="ID Verification" value={<Badge tone={idVerification.tone}>{idVerification.label}</Badge>} />
+              <InfoRow label="Payment Confirmation" value={<Badge tone={paymentConfirmation.tone}>{paymentConfirmation.label}</Badge>} />
+              <InfoRow label="Room Readiness" value={<Badge tone={roomReadiness.tone}>{roomReadiness.label}</Badge>} />
+              <InfoRow label="Guests" value={record.number_of_guests} />
+              <InfoRow label="Payment Status" value={findLabel(paymentStatusOptions, record.payment_status)} />
+              <InfoRow label="Multi-room booking" value={bookingGroup ? "Part of a multi-room booking" : "Single-room stay"} />
+            </dl>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Accommodation Receipt</CardTitle>
-            <CardDescription>
-              Prepare a polished accommodation receipt for the guest&apos;s records, workplace reimbursement, or management file.
-            </CardDescription>
+            <CardTitle>Priority Alerts / Needs Attention</CardTitle>
+            <CardDescription>These are not hard blockers; they make operational risk visible so staff can recover quickly.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Button asChild>
-              <Link href={`/admin/guest-records/${record.id}/receipt`}>
+          <CardContent className="space-y-3">
+            {priorityAlerts.length ? (
+              priorityAlerts.map((alert) => (
+                <div key={alert.title} className={`rounded-lg border p-4 text-sm ${alertToneClass(alert.tone)}`}>
+                  <p className="flex items-center gap-2 font-semibold">
+                    <TriangleAlert className="h-4 w-4" aria-hidden="true" />
+                    {alert.title}
+                  </p>
+                  <p className="mt-1">{alert.detail}</p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                No priority alerts. This Guest Stay is ready for the next normal staff step.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Action Panel</CardTitle>
+            <CardDescription>Main staff actions for this Guest Stay. Links open existing workflows only.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <Button asChild variant="outline">
+              <a href="#documents-verification">
                 <FileText className="h-4 w-4" aria-hidden="true" />
-                View Accommodation Receipt
+                Verify ID / Documents
+              </a>
+            </Button>
+            <Button asChild variant="outline">
+              <a href="#documents-verification">
+                <FileText className="h-4 w-4" aria-hidden="true" />
+                Verify Payment Confirmation
+              </a>
+            </Button>
+            <Button asChild variant="outline">
+              <a href="#payment-charges">
+                <FileText className="h-4 w-4" aria-hidden="true" />
+                Add Additional Charge
+              </a>
+            </Button>
+            <Button asChild variant="outline">
+              <a href="#admin-actions">
+                <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                Extend Stay
+              </a>
+            </Button>
+            <Button asChild>
+              <Link href={`/admin/guest-records/${record.id}/receipt`} aria-label="View Accommodation Receipt">
+                <FileText className="h-4 w-4" aria-hidden="true" />
+                View Receipt
               </Link>
             </Button>
             <Button asChild variant="outline">
@@ -385,9 +527,21 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
               </Link>
             </Button>
             <Button asChild variant="outline">
-              <a href={getWhatsAppGuestHref(record.phone, receiptMessage)} target="_blank" rel="noreferrer">
+              <a href={getWhatsAppGuestHref(record.phone, receiptMessage)} target="_blank" rel="noreferrer" aria-label="Send receipt via WhatsApp">
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                Send receipt via WhatsApp
+                Send Receipt via WhatsApp
+              </a>
+            </Button>
+            <Button asChild variant="outline">
+              <a href="#guest-messages">
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                Message Guest on WhatsApp
+              </a>
+            </Button>
+            <Button asChild variant="outline">
+              <a href="#admin-actions">
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                Check in / Check out
               </a>
             </Button>
           </CardContent>
@@ -437,7 +591,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     <InfoRow label="Booking source" value={findLabel(bookingSourceOptions, bookingGroup.booking_source)} />
                     <InfoRow label="Lead expected reference" value={formatPkr(combinedExpected)} />
                     <InfoRow label="Lead paid reference" value={formatPkr(combinedPaid)} />
-                    <InfoRow label="Lead balance due reference" value={formatPkr(combinedOutstanding)} />
+                    <InfoRow label="Lead outstanding reference / Balance Due" value={formatPkr(combinedOutstanding)} />
                     <InfoRow label="Linked stays" value={linkedStays.length} />
                   </dl>
                 </div>
@@ -446,7 +600,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-semibold text-brand-deep">Linked rooms/stays</p>
-                      <p className="text-sm text-slate-600">Each row remains its own operational room record.</p>
+                      <p className="text-sm text-slate-600">Linked stays/rooms remain separate operational records.</p>
                     </div>
                     <Badge tone="info">{linkedStays.length} stay(s)</Badge>
                   </div>
@@ -487,9 +641,9 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className="flex flex-wrap gap-2">
-                                    <Badge tone={stay.cnic_verified ? "success" : "warning"}>CNIC {stay.cnic_verified ? "verified" : "pending"}</Badge>
+                                    <Badge tone={stay.cnic_verified ? "success" : "warning"}>ID {stay.cnic_verified ? "verified" : "pending"}</Badge>
                                     <Badge tone={stay.payment_verified ? "success" : "warning"}>
-                                      Payment proof {stay.payment_verified ? "verified" : "pending"}
+                                      Payment Confirmation {stay.payment_verified ? "verified" : "pending"}
                                     </Badge>
                                   </div>
                                 </td>
@@ -532,103 +686,46 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
           <div className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <CardTitle>Front Desk Stay Summary</CardTitle>
-                  <CardDescription>
-                    Internal stay, payment, ID, and additional charge snapshot for staff. Use the Accommodation Receipt above for guest or workplace documents.
-                  </CardDescription>
-                </div>
+            <Card id="stay-details">
+              <CardHeader>
+                <CardTitle>Guest Stay Details</CardTitle>
+                <CardDescription>One operational view of the guest, stay context, and staff notes.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <dl className="grid gap-3 sm:grid-cols-2">
-                  <InfoRow label="Guest" value={record.full_name} />
+                  <InfoRow label="Full name" value={record.full_name} />
                   <InfoRow label="Phone" value={record.phone} />
-                  <InfoRow label="CNIC / passport" value={maskSensitiveId(record.cnic_passport_number)} />
-                  <InfoRow label="Stay dates" value={formatStayRangeWithNights(record.check_in_date, record.check_out_date)} />
-                  <InfoRow label="Unit" value={roomName} />
-                  <InfoRow label="Base stay expected" value={formatPkr(financialSummary.baseExpected)} />
-                  <InfoRow label="Base stay paid" value={formatPkr(financialSummary.basePaid)} />
-                  <InfoRow label="Guest charges total" value={formatPkr(financialSummary.chargesTotal)} />
-                  <InfoRow label="Paid guest charges" value={formatPkr(financialSummary.paidCharges)} />
-                  <InfoRow label="Total expected" value={formatPkr(financialSummary.totalExpected)} />
-                  <InfoRow label="Total paid" value={formatPkr(financialSummary.totalPaid)} />
-                  <InfoRow label="Balance Due" value={formatPkr(financialSummary.outstanding)} />
-                  <InfoRow label="Generated date" value={new Date().toLocaleDateString()} />
-                  <InfoRow label="CNIC verified" value={record.cnic_verified ? "Yes" : "No"} />
-                  <InfoRow label="Payment verified" value={record.payment_verified ? "Yes" : "No"} />
+                  <InfoRow label="Email" value={record.email} />
+                  <InfoRow label="Guest count" value={record.number_of_guests} />
+                  <InfoRow label="ID / passport" value={maskSensitiveId(record.cnic_passport_number)} />
+                  <InfoRow label="Stay period" value={formatStayRangeWithNights(record.check_in_date, record.check_out_date)} />
+                  <InfoRow label="Room / Suite" value={roomName} />
+                  <InfoRow label="Guest type" value={guestTypeLabel} />
+                  <InfoRow label="Booking source" value={findLabel(bookingSourceOptions, record.booking_source)} />
+                  <InfoRow label="Stayed before" value={record.has_stayed_before ? "Yes" : "No"} />
+                  <InfoRow label="Travelling from" value={record.city_country_from} />
+                  <InfoRow label="Arrival time" value={record.estimated_arrival_time} />
+                  <InfoRow label="Purpose" value={findLabel(purposeOptions, record.purpose_of_visit)} />
+                  <InfoRow label="Payment method" value={findLabel(paymentMethodOptions, record.payment_method)} />
+                  <InfoRow label="Advance claimed" value={formatPkr(record.advance_paid_amount_pkr)} />
+                  <InfoRow label="Address" value={record.address} />
                 </dl>
-                <div className="mt-4 rounded-lg border border-brand-sage bg-white p-3">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Additional charges</dt>
-                  {guestCharges.length ? (
-                    <div className="mt-3 overflow-x-auto">
-                      <table className="w-full min-w-[520px] text-left text-sm">
-                        <thead className="border-b border-brand-sage text-xs uppercase tracking-[0.12em] text-brand-deep">
-                          <tr>
-                            <th className="py-2 pr-3">Type</th>
-                            <th className="py-2 pr-3">Description</th>
-                            <th className="py-2 pr-3">Qty</th>
-                            <th className="py-2 pr-3">Total</th>
-                            <th className="py-2 pr-3">Paid</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-brand-sage/70">
-                          {guestCharges.map((charge) => (
-                            <tr key={charge.id}>
-                              <td className="py-2 pr-3 font-medium text-brand-deep">{getGuestChargeLabel(charge.charge_type)}</td>
-                              <td className="py-2 pr-3">{charge.description || "Not provided"}</td>
-                              <td className="py-2 pr-3">{charge.quantity}</td>
-                              <td className="py-2 pr-3">{formatPkr(charge.total_amount_pkr)}</td>
-                              <td className="py-2 pr-3">{charge.is_paid ? "Yes" : "No"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <dd className="mt-1 text-sm text-slate-600">No additional charges.</dd>
-                  )}
-                </div>
                 <div className="mt-3 rounded-lg bg-brand-ivory p-3">
+                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Special requests</dt>
+                  <dd className="mt-1 text-sm leading-6 text-brand-deep">{record.special_requests || "None"}</dd>
+                </div>
+                <div className="rounded-lg bg-brand-ivory p-3">
                   <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Internal notes</dt>
                   <dd className="mt-1 text-sm leading-6 text-brand-deep">{record.internal_notes || "None"}</dd>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="guest-messages">
               <CardHeader>
-                <CardTitle>Guest information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <InfoRow label="Full name" value={record.full_name} />
-                  <InfoRow label="Phone" value={record.phone} />
-                  <InfoRow label="Email" value={record.email} />
-                  <InfoRow label="Guest type" value={guestTypeLabel} />
-                  <InfoRow label="CNIC / passport" value={record.cnic_passport_number} />
-                  <InfoRow label="Address" value={record.address} />
-                  <InfoRow label="Travelling from" value={record.city_country_from} />
-                  <InfoRow label="Arrival time" value={record.estimated_arrival_time} />
-                  <InfoRow label="Purpose" value={findLabel(purposeOptions, record.purpose_of_visit)} />
-                  <InfoRow label="Booking source" value={findLabel(bookingSourceOptions, record.booking_source)} />
-                  <InfoRow label="Stayed before" value={record.has_stayed_before ? "Yes" : "No"} />
-                  <InfoRow label="Payment method" value={findLabel(paymentMethodOptions, record.payment_method)} />
-                  <InfoRow label="Advance claimed" value={formatPkr(record.advance_paid_amount_pkr)} />
-                </dl>
-                <div className="mt-3 rounded-lg bg-brand-ivory p-3">
-                  <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Special requests</dt>
-                  <dd className="mt-1 text-sm leading-6 text-brand-deep">{record.special_requests || "None"}</dd>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>WhatsApp quick actions</CardTitle>
+                <CardTitle>Guest Messages / WhatsApp</CardTitle>
                 <CardDescription>Open WhatsApp with a prefilled message to the guest.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-2 sm:grid-cols-2">
@@ -643,19 +740,72 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
               </CardContent>
             </Card>
 
+            <Card id="documents-verification">
+              <CardHeader>
+                <CardTitle>Documents / ID Verification</CardTitle>
+                <CardDescription>
+                  Links are short-lived signed URLs from the private storage bucket. Newest uploads are shown first.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                <DocumentGroup title="Primary ID / passport" documents={primaryDocuments} />
+                <DocumentGroup title="Additional guest IDs/passports" documents={additionalDocuments} />
+                <DocumentGroup title="Payment Confirmation" documents={paymentDocuments} />
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
-                <CardTitle>Guest Folio / Additional Charges</CardTitle>
+                <CardTitle>Replace / Upload Documents</CardTitle>
+                <CardDescription>
+                  Upload corrected files received by WhatsApp or in person. Existing files are kept for audit trail;
+                  the newest upload appears as latest.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form action={uploadGuestRecordDocuments} encType="multipart/form-data" className="grid gap-4 sm:grid-cols-2">
+                  <input type="hidden" name="id" value={record.id} />
+                  <div className="space-y-2">
+                    <Label htmlFor="primary_document">Primary guest ID/passport</Label>
+                    <Input id="primary_document" name="primary_document" type="file" accept=".jpg,.jpeg,.png,.pdf" />
+                    <p className="text-xs text-slate-500">Optional. JPG, PNG, or PDF up to 10 MB.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="additional_documents">Additional guest IDs/passports</Label>
+                    <Input id="additional_documents" name="additional_documents" type="file" accept=".jpg,.jpeg,.png,.pdf" multiple />
+                    <p className="text-xs text-slate-500">Optional. Multiple files allowed.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="payment_proof">Payment Confirmation</Label>
+                    <Input id="payment_proof" name="payment_proof" type="file" accept=".jpg,.jpeg,.png,.pdf" />
+                    <p className="text-xs text-slate-500">Optional. Upload later even if confirmation was missing originally.</p>
+                  </div>
+                  <div className="flex items-end">
+                    <Button type="submit">Upload documents</Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card id="payment-charges">
+              <CardHeader>
+                <CardTitle>Payment & Charges</CardTitle>
                 <CardDescription>
                   Operational charges for services like breakfast, tea, laundry, late checkout, extra bedding, or damages.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="grid gap-3 sm:grid-cols-4">
-                  <InfoRow label="Guest charges total" value={formatPkr(financialSummary.chargesTotal)} />
-                  <InfoRow label="Paid guest charges" value={formatPkr(financialSummary.paidCharges)} />
-                  <InfoRow label="Total expected" value={formatPkr(financialSummary.totalExpected)} />
+                  <InfoRow label="Accommodation Charges" value={formatPkr(financialSummary.baseExpected)} />
+                  <InfoRow label="Additional Charges" value={formatPkr(financialSummary.chargesTotal)} />
+                  <InfoRow label="Total Amount" value={formatPkr(financialSummary.totalExpected)} />
+                  <InfoRow label="Amount Paid" value={formatPkr(financialSummary.totalPaid)} />
                   <InfoRow label="Balance Due" value={formatPkr(financialSummary.outstanding)} />
+                  <InfoRow label="Payment Method" value={findLabel(paymentMethodOptions, record.payment_method)} />
+                  <InfoRow label="Payment Status" value={findLabel(paymentStatusOptions, record.payment_status)} />
+                  <InfoRow label="Payment Confirmation status" value={paymentConfirmation.label} />
                 </div>
 
                 {guestCharges.length ? (
@@ -689,7 +839,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                                   <form action={markGuestChargePaid} className="flex flex-wrap gap-2">
                                     <input type="hidden" name="id" value={charge.id} />
                                     <input type="hidden" name="guest_checkin_id" value={record.id} />
-                                    <Select name="payment_method" defaultValue="cash" aria-label="Folio charge payment method" className="h-9 w-36">
+                                    <Select name="payment_method" defaultValue="cash" aria-label="Additional charge payment method" className="h-9 w-36">
                                       {paymentMethodOptions.map((option) => (
                                         <option key={option.value} value={option.value}>
                                           {option.label}
@@ -765,71 +915,13 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="admin-actions">
               <CardHeader>
-                <CardTitle>Documents</CardTitle>
-                <CardDescription>
-                  Links are short-lived signed URLs from the private storage bucket. Newest uploads are shown first.
-                </CardDescription>
+                <CardTitle>Admin Controls</CardTitle>
+                <CardDescription>Update status, room assignment, payment state, verification, and notes.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4">
-                <DocumentGroup title="Primary CNIC / passport" documents={primaryDocuments} />
-                <DocumentGroup title="Additional guest CNIC/passports" documents={additionalDocuments} />
-                <DocumentGroup title="Payment proof" documents={paymentDocuments} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Replace / Upload Documents</CardTitle>
-                <CardDescription>
-                  Upload corrected files received by WhatsApp or in person. Existing files are kept for audit trail;
-                  the newest upload appears as latest.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form action={uploadGuestRecordDocuments} encType="multipart/form-data" className="grid gap-4 md:grid-cols-2">
-                  <input type="hidden" name="id" value={record.id} />
-                  <div className="space-y-2">
-                    <Label htmlFor="primary_document">Primary guest CNIC/passport</Label>
-                    <Input id="primary_document" name="primary_document" type="file" accept=".jpg,.jpeg,.png,.pdf" />
-                    <p className="text-xs text-slate-500">Optional. JPG, PNG, or PDF up to 10 MB.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="additional_documents">Additional guest CNIC/passports</Label>
-                    <Input id="additional_documents" name="additional_documents" type="file" accept=".jpg,.jpeg,.png,.pdf" multiple />
-                    <p className="text-xs text-slate-500">Optional. Multiple files allowed.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="payment_proof">Payment proof</Label>
-                    <Input id="payment_proof" name="payment_proof" type="file" accept=".jpg,.jpeg,.png,.pdf" />
-                    <p className="text-xs text-slate-500">Optional. Upload later even if proof was missing originally.</p>
-                  </div>
-                  <div className="flex items-end">
-                    <Button type="submit">Upload documents</Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin actions</CardTitle>
-              <CardDescription>Assign unit, confirm payment, verify documents, and add internal notes.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-5 grid gap-3 rounded-lg border border-brand-sage bg-white p-4 sm:grid-cols-2">
-                <InfoRow label="Base stay expected" value={formatPkr(financialSummary.baseExpected)} />
-                <InfoRow label="Base stay paid" value={formatPkr(financialSummary.basePaid)} />
-                <InfoRow label="Guest charges total" value={formatPkr(financialSummary.chargesTotal)} />
-                <InfoRow label="Paid guest charges" value={formatPkr(financialSummary.paidCharges)} />
-                <InfoRow label="Total expected" value={formatPkr(financialSummary.totalExpected)} />
-                <InfoRow label="Total paid" value={formatPkr(financialSummary.totalPaid)} />
-                <InfoRow label="Outstanding balance" value={formatPkr(financialSummary.outstanding)} />
-              </div>
-
-              <div className="mb-5 space-y-4 rounded-lg border border-brand-sage bg-brand-ivory p-4">
+              <CardContent className="space-y-4">
+                <div className="space-y-3 rounded-lg border border-brand-sage bg-brand-ivory p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-brand-deep">Check-in status</p>
@@ -856,7 +948,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                 ) : null}
 
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                  If CNIC number or document is incorrect, mark as Issue, add a note, message the guest, then upload
+                  If ID number or document is incorrect, mark as Needs Attention, add a note, message the guest, then upload
                   the corrected document here once received.
                 </div>
 
@@ -930,51 +1022,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     <input type="hidden" name="status" value="issue" />
                     <Button type="submit" variant="outline" className="w-full">
                       <TriangleAlert className="h-4 w-4" aria-hidden="true" />
-                      Mark as Issue / Needs Correction
+                      Mark as Needs Attention / Needs Correction
                     </Button>
                   </form>
                 ) : null}
               </div>
-
-              <form action={extendGuestStay} className="mb-5 grid gap-4 rounded-lg border border-brand-sage bg-white p-4 md:grid-cols-2">
-                <input type="hidden" name="id" value={record.id} />
-                <div className="md:col-span-2">
-                  <p className="text-sm font-semibold text-brand-deep">Extend Stay</p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Extend the current record without creating a new booking. Payment can be added later if needed.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new_check_out_date">New check-out date</Label>
-                  <Input id="new_check_out_date" name="new_check_out_date" type="date" min={record.check_out_date} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="extend_reason">Reason optional</Label>
-                  <Input id="extend_reason" name="reason" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="additional_expected_amount_pkr">Additional expected PKR optional</Label>
-                  <Input id="additional_expected_amount_pkr" name="additional_expected_amount_pkr" type="number" min={0} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="additional_payment_received_pkr">Additional payment received PKR optional</Label>
-                  <Input id="additional_payment_received_pkr" name="additional_payment_received_pkr" type="number" min={0} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="extend_payment_method">Payment method optional</Label>
-                  <Select id="extend_payment_method" name="payment_method" defaultValue="">
-                    <option value="">No payment received</option>
-                    {paymentMethodOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button type="submit" variant="secondary">Extend Stay</Button>
-                </div>
-              </form>
 
               <form action={updateGuestRecord} className="space-y-4">
                 <input type="hidden" name="id" value={record.id} />
@@ -1022,12 +1074,12 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     <Input id="agreed_room_rate_pkr" name="agreed_room_rate_pkr" type="number" min={0} defaultValue={record.agreed_room_rate_pkr ?? ""} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="advance_paid_amount_pkr">Advance paid</Label>
-                    <Input id="advance_paid_amount_pkr" name="advance_paid_amount_pkr" type="number" min={0} defaultValue={record.advance_paid_amount_pkr ?? ""} />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="total_expected_amount_pkr">Total expected</Label>
                     <Input id="total_expected_amount_pkr" name="total_expected_amount_pkr" type="number" min={0} defaultValue={record.total_expected_amount_pkr ?? ""} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="advance_paid_amount_pkr">Advance paid</Label>
+                    <Input id="advance_paid_amount_pkr" name="advance_paid_amount_pkr" type="number" min={0} defaultValue={record.advance_paid_amount_pkr ?? ""} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="amount_paid_pkr">Amount paid</Label>
@@ -1062,9 +1114,9 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="issue_type">Issue type</Label>
+                    <Label htmlFor="issue_type">Needs Attention type</Label>
                     <Select id="issue_type" name="issue_type" defaultValue={record.issue_type ?? ""}>
-                      <option value="">No issue type</option>
+                      <option value="">No Needs Attention type</option>
                       {issueTypeOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -1077,11 +1129,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                 <div className="grid gap-3 rounded-lg border border-brand-sage bg-brand-ivory p-4">
                   <label className="flex items-center gap-3 text-sm font-medium text-brand-deep">
                     <input type="checkbox" name="cnic_verified" defaultChecked={record.cnic_verified} className="h-4 w-4 accent-brand-fresh" />
-                    CNIC/passport received and verified
+                    ID/passport received and verified
                   </label>
                   <label className="flex items-center gap-3 text-sm font-medium text-brand-deep">
                     <input type="checkbox" name="payment_verified" defaultChecked={record.payment_verified} className="h-4 w-4 accent-brand-fresh" />
-                    Payment proof verified
+                    Payment Confirmation verified
                   </label>
                 </div>
 
@@ -1092,8 +1144,49 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
 
                 <Button type="submit" className="w-full">Save admin changes</Button>
               </form>
-            </CardContent>
-          </Card>
+
+              <form action={extendGuestStay} className="grid gap-4 rounded-lg border border-brand-sage bg-white p-4 sm:grid-cols-2">
+                <input type="hidden" name="id" value={record.id} />
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-semibold text-brand-deep">Extend Stay</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Extend the current record without creating a new booking. Payment can be added later if needed.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new_check_out_date">New check-out date</Label>
+                  <Input id="new_check_out_date" name="new_check_out_date" type="date" min={record.check_out_date} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extend_reason">Reason optional</Label>
+                  <Input id="extend_reason" name="reason" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="additional_expected_amount_pkr">Additional expected PKR optional</Label>
+                  <Input id="additional_expected_amount_pkr" name="additional_expected_amount_pkr" type="number" min={0} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="additional_payment_received_pkr">Additional payment received PKR optional</Label>
+                  <Input id="additional_payment_received_pkr" name="additional_payment_received_pkr" type="number" min={0} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extend_payment_method">Payment method optional</Label>
+                  <Select id="extend_payment_method" name="payment_method" defaultValue="">
+                    <option value="">No payment received</option>
+                    {paymentMethodOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" variant="secondary">Extend Stay</Button>
+                </div>
+              </form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </main>
