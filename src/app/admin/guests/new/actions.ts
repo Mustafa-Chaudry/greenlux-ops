@@ -22,6 +22,7 @@ type DocumentStatus = Database["public"]["Tables"]["guest_documents"]["Row"]["do
 
 const manualPaymentStatuses = ["pending", "partial", "paid"] as const;
 const manualInitialStatuses = ["submitted", "under_review"] as const;
+const reusablePreviousDocumentTypes: DocumentType[] = ["primary_cnic", "additional_guest_cnic", "supporting_document"];
 
 const nullableString = (value: FormDataEntryValue | null) => {
   if (typeof value !== "string" || value.trim() === "") {
@@ -174,20 +175,59 @@ async function attachPreviousDocumentsForReview({
   targetCheckinId: string;
   uploadedBy: string;
 }) {
+  const { data: sourceStay, error: sourceStayError } = await supabase
+    .from("guest_checkins")
+    .select("id,phone,email,cnic_passport_number")
+    .eq("id", sourceCheckinId)
+    .maybeSingle();
+
+  if (sourceStayError) {
+    throw new Error(sourceStayError.message);
+  }
+
+  const sourceStayIds = new Set<string>([sourceCheckinId]);
+  const relatedStayQueries = [
+    sourceStay?.phone
+      ? supabase.from("guest_checkins").select("id").eq("phone", sourceStay.phone).neq("id", targetCheckinId).limit(25)
+      : null,
+    sourceStay?.email
+      ? supabase.from("guest_checkins").select("id").eq("email", sourceStay.email).neq("id", targetCheckinId).limit(25)
+      : null,
+    sourceStay?.cnic_passport_number
+      ? supabase.from("guest_checkins").select("id").eq("cnic_passport_number", sourceStay.cnic_passport_number).neq("id", targetCheckinId).limit(25)
+      : null,
+  ].filter((query): query is NonNullable<typeof query> => Boolean(query));
+  const relatedStayResults = relatedStayQueries.length ? await Promise.all(relatedStayQueries) : [];
+  relatedStayResults.forEach((result) => {
+    (result.data ?? []).forEach((stay) => {
+      sourceStayIds.add(stay.id);
+    });
+  });
+
   const { data: previousDocuments, error: previousDocumentsError } = await supabase
     .from("guest_documents")
-    .select("document_type,file_path,file_url,mime_type")
-    .eq("checkin_id", sourceCheckinId)
-    .in("document_type", ["primary_cnic", "additional_guest_cnic", "supporting_document"]);
+    .select("document_type,document_status,file_path,file_url,mime_type,created_at")
+    .in("checkin_id", Array.from(sourceStayIds))
+    .in("document_type", reusablePreviousDocumentTypes)
+    .order("created_at", { ascending: false });
 
   if (previousDocumentsError) {
     throw new Error(previousDocumentsError.message);
   }
 
-  const reusableDocuments = (previousDocuments ?? []).filter((document) => document.file_path);
+  const reusableDocumentsByPath = new Map<string, NonNullable<typeof previousDocuments>[number]>();
+  (previousDocuments ?? [])
+    .filter((document) => document.file_path)
+    .forEach((document) => {
+      const reuseKey = `${document.document_type}:${document.file_path}`;
+      if (!reusableDocumentsByPath.has(reuseKey)) {
+        reusableDocumentsByPath.set(reuseKey, document);
+      }
+    });
+  const reusableDocuments = Array.from(reusableDocumentsByPath.values());
 
   if (!reusableDocuments.length) {
-    return 0;
+    return { attachedCount: 0, verifiedPrimaryCount: 0 };
   }
 
   const { error: insertError } = await supabase.from("guest_documents").insert(
@@ -195,7 +235,7 @@ async function attachPreviousDocumentsForReview({
       checkin_id: targetCheckinId,
       uploaded_by: uploadedBy,
       document_type: document.document_type,
-      document_status: "pending" as DocumentStatus,
+      document_status: document.document_status === "verified" ? "verified" as DocumentStatus : "pending" as DocumentStatus,
       file_path: document.file_path,
       file_url: document.file_url,
       mime_type: document.mime_type,
@@ -206,7 +246,12 @@ async function attachPreviousDocumentsForReview({
     throw new Error(insertError.message);
   }
 
-  return reusableDocuments.length;
+  return {
+    attachedCount: reusableDocuments.length,
+    verifiedPrimaryCount: reusableDocuments.filter(
+      (document) => document.document_type === "primary_cnic" && document.document_status === "verified",
+    ).length,
+  };
 }
 
 async function findOrCreateAuthUser({
@@ -446,6 +491,8 @@ export async function createManualGuest(formData: FormData) {
     });
   }
 
+  let reusedPreviousDocuments = { attachedCount: 0, verifiedPrimaryCount: 0 };
+
   try {
     for (const file of primaryDocuments) {
       await uploadGuestDocument({
@@ -490,12 +537,23 @@ export async function createManualGuest(formData: FormData) {
     }
 
     if (values.repeat_source_checkin_id) {
-      await attachPreviousDocumentsForReview({
+      reusedPreviousDocuments = await attachPreviousDocumentsForReview({
         supabase,
         sourceCheckinId: values.repeat_source_checkin_id,
         targetCheckinId: guestId,
         uploadedBy: profile.id,
       });
+
+      if (!cnicVerified && reusedPreviousDocuments.verifiedPrimaryCount > 0) {
+        const { error: verificationError } = await supabase
+          .from("guest_checkins")
+          .update({ cnic_verified: true })
+          .eq("id", guestId);
+
+        if (verificationError) {
+          throw new Error(verificationError.message);
+        }
+      }
     }
   } catch (uploadError) {
     revalidatePath("/admin");
@@ -506,8 +564,10 @@ export async function createManualGuest(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/admin/guest-records");
-  const previousDocumentsMessage = values.repeat_source_checkin_id
-    ? " Previous ID/supporting documents added for review when available. Please review and confirm they are still valid."
+  const previousDocumentsMessage = reusedPreviousDocuments.attachedCount > 0
+    ? " Previous ID/supporting documents on file were added to this Guest Stay. Verified ID documents remain verified; pending or rejected documents need staff review."
+    : values.repeat_source_checkin_id
+      ? " No previous ID/supporting documents were found to add to this Guest Stay."
     : "";
   const successMessage = warning
     ? `Guest record created.${previousDocumentsMessage} ${warning}`

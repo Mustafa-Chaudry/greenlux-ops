@@ -34,17 +34,25 @@ test("repeat guest search and safe autofill are available", () => {
   assert.doesNotMatch(adminNewPage, /defaultValue=\{selectedRepeatStay\?\.assigned_room_id/, "autofill must not copy old room assignment");
 });
 
-test("previous ID and supporting documents are reused only for staff review", () => {
+test("previous ID and supporting documents populate the new repeat Guest Stay safely", () => {
   const adminNewActions = sourceAt(adminNewActionsPath, "admin new guest actions");
   const guestDetailPage = sourceAt(guestDetailPagePath, "guest detail page");
 
   assert.match(adminNewActions, /attachPreviousDocumentsForReview/, "previous document reuse helper is missing");
-  assert.match(adminNewActions, /\.in\("document_type", \["primary_cnic", "additional_guest_cnic", "supporting_document"\]\)/, "only ID/supporting documents should be reused");
+  assert.match(adminNewActions, /reusablePreviousDocumentTypes: DocumentType\[\] = \["primary_cnic", "additional_guest_cnic", "supporting_document"\]/, "only ID/supporting documents should be reusable");
+  assert.match(adminNewActions, /\.in\("checkin_id", Array\.from\(sourceStayIds\)\)/, "repeat document reuse should search matching previous stays, not only one selected stay");
+  assert.match(adminNewActions, /\.in\("document_type", reusablePreviousDocumentTypes\)/, "only reusable ID/supporting document types should be inserted");
   assert.doesNotMatch(adminNewActions, /"payment_proof"[\s\S]{0,220}attachPreviousDocumentsForReview/, "old payment confirmation must not be reused as current proof");
-  assert.match(adminNewActions, /document_status: "pending" as DocumentStatus/, "reused documents must be pending for current-stay review");
-  assert.match(adminNewActions, /Previous ID\/supporting documents added for review/, "reuse-for-review success wording is missing");
+  assert.match(adminNewActions, /document_status: document\.document_status === "verified" \? "verified" as DocumentStatus : "pending" as DocumentStatus/, "verified ID documents may remain verified while unverified documents downgrade to pending");
+  assert.match(adminNewActions, /reusedPreviousDocuments\.verifiedPrimaryCount > 0/, "verified primary ID reuse should be able to mark the current stay ID as verified");
+  assert.match(adminNewActions, /update\(\{ cnic_verified: true \}\)/, "verified primary ID documents should populate as current-stay verification");
+  assert.doesNotMatch(adminNewActions, /payment_verified: true/, "payment confirmation must not be inherited from previous stays");
+  assert.doesNotMatch(adminNewActions, /payment_status: "paid"/, "payment status must not be inherited from previous stays");
+  assert.match(adminNewActions, /Previous ID\/supporting documents on file were added to this Guest Stay/, "document-on-file success wording is missing");
   assert.match(guestDetailPage, /Previous documents added for review/, "guest detail must surface previous documents added for review");
-  assert.match(guestDetailPage, /Current stay ID Verification remains pending until staff approve it/, "current stay ID verification must require staff review");
+  assert.match(guestDetailPage, /Document on file/, "reused documents should be labelled inside the normal document list");
+  assert.match(guestDetailPage, /These documents now appear in this Guest Stay document list/, "reused documents should appear as normal current-stay documents");
+  assert.match(guestDetailPage, /pending or rejected documents still need staff review/i, "unverified/rejected documents must not be incorrectly upgraded");
   assert.match(guestDetailPage, /Links are short-lived signed URLs from the private storage bucket/, "signed URL/private document access language must remain");
 });
 

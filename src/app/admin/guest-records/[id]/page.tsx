@@ -293,6 +293,7 @@ function DocumentGroup({ title, documents }: { title: string; documents: GuestDo
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-brand-deep">
                   {document.file_path.split("/").pop()}
                   {index === 0 ? <Badge tone="info">Latest</Badge> : null}
+                  {!document.file_path.includes(`/${document.checkin_id}/`) ? <Badge tone="info">Document on file</Badge> : null}
                   <Badge tone={documentStatusTone(document.document_status)}>{getDocumentStatusLabel(document.document_status)}</Badge>
                 </p>
                 <p className="text-xs text-slate-500">{document.mime_type}</p>
@@ -904,7 +905,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
                 <p className="font-semibold">Previous documents added for review</p>
                 <p className="mt-1">
-                  Previous ID documents attached for this stay. Please review and confirm they are still valid. Current stay ID Verification remains pending until staff approve it.
+                  Reused from previous stay. These documents now appear in this Guest Stay document list. Verified ID documents may remain verified; pending or rejected documents still need staff review.
                 </p>
               </div>
             ) : null}
