@@ -1,151 +1,173 @@
-# GreenLux Residency — Operations Intelligence System (MVP v5.9)
+# GreenLux Residency — Operations Intelligence System
 
-A production-grade internal operations platform designed for a real-world serviced accommodation business.
+A production-grade internal operations platform designed for a real serviced accommodation business.
 
-This system replaces fragmented, manual workflows (WhatsApp, spreadsheets, ad-hoc coordination) with a structured, auditable, and action-driven operational layer.
+GreenLux Ops replaces fragmented, manual workflows — WhatsApp coordination, spreadsheets, ad-hoc guest records, scattered payment tracking, and informal room handovers — with a structured, auditable, action-driven operational layer for a boutique serviced accommodation business in Rawalpindi / Islamabad.
+
+**Status:** Production MVP — Phase 7.0  
+**Core principle:** Do not block operations. Make risk visible and manageable.
 
 ---
 
 ## 🧠 Problem Context
 
-GreenLux Residency operates in a high-friction environment:
+GreenLux Residency operates in a high-friction hospitality environment:
 
-- Bookings from multiple sources (Booking.com, WhatsApp, walk-ins)
-- Non-technical operational staff
-- Incomplete or delayed guest data
-- Real-time decision-making at check-in
+- Bookings arrive from WhatsApp, walk-ins, Booking.com, Airbnb, Agoda, agents, and direct calls.
+- Guests may be repeat visitors, families, corporate visitors, or one lead guest booking multiple rooms.
+- Front-desk staff are non-technical and work under real check-in pressure.
+- Guest data, ID documents, payment confirmation, and room details may arrive late or incomplete.
+- Staff still need to keep rooms moving, collect payment, verify documents, and support guests without blocking operations.
 
-Traditional systems either:
-- ❌ Block operations with rigid validation  
-- ❌ Or allow chaos with no visibility  
+Traditional systems often fail in this environment because they either:
 
----
+- Block operations with rigid validation, or
+- Allow chaos with no structured visibility.
 
-## 🎯 Solution Approach
-
-> **Do not block operations — make risk visible and manageable**
-
-Key design principles:
-
-- Enable check-in under imperfect conditions
-- Track and surface operational risk explicitly
-- Maintain a single source of truth for data
-- Prioritise usability for non-technical users
-- Preserve auditability for reporting and control
+GreenLux Ops is designed for the middle path: operational flexibility with visible risk, auditability, and recovery.
 
 ---
 
-## 🧠 System Philosophy
+## 🎯 Solution Philosophy
 
-This system does NOT behave like a traditional hotel PMS.
+> **Do not block operations — make risk visible and manageable.**
 
-Instead, it enforces:
+GreenLux Ops is not a traditional hotel PMS. It is an operational intelligence layer for a real serviced accommodation business.
 
-- Visibility over restriction  
-- Flexibility over rigidity  
-- Real-world operations over theoretical correctness  
+The system prioritises:
+
+- Visibility over restriction
+- Admin-controlled recovery over fragile automation
+- Room/stay-level truth over vague booking summaries
+- Non-technical usability over technical purity
+- Premium hospitality language over generic system jargon
+- Auditability where corrections affect financial or operational truth
 
 Example:
 
-- Staff can check in guests with missing documents  
-- The system surfaces:
-  - CNIC pending  
-  - Payment proof pending  
-  - Outstanding balance  
-- These become **actionable issues**, not blockers  
+- Staff can create a Guest Stay even when some information is incomplete.
+- The system surfaces risks such as ID pending, Payment Confirmation pending, Balance Due, room not ready, or missing supporting documents.
+- These become actionable issues, not blockers.
 
-This mirrors how real hotels operate under pressure.
+This mirrors how real hotels operate under pressure while still improving data integrity.
 
 ---
 
-## ⚙️ System Capabilities
+## 🏗️ What GreenLux Ops Is
 
-### 1. Unit-Based Inventory (Phase 5.7)
-- 11-unit canonical inventory
-- `unit_number` as the operational source of truth
-- Unit-level assignment (not category-based)
-- Overlap protection (prevents double booking)
-- Unit-first analytics (then grouped by category)
-- Temporary Unit 8 mapping retained for correction
+GreenLux Ops is a structured operations platform for:
 
----
+- Guest Stay records
+- Guest check-in and front-desk entry
+- Repeat guest intelligence
+- ID, payment, and supporting document tracking
+- Room/unit assignment and readiness
+- Lead Booking / multi-room responsibility workflows
+- Receipts for accommodation and reimbursement
+- Owner-grade business analytics
+- Super-admin correction and audit recovery
 
-### 2. Live Occupancy Intelligence (Phase 5.8)
-- Real-time 11-unit occupancy board  
-- Status types:
-  - Occupied  
-  - Vacant  
-  - Due Out Today  
-  - Reserved / Upcoming  
-  - Maintenance  
-  - Needs Attention  
+It is intentionally not yet:
 
-Unit-level visibility:
-- Guest details (current / upcoming)
-- Verification state (CNIC, payment)
-- Outstanding balances (including folio)
-- Issue / exception flags
-- Maintenance state
+- A full booking engine
 
-Integrated into:
-- `/admin/occupancy`
-- Admin dashboard summary
-- Reports layer
 
 ---
 
-### 3. Daily Operations Command Centre (Phase 5.9)
+## ⚙️ Core System Capabilities
 
-Primary route:
-`/admin/command-centre`
+### 1. Guest Stay Operations
 
-This is the **daily control screen for staff**.
+GreenLux uses **Guest Stays** as the operational source of truth for individual room stays.
 
-Instead of showing raw data, it shows:
+Current capabilities include:
 
-#### Immediate Actions
-- Check-outs due today
-- Check-ins without assigned unit
-- Pending CNIC / payment verification
-- Outstanding balances
-- Maintenance issues
-- Missing checkout dates
-
-#### Today’s Operations
-- Arrivals
-- Departures
-- Current in-house guests
-
-#### Unit Snapshot
-- Occupied / vacant / maintenance state
-
-#### Money Snapshot
-- Today’s collected (derived)
-- Outstanding balances
-- New charges
-
-#### Quick Actions
-- New guest
-- Assign unit
-- Extend stay
-- Add charges (folio)
-- Mark payment
-
-**Critical Design Rule:**
-- No new workflows
-- No duplication of logic
-- Only orchestration of existing system truth
-
----
-
-### Guest Operations
-- Self-service and admin-assisted check-in
+- Self-service guest check-in through `/dashboard/check-in`
+- Admin/front-desk Add Guest Stay workflow
 - Walk-in and WhatsApp booking handling
-- Room/unit assignment and stay lifecycle management
+- Agent booking source support
+- Primary guest ID/passport uploads
+- Additional guest ID/passport uploads
+- Supporting Documents for marriage certificates, authorization letters, company letters, or other supporting material
+- Camera-friendly upload inputs where supported by the device/browser
+- Payment Confirmation tracking
+- Payment coverage / follow-up visibility
+- Repeat guest autofill from previous stays
+- Previous ID/supporting documents reused into new stays where appropriate
+- Old payment proof excluded from reuse because payment confirmation is stay-specific
 
 ---
 
-### Verification Layer
+### 2. Room Reality Board
+
+Route: `/admin/occupancy`
+
+The Room Reality Board gives staff a fast operational view of all units.
+
+It shows:
+
+- Occupied / vacant / due-out / upcoming status
+- Room/unit assignment
+- Guest context
+- Stay period and nights
+- ID Verification state
+- Payment Confirmation state
+- Balance Due
+- Room readiness and cleaning state
+- Maintenance blocked rooms
+- Multi-room booking context where relevant
+
+The design goal is high-density, low-stress operational clarity.
+
+---
+
+### 3. Command Centre
+
+Route: `/admin/command-centre`
+
+The Command Centre is the daily manager screen.
+
+It displays:
+
+- Arrivals today
+- Departures today
+- Rooms needing cleaning
+- Rooms not ready
+- Maintenance blocked rooms
+- Balance Due
+- Pending ID / Payment Confirmation
+- Multi-room booking attention
+- Priority actions ordered by operational urgency
+
+The Command Centre does not create new workflows. It orchestrates existing system truth into a daily action view.
+
+---
+
+### 4. Guest Stay Workspace
+
+Route: `/admin/guest-records/[id]`
+
+The Guest Stay detail page is the operational control panel for an individual room stay.
+
+It includes:
+
+- Top operational summary
+- Priority alerts / Needs Attention
+- Action panel
+- Guest Stay details
+- Payment & Charges
+- Documents / ID Verification
+- Supporting document uploads
+- Guest Messages / WhatsApp actions
+- Receipt actions
+- Repeat Guest / Stay History
+- Admin controls
+- Super-admin correction console where authorised
+
+The page is designed so staff can understand the current operational risk in under 10 seconds.
+
+---
+### 5. Verification Layer
 - CNIC / Passport capture
 - Payment proof tracking
 - Document status:
@@ -155,7 +177,7 @@ Instead of showing raw data, it shows:
 
 ---
 
-### Controlled Override System (Core Feature)
+### 6. Controlled Override System (Core Feature)
 - Automated readiness detection (room, ID, payment)
 - Exception-based check-in flow
 - Structured issue tracking
@@ -164,7 +186,7 @@ Instead of showing raw data, it shows:
 
 ---
 
-### 🧾 Guest Folio & Additional Charges
+### 7. Guest Folio & Additional Charges
 - Track services (breakfast, tea, extra mattress, etc.)
 - Paid vs unpaid charges
 - Included in total revenue and outstanding balance
@@ -172,7 +194,7 @@ Instead of showing raw data, it shows:
 
 ---
 
-### 🔁 Extend Stay Workflow
+### 8. Extend Stay Workflow
 - Extend stay directly from guest record
 - Updates expected revenue
 - Tracks payment changes
@@ -180,38 +202,197 @@ Instead of showing raw data, it shows:
 
 ---
 
-### 🔧 Maintenance & Expense Integration
+### 9. Maintenance & Expense Integration
 - Maintenance logs (operational truth)
 - Expenses (financial truth)
 - Linked without double counting
 
----
+### 10. Repeat Guest Intelligence
 
-### 📊 Analytics & Reporting
-- Revenue (expected vs paid)
-- Outstanding balances
-- Booking source breakdown
-- Unit-level performance
-- New vs repeat guests
-- CSV export
+GreenLux supports returning guests without forcing them to re-enter details or reupload documents unnecessarily.
 
----
+Staff can:
 
-### 🔐 Role-Based Access Control
-- Manager: operational access
-- Admin: extended operations
-- Super Admin: full control
+- Search previous guests by name, phone, CNIC/passport, or email
+- See previous stay count
+- See last stay, last room/unit, booking source, rate/night, document availability, and Balance Due warnings
+- Prefill safe reusable details into a new Guest Stay
+- Reuse previous ID/supporting documents into the new stay where appropriate
+- Keep payment truth, room assignment, dates, and stay-specific verification separate
+
+This is built for the real front-desk reality where many guests are walk-in, WhatsApp-based, or reluctant to self-register.
 
 ---
 
-## 🏗️ System Architecture
+### 11. Lead Booking / Multi-Room Workflow
+
+Route: `/admin/booking-groups/[id]`
+
+GreenLux supports one responsible lead guest/booker managing multiple rooms.
+
+The model is:
+
+- **Lead Booking** = responsible booker / payment and coordination context
+- **Guest Stay** = individual room/stay operational and financial truth
+
+A Lead Booking can include rooms with different:
+
+- Dates
+- Nights
+- Rates
+- Occupants
+- Payment status
+- Balance Due
+- Room readiness
+- Receipt needs
+
+The Lead Booking workspace shows all linked room stays together while preserving each room’s individual truth.
+
+Important financial rule:
+
+> Reports calculate revenue from individual Guest Stays, not Lead Booking reference totals, to avoid double-counting multi-room bookings.
+
+---
+
+### 12. Receipts
+
+GreenLux includes a professional receipt workflow suitable for accommodation records and workplace reimbursement.
+
+Route: `/admin/guest-records/[id]/receipt`
+
+Receipt features:
+
+- Clean printable Receipt layout
+- Browser print / Save as PDF workflow
+- Receipt reference and issue date
+- Stay period and nights
+- Rate/night
+- Accommodation Charges
+- Additional Charges
+- Amount Paid
+- Balance Due
+- Payment method and status
+
+Receipts remain stay-level unless a future combined multi-room receipt is explicitly built.
+
+---
+
+### 13. Business Analytics v2
+
+Route: `/admin/reports`
+
+The analytics layer has moved from simple booking totals to owner-grade business reporting.
+
+Current analytics include:
+
+- Daily / Weekly / Monthly / Custom report modes
+- Visible final reporting period
+- Room-night overlap allocation
+- Expected Revenue
+- Paid Revenue Recorded
+- Balance Due
+- Expenses
+- Net Profit
+- Booked Room Nights
+- Occupancy
+- Average Rate / Night
+- Daily Performance
+- Unit Performance
+- Unit Type Performance
+- Booking Source Performance
+- Risk & Recovery / Attention Needed
+- Supporting Detail
+- CSV/export support where available
+
+The report is designed to answer:
+
+1. Are we making money?
+2. Are rooms being used well?
+3. Where is money coming from?
+4. Which days performed well or badly?
+5. What is leaking or unpaid?
+6. What should we do next?
+
+Important limitation:
+
+**Paid Revenue Recorded** is based on recorded paid amounts. GreenLux does not yet have payment-date ledger accounting.
+
+---
+
+### 14. Super Admin Correction Console
+
+Phase 7.0 adds controlled recovery for real-world data mistakes.
+
+Super admins can correct key Guest Stay data from inside the platform, including:
+
+- Guest identity and contact fields
+- Stay dates
+- Assigned room
+- Booking source
+- Guest count
+- Stay status
+- Payment status and method
+- Agreed room rate
+- Total expected amount
+- Amount paid
+- ID Verification / Payment Confirmation flags
+- Internal notes
+- Lead Booking context
+
+Corrections require a reason and are audit logged with old/new values where supported by the existing audit log structure.
+
+This avoids silent database editing while still allowing real operational recovery.
+
+---
+
+## 🧾 Data Truth Model
+
+GreenLux separates responsibility, room-level truth, documents, and financial reporting.
+
+Core tables include:
+
+- `users_profile` — user roles and access context
+- `rooms` — unit inventory and readiness state
+- `guest_checkins` — room/stay-level operational and financial truth
+- `guest_documents` — ID, payment, and supporting documents
+- `guest_charges` — additional stay charges
+- `expenses` — business expense truth
+- `room_maintenance_logs` — operational maintenance records
+- `booking_groups` — Lead Booking / responsible booker context
+- `audit_logs` — correction and operational audit trail
+
+Key rules:
+
+- Guest Stays are the source of financial truth.
+- Lead Bookings are responsibility and coordination context.
+- Payment confirmation is stay-specific.
+- Previous ID/supporting documents may be reused for repeat guests.
+- Previous payment proof is not reused for a new stay.
+- Reports use individual Guest Stays to avoid double-counting multi-room bookings.
+
+---
+
+## ⚙️ System Architecture
 
 ![GreenLux Architecture](./Architecture.png)
 
-This system prioritises:
-- flexibility over rigid workflows
-- auditability over restriction
-- admin control under operational pressure
+The system is built with:
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- Supabase Postgres
+- Supabase Auth
+- Supabase Storage
+- Row Level Security
+- Private signed URL document access
+- Vercel deployment
+
+Role-based access includes:
+
+- Manager: operational access
+- Admin: extended operations
+- Super Admin: correction and full recovery control
 
 ---
 
@@ -219,21 +400,27 @@ This system prioritises:
 
 ### Before
 
-- WhatsApp-based coordination  
-- No structured records  
-- Manual check-in  
-- Missing ID/payment tracking  
-- No financial visibility  
+- WhatsApp-based coordination
+- Repeated guest data entry
+- Informal document collection
+- Manual room tracking
+- Unclear responsibility for management and staff
+- Payment follow-up handled from memory
+- Limited owner-level reporting
+- Mistake correction through manual database intervention
 
 ### After
 
-- Centralised system of record  
-- Structured check-in workflows  
-- Verification tracking  
-- Unit-level operational visibility  
-- Real-time occupancy intelligence  
-- Action-driven command centre  
-- Full guest folio tracking  
+- Centralised Guest Stay records
+- Front-desk and self-service check-in workflows
+- Repeat guest intelligence
+- Previous documents reused safely where appropriate
+- Lead Booking workspace for multi-room responsible bookers
+- Room Reality Board
+- Daily Command Centre
+- Professional receipts
+- Owner-grade analytics
+- Super-admin correction with audit trail
 
 ---
 
@@ -241,24 +428,47 @@ This system prioritises:
 
 This system intentionally:
 
-- Does **not block check-in** due to missing data  
-- Avoids premature complexity (no booking engine yet)  
-- Favors **operational continuity over theoretical correctness**
+- Does not block check-in because some data is incomplete
+- Avoids premature booking-engine complexity
+- Avoids automatic WhatsApp sending for now
+- Keeps payment confirmation stay-specific
+- Keeps Lead Booking totals out of revenue truth
+- Uses browser PDF printing before adding PDF libraries
+- Prioritises operational continuity over theoretical perfection
 
 Instead, it enforces:
 
-- Visibility of risk  
-- Structured recovery workflows  
-- Clean data for analytics  
+- Risk visibility
+- Staff follow-up
+- Admin recovery
+- Financial clarity
+- Auditability where corrections matter
 
 ---
 
-## ⚠️ Known Limitations
+## ⚠️ Known Limitations / Future Work
 
-- “Today’s collected” is derived from reporting logic  
-- No dedicated base-payment timestamp in schema  
-- Folio charges use `guest_charges.charged_at`  
-- Financial granularity can be improved in future phases  
+Not yet built:
+
+- Full booking engine
+- Channel manager integration
+- Automatic WhatsApp sending
+- Payment ledger / payment-date accounting
+- Combined multi-room receipt
+- Cleaner role and inspection module
+- Lost property register
+- Historical Booking.com / Airbnb / Agoda imports
+- Tax invoice / accounting system
+- Optimised production logo and full brand asset integration
+
+Likely next phases:
+
+- Cleaner Role + Housekeeping Inspection
+- Lost Property Register
+- Historical Booking Imports
+- Payment Ledger
+- Combined Multi-Room Receipt
+- Asset/logo/public website integration
 
 ---
 
@@ -272,41 +482,77 @@ Instead, it enforces:
 
 ---
 
-## 📌 Status
+## 📌 Validation / Developer Notes
 
-**Production MVP — Phase 5.9 (Command Centre + Live Operations Intelligence)**
+Standard validation commands:
 
-Recent upgrades:
+```bash
+npm run typecheck
+npm run lint
+npm run build
+git diff --check
+```
 
-- Phase 5.7 — Unit-based inventory system  
-- Phase 5.8 — Live occupancy intelligence layer  
-- Phase 5.9 — Daily operations command centre  
-- Unit-level analytics and reporting  
-- Guest folio and service tracking  
-- Extend stay workflow  
-- Maintenance and expense integration  
-- Role-based access control  
+Feature validators currently used across the project include:
 
-Built and iterated against real-world hospitality operations.
+```bash
+node scripts/validate-room-reality-board.mjs
+node scripts/validate-cleaning-turnover-layer.mjs
+node scripts/validate-phase-6-4-multi-room-bookings.mjs
+node scripts/validate-phase-6-5-accommodation-receipt.mjs
+node scripts/validate-command-centre.mjs
+node scripts/validate-guest-record-detail-v2.mjs
+node scripts/validate-front-desk-entry-fixes.mjs
+node scripts/validate-repeat-guest-intelligence.mjs
+node scripts/validate-lead-booking-workspace.mjs
+node scripts/validate-business-analytics-v2.mjs
+node scripts/validate-super-admin-corrections.mjs
+```
+
+Deployment discipline:
+
+- Apply Supabase migrations before deploying code that depends on new tables, columns, or enum values.
+- Do not deploy schema-dependent code before the database is ready.
+- Do not accidentally commit manual reset/test cleanup scripts.
+- Do not commit large raw assets unless intentionally optimised and used.
 
 ---
 
 ## 📍 Deployment
 
 Internal Operations System:  
-https://greenlux-ops.vercel.app/admin  
+https://greenlux-ops.vercel.app/admin
 
 Command Centre:  
-https://greenlux-ops.vercel.app/admin/command-centre  
+https://greenlux-ops.vercel.app/admin/command-centre
 
-Occupancy Board:  
-https://greenlux-ops.vercel.app/admin/occupancy  
+Room Reality Board:  
+https://greenlux-ops.vercel.app/admin/occupancy
+
+Add Guest Stay:  
+https://greenlux-ops.vercel.app/admin/guests/new
+
+Guest Stays:  
+https://greenlux-ops.vercel.app/admin/guest-records
+
+Business Analytics:  
+https://greenlux-ops.vercel.app/admin/reports
 
 Guest Check-in:  
-https://greenlux-ops.vercel.app/dashboard/check-in  
+https://greenlux-ops.vercel.app/dashboard/check-in
 
 Public Website:  
-https://greenluxresidency.com  
+https://greenluxresidency.com
+
+---
+
+## 📌 Status
+
+**Production MVP — Phase 7.0**
+
+Built and iterated against real GreenLux Residency operational workflows.
+
+The system now covers guest stay operations, repeat guest handling, lead booking responsibility, room reality, command-centre operations, receipts, business analytics, and super-admin correction.
 
 ---
 
@@ -314,4 +560,4 @@ https://greenluxresidency.com
 
 Mustafa Chaudry  
 MSc Computer Science (Artificial Intelligence)  
-Sheffield, UK  
+Sheffield, UK
