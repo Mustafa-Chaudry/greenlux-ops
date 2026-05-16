@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 type PageProps = {
-  searchParams: Promise<{ message?: string; repeat_q?: string; repeat_guest_id?: string }>;
+  searchParams: Promise<{ message?: string; repeat_q?: string; repeat_guest_id?: string; bookingGroupId?: string }>;
 };
 
 type RepeatStay = Pick<
@@ -95,7 +95,7 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
   const tomorrow = addDaysIso(today, 1);
   const repeatSearch = params.repeat_q?.trim() ?? "";
   const repeatSearchTerm = repeatSearch.replace(/,/g, " ");
-  const [{ data: rooms }, { data: bookingGroups }, { data: selectedRepeatStay }, repeatSearchResult] = await Promise.all([
+  const [{ data: rooms }, { data: bookingGroups }, { data: selectedRepeatStay }, repeatSearchResult, { data: selectedBookingGroup }] = await Promise.all([
     supabase
       .from("rooms")
       .select("id,unit_number,name,status,cleaning_status,base_price_pkr")
@@ -126,6 +126,13 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
           .order("created_at", { ascending: false })
           .limit(8)
       : Promise.resolve({ data: [], error: null }),
+    params.bookingGroupId
+      ? supabase
+          .from("booking_groups")
+          .select("id,lead_guest_name,lead_guest_phone,booking_source,check_in_date,check_out_date,expected_total_amount,paid_total_amount")
+          .eq("id", params.bookingGroupId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
   ]);
   const repeatMatches = (repeatSearchResult.data ?? []) as RepeatStay[];
   const repeatMatchIds = repeatMatches.map((stay) => stay.id);
@@ -144,6 +151,9 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
   });
   const hasRoomsNotReady = Boolean(rooms?.some((room) => room.cleaning_status !== "ready"));
   const roomById = new Map((rooms ?? []).map((room) => [room.id, room]));
+  const bookingGroupsForSelect = selectedBookingGroup && !(bookingGroups ?? []).some((group) => group.id === selectedBookingGroup.id)
+    ? [selectedBookingGroup, ...(bookingGroups ?? [])]
+    : bookingGroups ?? [];
   const paymentOptions = paymentStatusOptions.filter((option) => option.value !== "refunded");
   const initialStatusOptions = checkinStatusOptions.filter(
     (option) => option.value === "submitted" || option.value === "under_review",
@@ -428,6 +438,12 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
+              {selectedBookingGroup ? (
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900 md:col-span-2">
+                  Adding another room to Lead Booking for {selectedBookingGroup.lead_guest_name}. Stay dates, room assignment, payment, and documents remain individual to this new Guest Stay.
+                </div>
+              ) : null}
+
               <label className="flex gap-3 rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm font-medium text-brand-deep md:col-span-2">
                 <input type="checkbox" name="create_new_booking_group" className="mt-1 h-4 w-4 accent-brand-fresh" />
                 <span>
@@ -440,9 +456,9 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
 
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="booking_group_id">Attach to existing lead booking</Label>
-                <Select id="booking_group_id" name="booking_group_id" defaultValue="">
+                <Select id="booking_group_id" name="booking_group_id" defaultValue={params.bookingGroupId ?? ""}>
                   <option value="">No multi-room booking</option>
-                  {(bookingGroups ?? []).map((group) => (
+                  {bookingGroupsForSelect.map((group) => (
                     <option key={group.id} value={group.id}>
                       {group.lead_guest_name} - {group.lead_guest_phone} - {formatStayRangeWithNights(group.check_in_date, group.check_out_date)} -{" "}
                       {formatEnumLabel(group.booking_source)}
@@ -467,11 +483,11 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
                 <Textarea id="booking_group_notes" name="booking_group_notes" rows={3} />
               </div>
 
-              {bookingGroups?.length ? (
+              {bookingGroupsForSelect.length ? (
                 <div className="rounded-lg border border-brand-sage bg-white p-4 text-sm md:col-span-2">
                   <p className="font-semibold text-brand-deep">Recent lead bookings</p>
                   <div className="mt-3 grid gap-2">
-                    {bookingGroups.slice(0, 5).map((group) => (
+                    {bookingGroupsForSelect.slice(0, 5).map((group) => (
                       <div key={group.id} className="flex flex-col gap-1 rounded-lg bg-brand-ivory p-3 sm:flex-row sm:items-center sm:justify-between">
                         <span className="font-medium text-brand-deep">{group.lead_guest_name}</span>
                         <span className="text-slate-600">{formatStayRangeWithNights(group.check_in_date, group.check_out_date)}</span>

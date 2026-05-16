@@ -623,6 +623,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
             {bookingGroup ? <Badge tone="info">Part of a multi-room booking</Badge> : null}
             {record.issue_type ? <Badge tone="danger">{getIssueTypeLabel(record.issue_type)}</Badge> : null}
           </div>
+          {bookingGroup ? (
+            <Button asChild variant="outline">
+              <Link href={`/admin/booking-groups/${bookingGroup.id}`}>View Lead Booking</Link>
+            </Button>
+          ) : null}
         </header>
 
         {queryParams.message ? (
@@ -730,6 +735,11 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                 Message Guest on WhatsApp
               </a>
             </Button>
+            {bookingGroup ? (
+              <Button asChild variant="outline">
+                <Link href={`/admin/booking-groups/${bookingGroup.id}`}>View Lead Booking</Link>
+              </Button>
+            ) : null}
             <Button asChild variant="outline">
               <a href="#admin-actions">
                 <LogIn className="h-4 w-4" aria-hidden="true" />
@@ -745,16 +755,20 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
               <CardTitle>{bookingGroup ? "Part of multi-room booking" : "Multi-room booking"}</CardTitle>
               <CardDescription>
                 {bookingGroup
-                  ? "Lead booking context for this stay. Room readiness, check-in, folio, documents, and cleaning remain per room."
+                  ? `This Guest Stay is part of a Lead Booking managed under ${bookingGroup.lead_guest_name}. Room readiness, check-in, folio, documents, and cleaning remain per room.`
                   : "This stay is currently a normal single-room stay. Create a lead booking only when this guest is booking multiple units."}
               </CardDescription>
             </div>
-            {!bookingGroup ? (
+            {bookingGroup ? (
+              <Button asChild variant="outline">
+                <Link href={`/admin/booking-groups/${bookingGroup.id}`}>View Lead Booking</Link>
+              </Button>
+            ) : (
               <form action={createBookingGroupFromGuestRecord}>
                 <input type="hidden" name="id" value={record.id} />
                 <Button type="submit" variant="outline">Create multi-room booking from this stay</Button>
               </form>
-            ) : null}
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             {bookingGroup ? (
