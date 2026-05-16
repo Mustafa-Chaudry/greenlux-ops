@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { allowedUploadMimeTypes, maxUploadSizeBytes } from "@/lib/validation/uploads";
 
-const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
-const optionalNumber = z.preprocess(emptyToUndefined, z.coerce.number().min(0).optional());
 const purposeOfVisitSchema = z.enum(["family_visit", "business", "medical", "tourism", "event_wedding", "other"]);
 
 const fileListSchema = z.custom<FileList>((value) => value instanceof FileList, "Please choose a file.");
@@ -29,16 +27,16 @@ export const checkInFormSchema = z
     check_out_date: z.string().min(1, "Check-out date is required."),
     number_of_guests: z.coerce.number().int().min(1, "At least one guest is required.").max(20),
     additional_documents: fileListSchema.optional(),
+    supporting_documents: fileListSchema.optional(),
     estimated_arrival_time: z.string().optional(),
     city_country_from: z.string().trim().min(2, "City/country travelling from is required."),
     purpose_of_visit: z
       .union([z.literal(""), purposeOfVisitSchema])
       .refine((value) => value !== "", "Please select the purpose of visit.")
       .transform((value) => value as z.infer<typeof purposeOfVisitSchema>),
-    booking_source: z.enum(["booking_com", "airbnb", "agoda", "direct_whatsapp_call", "referral", "other"]),
+    booking_source: z.enum(["booking_com", "airbnb", "agoda", "agent", "direct_whatsapp_call", "referral", "other"]),
     has_stayed_before: z.enum(["yes", "no"]),
     payment_method: z.enum(["cash", "bank_transfer", "online_payment", "other"]),
-    advance_paid_amount_pkr: optionalNumber,
     payment_proof: fileListSchema.optional(),
     special_requests: z.string().trim().max(1500).optional(),
     consent: z.boolean().refine((value) => value, "Consent is required before submitting."),
@@ -56,7 +54,7 @@ export const checkInFormSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["primary_document"],
-        message: "Upload one JPG, PNG, or PDF file up to 10 MB.",
+        message: "Upload one or more JPG, PNG, or PDF files up to 10 MB each.",
       });
     }
 
@@ -65,6 +63,14 @@ export const checkInFormSchema = z
         code: "custom",
         path: ["additional_documents"],
         message: "Additional documents must be JPG, PNG, or PDF files up to 10 MB each.",
+      });
+    }
+
+    if (!validateFiles(data.supporting_documents, false)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["supporting_documents"],
+        message: "Supporting Documents must be JPG, PNG, or PDF files up to 10 MB each.",
       });
     }
 

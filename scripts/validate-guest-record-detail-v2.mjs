@@ -163,7 +163,6 @@ test("guest record detail v2 keeps controls in the refined operational order", (
     "Warning: this room is not marked ready",
     "Agreed room rate",
     "Total expected",
-    "Advance paid",
     "Amount paid",
     "Payment status",
     "Payment Confirmation verified",
@@ -185,7 +184,6 @@ test("guest record detail v2 keeps controls in the refined operational order", (
   const assignedUnitIndex = page.indexOf("Assigned unit");
   const agreedRateIndex = page.indexOf("Agreed room rate");
   const totalExpectedIndex = page.indexOf("Total expected");
-  const advancePaidIndex = page.indexOf("Advance paid");
   const amountPaidIndex = page.indexOf("Amount paid");
   const paymentStatusIndex = page.indexOf("Payment status");
   const verificationIndex = page.indexOf("ID/passport received and verified");
@@ -197,10 +195,11 @@ test("guest record detail v2 keeps controls in the refined operational order", (
   assert.ok(leadBookingIndex < assignedUnitIndex, "lead booking should appear before assigned unit");
   assert.ok(assignedUnitIndex < agreedRateIndex, "assigned unit should appear before financial update fields");
   assert.ok(agreedRateIndex < totalExpectedIndex, "agreed room rate should appear before total expected");
-  assert.ok(totalExpectedIndex < advancePaidIndex, "total expected should appear before advance paid");
-  assert.ok(advancePaidIndex < amountPaidIndex, "advance paid should appear before amount paid");
+  assert.ok(totalExpectedIndex < amountPaidIndex, "total expected should appear before amount paid");
   assert.ok(amountPaidIndex < paymentStatusIndex, "payment status should follow amount fields");
   assert.ok(paymentStatusIndex < verificationIndex, "verification checkboxes should follow payment/admin classification fields");
   assert.ok(verificationIndex < notesIndex, "internal notes should follow verification checkboxes");
   assert.ok(saveIndex < extendIndex, "Extend Stay should sit after the core admin save form");
+  assert.doesNotMatch(page, /<Label htmlFor="advance_paid_amount_pkr">Advance paid/i, "Advance paid should not return as a visible operational control");
+  assert.match(page, /name="advance_paid_amount_pkr" value=\{record\.advance_paid_amount_pkr \?\? ""\}/, "advance compatibility field should be preserved without visible editing");
 });

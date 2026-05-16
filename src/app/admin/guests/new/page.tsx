@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, UserPlus } from "lucide-react";
 import { createManualGuest } from "@/app/admin/guests/new/actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
   formatEnumLabel,
   formatPkr,
   formatUnitRoomLabel,
+  getBalanceDue,
   getBusinessTodayDate,
   guestTagOptions,
   paymentMethodOptions,
@@ -23,15 +25,36 @@ import {
   purposeOptions,
   roomCleaningStatusLabels,
 } from "@/lib/check-in/options";
-import { formatStayRangeWithNights } from "@/lib/check-in/stay-dates";
+import { formatStayRangeWithNights, getStayNights } from "@/lib/check-in/stay-dates";
+import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Add Guest Stay",
 };
 
 type PageProps = {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; repeat_q?: string; repeat_guest_id?: string }>;
 };
+
+type RepeatStay = Pick<
+  Database["public"]["Tables"]["guest_checkins"]["Row"],
+  | "id"
+  | "full_name"
+  | "phone"
+  | "email"
+  | "cnic_passport_number"
+  | "address"
+  | "city_country_from"
+  | "purpose_of_visit"
+  | "check_in_date"
+  | "check_out_date"
+  | "booking_source"
+  | "assigned_room_id"
+  | "agreed_room_rate_pkr"
+  | "total_expected_amount_pkr"
+  | "amount_paid_pkr"
+  | "payment_status"
+>;
 
 function addDaysIso(dateValue: string, days: number) {
   const [year, month, day] = dateValue.split("-").map(Number);
@@ -40,12 +63,39 @@ function addDaysIso(dateValue: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function sameGuestIdentity(candidate: RepeatStay, stay: RepeatStay) {
+  const phoneMatch = Boolean(candidate.phone && stay.phone && candidate.phone === stay.phone);
+  const emailMatch = Boolean(candidate.email && stay.email && candidate.email.toLowerCase() === stay.email.toLowerCase());
+  const idMatch = Boolean(
+    candidate.cnic_passport_number &&
+      stay.cnic_passport_number &&
+      candidate.cnic_passport_number.toLowerCase() === stay.cnic_passport_number.toLowerCase(),
+  );
+
+  return phoneMatch || emailMatch || idMatch;
+}
+
+function getRepeatRateLabel(stay: RepeatStay) {
+  if (stay.agreed_room_rate_pkr && stay.agreed_room_rate_pkr > 0) {
+    return `${formatPkr(stay.agreed_room_rate_pkr)} / night`;
+  }
+
+  const nights = getStayNights(stay.check_in_date, stay.check_out_date);
+  if (nights && stay.total_expected_amount_pkr && stay.total_expected_amount_pkr > 0) {
+    return `${formatPkr(Math.round(stay.total_expected_amount_pkr / nights))} / night`;
+  }
+
+  return "Not available";
+}
+
 export default async function NewGuestPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const { supabase } = await requireRole(staffGuestCreationRoles);
   const today = getBusinessTodayDate();
   const tomorrow = addDaysIso(today, 1);
-  const [{ data: rooms }, { data: bookingGroups }] = await Promise.all([
+  const repeatSearch = params.repeat_q?.trim() ?? "";
+  const repeatSearchTerm = repeatSearch.replace(/,/g, " ");
+  const [{ data: rooms }, { data: bookingGroups }, { data: selectedRepeatStay }, repeatSearchResult] = await Promise.all([
     supabase
       .from("rooms")
       .select("id,unit_number,name,status,cleaning_status,base_price_pkr")
@@ -55,8 +105,45 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
       .select("id,lead_guest_name,lead_guest_phone,booking_source,check_in_date,check_out_date,expected_total_amount,paid_total_amount")
       .order("created_at", { ascending: false })
       .limit(50),
+    params.repeat_guest_id
+      ? supabase
+          .from("guest_checkins")
+          .select(
+            "id,full_name,phone,email,cnic_passport_number,address,city_country_from,purpose_of_visit,check_in_date,check_out_date,booking_source,assigned_room_id,agreed_room_rate_pkr,total_expected_amount_pkr,amount_paid_pkr,payment_status",
+          )
+          .eq("id", params.repeat_guest_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    repeatSearchTerm.length >= 2
+      ? supabase
+          .from("guest_checkins")
+          .select(
+            "id,full_name,phone,email,cnic_passport_number,address,city_country_from,purpose_of_visit,check_in_date,check_out_date,booking_source,assigned_room_id,agreed_room_rate_pkr,total_expected_amount_pkr,amount_paid_pkr,payment_status",
+          )
+          .or(
+            `full_name.ilike.%${repeatSearchTerm}%,phone.ilike.%${repeatSearchTerm}%,cnic_passport_number.ilike.%${repeatSearchTerm}%,email.ilike.%${repeatSearchTerm}%`,
+          )
+          .order("created_at", { ascending: false })
+          .limit(8)
+      : Promise.resolve({ data: [], error: null }),
   ]);
+  const repeatMatches = (repeatSearchResult.data ?? []) as RepeatStay[];
+  const repeatMatchIds = repeatMatches.map((stay) => stay.id);
+  const { data: repeatDocuments } = repeatMatchIds.length
+    ? await supabase
+        .from("guest_documents")
+        .select("checkin_id,document_type,document_status")
+        .in("checkin_id", repeatMatchIds)
+        .in("document_type", ["primary_cnic", "additional_guest_cnic", "supporting_document"])
+    : { data: [] };
+  const repeatDocumentsByStay = new Map<string, Array<{ document_type: string; document_status: string }>>();
+  (repeatDocuments ?? []).forEach((document) => {
+    const documentsForStay = repeatDocumentsByStay.get(document.checkin_id) ?? [];
+    documentsForStay.push({ document_type: document.document_type, document_status: document.document_status });
+    repeatDocumentsByStay.set(document.checkin_id, documentsForStay);
+  });
   const hasRoomsNotReady = Boolean(rooms?.some((room) => room.cleaning_status !== "ready"));
+  const roomById = new Map((rooms ?? []).map((room) => [room.id, room]));
   const paymentOptions = paymentStatusOptions.filter((option) => option.value !== "refunded");
   const initialStatusOptions = checkinStatusOptions.filter(
     (option) => option.value === "submitted" || option.value === "under_review",
@@ -85,7 +172,79 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
           <div className="rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm text-brand-deep">{params.message}</div>
         ) : null}
 
+        <Card>
+            <CardHeader>
+              <CardTitle>Repeat Guest Autofill</CardTitle>
+              <CardDescription>
+                Previous guest details can be reused, but stay dates, room, payment, and documents must be reviewed for this stay.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form className="grid gap-3 md:grid-cols-[1fr_auto]">
+                <Label htmlFor="repeat_q" className="sr-only">Search previous guests</Label>
+                <Input id="repeat_q" name="repeat_q" defaultValue={repeatSearch} placeholder="Search previous guest by name, phone, ID/passport, or email" />
+                <Button type="submit" variant="secondary">Search Previous Stays</Button>
+              </form>
+
+              {selectedRepeatStay ? (
+                <div className="rounded-lg border border-brand-sage bg-green-50 p-4 text-sm text-green-900">
+                  Reusing safe details from {selectedRepeatStay.full_name}. Dates, unit, payment, and documents remain blank for this new Guest Stay.
+                  Previous ID/supporting documents can be added for review after save; current stay verification still needs staff confirmation.
+                </div>
+              ) : null}
+
+              {repeatMatches.length ? (
+                <div className="grid gap-2">
+                  {repeatMatches.map((stay) => {
+                    const matchingStays = repeatMatches.filter((match) => sameGuestIdentity(stay, match));
+                    const lastStay = matchingStays[0] ?? stay;
+                    const lastRoom = lastStay.assigned_room_id ? roomById.get(lastStay.assigned_room_id) : null;
+                    const documentsForStay = repeatDocumentsByStay.get(stay.id) ?? [];
+                    const hasIdentityDocuments = documentsForStay.some((document) => document.document_type === "primary_cnic" || document.document_type === "additional_guest_cnic");
+                    const hasSupportingDocuments = documentsForStay.some((document) => document.document_type === "supporting_document");
+                    const previousBalanceDue = getBalanceDue(stay) ?? 0;
+
+                    return (
+                      <div key={stay.id} className="flex flex-col gap-3 rounded-lg border border-brand-sage bg-white p-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="space-y-2">
+                          <div>
+                            <p className="font-semibold text-brand-deep">{stay.full_name}</p>
+                            <p className="text-sm text-slate-600">
+                              {stay.phone} {stay.email ? `- ${stay.email}` : ""} {stay.cnic_passport_number ? `- ${stay.cnic_passport_number}` : ""}
+                            </p>
+                          </div>
+                          <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-3">
+                            <span>Previous stay count: {matchingStays.length}</span>
+                            <span>Last stay: {formatStayRangeWithNights(lastStay.check_in_date, lastStay.check_out_date)}</span>
+                            <span>Last room/unit: {lastRoom ? formatUnitRoomLabel(lastRoom) : "Not assigned"}</span>
+                            <span>Last booking source: {bookingSourceOptions.find((option) => option.value === lastStay.booking_source)?.label ?? formatEnumLabel(lastStay.booking_source)}</span>
+                            <span>Last rate/night: {getRepeatRateLabel(lastStay)}</span>
+                            <span>Previous documents: {hasIdentityDocuments || hasSupportingDocuments ? "ID/supporting documents on file" : "None found"}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {hasIdentityDocuments ? <Badge tone="info">Previous ID on file</Badge> : null}
+                            {hasSupportingDocuments ? <Badge tone="info">Supporting Documents on file</Badge> : null}
+                            {previousBalanceDue > 0 ? <Badge tone="warning">Previous stay had Balance Due</Badge> : null}
+                            {stay.payment_status !== "paid" ? <Badge tone="warning">Review previous payment follow-up</Badge> : null}
+                          </div>
+                        </div>
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/admin/guests/new?repeat_guest_id=${stay.id}${repeatSearch ? `&repeat_q=${encodeURIComponent(repeatSearch)}` : ""}`}>
+                            Use these details
+                          </Link>
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : repeatSearch.length >= 2 ? (
+                <p className="rounded-lg bg-brand-ivory p-3 text-sm text-slate-600">No previous stays matched this search.</p>
+              ) : null}
+            </CardContent>
+        </Card>
+
         <form action={createManualGuest} className="space-y-6">
+          <input type="hidden" name="repeat_source_checkin_id" value={selectedRepeatStay?.id ?? ""} />
           <Card>
             <CardHeader>
               <CardTitle>Quick entry required</CardTitle>
@@ -94,11 +253,11 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="full_name">Full name</Label>
-                <Input id="full_name" name="full_name" autoComplete="name" required />
+                <Input id="full_name" name="full_name" autoComplete="name" defaultValue={selectedRepeatStay?.full_name ?? ""} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Mobile / WhatsApp</Label>
-                <Input id="phone" name="phone" autoComplete="tel" required />
+                <Input id="phone" name="phone" autoComplete="tel" defaultValue={selectedRepeatStay?.phone ?? ""} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="check_in_date">Check-in date</Label>
@@ -133,22 +292,22 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="email">Email optional</Label>
-                <Input id="email" name="email" type="email" autoComplete="email" />
+                <Input id="email" name="email" type="email" autoComplete="email" defaultValue={selectedRepeatStay?.email ?? ""} />
                 <p className="text-xs text-slate-500">
                   If service-role auth is configured, an email-confirmed Supabase user can be created automatically.
                 </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cnic_passport_number">CNIC / passport optional</Label>
-                <Input id="cnic_passport_number" name="cnic_passport_number" />
+                <Input id="cnic_passport_number" name="cnic_passport_number" defaultValue={selectedRepeatStay?.cnic_passport_number ?? ""} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Address optional</Label>
-                <Input id="address" name="address" autoComplete="street-address" />
+                <Input id="address" name="address" autoComplete="street-address" defaultValue={selectedRepeatStay?.address ?? ""} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city_country_from">City/country travelling from optional</Label>
-                <Input id="city_country_from" name="city_country_from" />
+                <Input id="city_country_from" name="city_country_from" defaultValue={selectedRepeatStay?.city_country_from ?? ""} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="estimated_arrival_time">Estimated arrival time optional</Label>
@@ -156,7 +315,7 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="purpose_of_visit">Purpose of visit</Label>
-                <Select id="purpose_of_visit" name="purpose_of_visit" defaultValue="other">
+                <Select id="purpose_of_visit" name="purpose_of_visit" defaultValue={selectedRepeatStay?.purpose_of_visit ?? "other"}>
                   {purposeOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -176,7 +335,7 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="guest_tag">Guest tag</Label>
-                <Select id="guest_tag" name="guest_tag" defaultValue="new">
+                <Select id="guest_tag" name="guest_tag" defaultValue={selectedRepeatStay ? "repeat" : "new"}>
                   {guestTagOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -237,10 +396,6 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
                 <Input id="agreed_room_rate_pkr" name="agreed_room_rate_pkr" type="number" min={0} inputMode="numeric" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="advance_paid_amount_pkr">Advance paid optional</Label>
-                <Input id="advance_paid_amount_pkr" name="advance_paid_amount_pkr" type="number" min={0} inputMode="numeric" />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="total_expected_amount_pkr">Expected total optional</Label>
                 <Input id="total_expected_amount_pkr" name="total_expected_amount_pkr" type="number" min={0} inputMode="numeric" />
               </div>
@@ -254,11 +409,11 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
               <div className="grid gap-3 rounded-lg border border-brand-sage bg-brand-ivory p-4 md:col-span-2">
                 <label className="flex items-center gap-3 text-sm font-medium text-brand-deep">
                   <input type="checkbox" name="cnic_verified" className="h-4 w-4 accent-brand-fresh" />
-                  CNIC/passport received and verified
+                  ID/passport received and verified
                 </label>
                 <label className="flex items-center gap-3 text-sm font-medium text-brand-deep">
                   <input type="checkbox" name="payment_verified" className="h-4 w-4 accent-brand-fresh" />
-                  Payment proof verified
+                  Payment Confirmation verified
                 </label>
               </div>
             </CardContent>
@@ -340,18 +495,30 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="primary_document">Primary CNIC/passport upload optional</Label>
-                <Input id="primary_document" name="primary_document" type="file" accept=".jpg,.jpeg,.png,.pdf" />
-                <p className="text-xs text-slate-500">JPG, PNG, or PDF up to 10 MB.</p>
+                <Label htmlFor="primary_document">Primary guest ID/passport</Label>
+                <Input id="primary_document" name="primary_document" type="file" accept="image/*,.pdf" capture="environment" multiple />
+                <p className="text-xs text-slate-500">
+                  Upload one or more images/files for the primary guest ID or passport. You can upload files or take a photo from a supported device.
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="additional_documents">Additional guest CNIC/passport uploads optional</Label>
-                <Input id="additional_documents" name="additional_documents" type="file" accept=".jpg,.jpeg,.png,.pdf" multiple />
-                <p className="text-xs text-slate-500">Optional. Multiple files allowed.</p>
+                <Label htmlFor="additional_documents">Additional guest ID/passports</Label>
+                <Input id="additional_documents" name="additional_documents" type="file" accept="image/*,.pdf" capture="environment" multiple />
+                <p className="text-xs text-slate-500">
+                  Upload ID/passport files for additional guests. You can upload files or take a photo from a supported device.
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="payment_proof">Payment proof upload optional</Label>
-                <Input id="payment_proof" name="payment_proof" type="file" accept=".jpg,.jpeg,.png,.pdf" />
+                <Label htmlFor="payment_proof">Payment Confirmation</Label>
+                <Input id="payment_proof" name="payment_proof" type="file" accept="image/*,.pdf" capture="environment" />
+                <p className="text-xs text-slate-500">You can upload files or take a photo from a supported device.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supporting_documents">Supporting Documents</Label>
+                <Input id="supporting_documents" name="supporting_documents" type="file" accept="image/*,.pdf" capture="environment" multiple />
+                <p className="text-xs text-slate-500">
+                  Marriage certificate, authorization letter, company letter, or other supporting document. You can upload files or take a photo from a supported device.
+                </p>
               </div>
             </CardContent>
           </Card>

@@ -302,12 +302,12 @@ export type Database = {
       room_status: "active" | "inactive" | "maintenance";
       room_cleaning_status: "ready" | "cleaning_required" | "cleaning_in_progress" | "maintenance_blocked";
       purpose_of_visit: "family_visit" | "business" | "medical" | "tourism" | "event_wedding" | "other";
-      booking_source: "booking_com" | "airbnb" | "agoda" | "direct_whatsapp_call" | "referral" | "other";
+      booking_source: "booking_com" | "airbnb" | "agoda" | "agent" | "direct_whatsapp_call" | "referral" | "other";
       payment_method: "cash" | "bank_transfer" | "online_payment" | "other";
       payment_status: "pending" | "partial" | "paid" | "refunded";
       checkin_status: "submitted" | "under_review" | "approved" | "checked_in" | "checked_out" | "issue";
       guest_tag: "new" | "repeat" | "vip" | "issue" | "do_not_host";
-      document_type: "primary_cnic" | "additional_guest_cnic" | "payment_proof" | "other";
+      document_type: "primary_cnic" | "additional_guest_cnic" | "payment_proof" | "supporting_document" | "other";
       expense_category:
         | "maintenance"
         | "repairs"

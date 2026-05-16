@@ -29,6 +29,8 @@ import {
   formatPkr,
   formatUnitRoomLabel,
   getApprovalMissingRequirements,
+  getBalanceDue,
+  getBusinessTodayDate,
   getCheckinStatusLabel,
   getDocumentStatusLabel,
   getGuestChargeLabel,
@@ -47,7 +49,7 @@ import {
   purposeOptions,
   roomCleaningStatusLabels,
 } from "@/lib/check-in/options";
-import { formatStayRangeWithNights } from "@/lib/check-in/stay-dates";
+import { formatStayRangeWithNights, getStayNights } from "@/lib/check-in/stay-dates";
 import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -77,6 +79,22 @@ type LinkedStay = Pick<
   | "total_expected_amount_pkr"
   | "agreed_room_rate_pkr"
   | "amount_paid_pkr"
+>;
+type PreviousStay = Pick<
+  Database["public"]["Tables"]["guest_checkins"]["Row"],
+  | "id"
+  | "full_name"
+  | "assigned_room_id"
+  | "check_in_date"
+  | "check_out_date"
+  | "booking_source"
+  | "agreed_room_rate_pkr"
+  | "total_expected_amount_pkr"
+  | "amount_paid_pkr"
+  | "payment_status"
+  | "cnic_verified"
+  | "payment_verified"
+  | "status"
 >;
 
 function findLabel<T extends string>(options: Array<{ value: T; label: string }>, value: T) {
@@ -110,6 +128,101 @@ function groupOutstanding(expected: number | null | undefined, paid: number | nu
   }
 
   return Math.max(expected - (paid ?? 0), 0);
+}
+
+function getRatePerNightLabel(stay: {
+  check_in_date: string;
+  check_out_date: string | null;
+  agreed_room_rate_pkr: number | null;
+  total_expected_amount_pkr: number | null;
+}) {
+  if (stay.agreed_room_rate_pkr && stay.agreed_room_rate_pkr > 0) {
+    return `${formatPkr(stay.agreed_room_rate_pkr)} / night`;
+  }
+
+  const nights = getStayNights(stay.check_in_date, stay.check_out_date);
+  if (nights && stay.total_expected_amount_pkr && stay.total_expected_amount_pkr > 0) {
+    return `${formatPkr(Math.round(stay.total_expected_amount_pkr / nights))} / night`;
+  }
+
+  return "Not available";
+}
+
+function daysBetweenIso(startValue: string, endValue: string) {
+  const [startYear, startMonth, startDay] = startValue.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endValue.split("-").map(Number);
+
+  if (!startYear || !startMonth || !startDay || !endYear || !endMonth || !endDay) {
+    return null;
+  }
+
+  const start = Date.UTC(startYear, startMonth - 1, startDay);
+  const end = Date.UTC(endYear, endMonth - 1, endDay);
+  return Math.floor((end - start) / 86_400_000);
+}
+
+function getPaymentCoverageAlert({
+  checkInDate,
+  checkOutDate,
+  status,
+  agreedRoomRate,
+  totalExpected,
+  amountPaid,
+  balanceDue,
+  paymentConfirmationLabel,
+}: {
+  checkInDate: string;
+  checkOutDate: string | null;
+  status: Database["public"]["Enums"]["checkin_status"];
+  agreedRoomRate: number | null;
+  totalExpected: number;
+  amountPaid: number | null;
+  balanceDue: number;
+  paymentConfirmationLabel: string;
+}) {
+  if (status === "checked_out" && balanceDue > 0) {
+    return {
+      title: "Balance Due remains after checkout",
+      detail: `Balance Due: ${formatPkr(balanceDue)}.`,
+      tone: "warning" as const,
+    };
+  }
+
+  const today = getBusinessTodayDate();
+  const elapsedDays = daysBetweenIso(checkInDate, today);
+  const bookedNights = getStayNights(checkInDate, checkOutDate);
+
+  if (elapsedDays !== null && elapsedDays >= 0 && paymentConfirmationLabel !== "Verified") {
+    return {
+      title: "Payment Confirmation pending",
+      detail: "Payment Confirmation pending. Review payment before the stay continues.",
+      tone: "warning" as const,
+    };
+  }
+
+  if (!bookedNights || balanceDue <= 0) {
+    return null;
+  }
+
+  const derivedNightlyRate = totalExpected > 0 ? totalExpected / bookedNights : null;
+  const nightlyRate = agreedRoomRate && agreedRoomRate > 0 ? agreedRoomRate : derivedNightlyRate;
+
+  if (!nightlyRate || nightlyRate <= 0) {
+    return null;
+  }
+
+  const currentStayNight = Math.min(Math.max((elapsedDays ?? -1) + 1, 1), bookedNights);
+  const coveredNights = Math.floor((amountPaid ?? 0) / nightlyRate);
+
+  if (elapsedDays !== null && elapsedDays >= 0 && currentStayNight >= coveredNights && balanceDue > 0) {
+    return {
+      title: "Payment follow-up required before the next night",
+      detail: `Paid amount currently covers approximately ${coveredNights} of ${bookedNights} booked nights. Balance Due: ${formatPkr(balanceDue)}.`,
+      tone: "warning" as const,
+    };
+  }
+
+  return null;
 }
 
 function verificationState(verified: boolean, documents: GuestDocument[]) {
@@ -283,6 +396,49 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
     linkedChargesByStay.set(charge.guest_checkin_id, stayCharges);
   });
 
+  const previousStaySelect =
+    "id,full_name,assigned_room_id,check_in_date,check_out_date,booking_source,agreed_room_rate_pkr,total_expected_amount_pkr,amount_paid_pkr,payment_status,cnic_verified,payment_verified,status";
+  const previousStayQueries = [
+    record.phone
+      ? supabase.from("guest_checkins").select(previousStaySelect).eq("phone", record.phone).neq("id", id).order("check_in_date", { ascending: false }).limit(20)
+      : null,
+    record.email
+      ? supabase.from("guest_checkins").select(previousStaySelect).eq("email", record.email).neq("id", id).order("check_in_date", { ascending: false }).limit(20)
+      : null,
+    record.cnic_passport_number
+      ? supabase
+          .from("guest_checkins")
+          .select(previousStaySelect)
+          .eq("cnic_passport_number", record.cnic_passport_number)
+          .neq("id", id)
+          .order("check_in_date", { ascending: false })
+          .limit(20)
+      : null,
+  ].filter((query): query is NonNullable<typeof query> => Boolean(query));
+  const previousStayResults = previousStayQueries.length ? await Promise.all(previousStayQueries) : [];
+  const previousStaysById = new Map<string, PreviousStay>();
+  previousStayResults.forEach((result) => {
+    (result.data ?? []).forEach((stay) => {
+      previousStaysById.set(stay.id, stay as PreviousStay);
+    });
+  });
+  const previousStays = Array.from(previousStaysById.values()).sort((left, right) => right.check_in_date.localeCompare(left.check_in_date));
+  const previousStayRows = previousStays.slice(0, 6);
+  const previousStayIds = previousStays.map((stay) => stay.id);
+  const { data: previousStayDocuments } = previousStayIds.length
+    ? await supabase
+        .from("guest_documents")
+        .select("checkin_id,document_type,document_status")
+        .in("checkin_id", previousStayIds)
+        .in("document_type", ["primary_cnic", "additional_guest_cnic", "supporting_document"])
+    : { data: [] };
+  const previousDocumentsByStay = new Map<string, Array<{ document_type: string; document_status: string }>>();
+  (previousStayDocuments ?? []).forEach((document) => {
+    const documentsForStay = previousDocumentsByStay.get(document.checkin_id) ?? [];
+    documentsForStay.push({ document_type: document.document_type, document_status: document.document_status });
+    previousDocumentsByStay.set(document.checkin_id, documentsForStay);
+  });
+
   const documentsWithUrls: GuestDocument[] = await Promise.all(
     (documents ?? []).map(async (document) => {
       const { data } = await supabase.storage.from("guest-documents").createSignedUrl(document.file_path, 60 * 10);
@@ -293,6 +449,14 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const primaryDocuments = documentsWithUrls.filter((document) => document.document_type === "primary_cnic");
   const additionalDocuments = documentsWithUrls.filter((document) => document.document_type === "additional_guest_cnic");
   const paymentDocuments = documentsWithUrls.filter((document) => document.document_type === "payment_proof");
+  const supportingDocuments = documentsWithUrls.filter((document) => document.document_type === "supporting_document");
+  const previousDocumentsAddedForReview = documentsWithUrls.filter(
+    (document) =>
+      (document.document_type === "primary_cnic" ||
+        document.document_type === "additional_guest_cnic" ||
+        document.document_type === "supporting_document") &&
+      !document.file_path.includes(`/${record.id}/`),
+  );
   const guestCharges: GuestCharge[] = charges ?? [];
   const guestTypeLabel = guestTypeOptions.find((option) => option.value === record.guest_type)?.label ?? formatEnumLabel(record.guest_type);
   const missingApprovalRequirements = getApprovalMissingRequirements(record);
@@ -307,6 +471,8 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const assignedRoomNotReady = Boolean(assignedRoom && assignedRoom.cleaning_status !== "ready");
   const roomName = assignedRoom ? formatUnitRoomLabel(assignedRoom) : "To be assigned";
   const financialSummary = getGuestFinancialSummary({ checkin: record, charges: guestCharges });
+  const previousStayWithBalanceDue = previousStays.find((stay) => (getBalanceDue(stay) ?? 0) > 0);
+  const previousStayNeedingFollowUp = previousStays.find((stay) => stay.payment_status !== "paid" || !stay.cnic_verified || !stay.payment_verified);
   const linkedFinancialSummary = linkedStays.reduce(
     (summary, stay) => {
       const staySummary = getGuestFinancialSummary({
@@ -359,7 +525,18 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const idVerification = verificationState(record.cnic_verified, primaryDocuments);
   const paymentConfirmation = verificationState(record.payment_verified, paymentDocuments);
   const roomReadiness = roomReadinessState(assignedRoom);
+  const paymentCoverageAlert = getPaymentCoverageAlert({
+    checkInDate: record.check_in_date,
+    checkOutDate: record.check_out_date,
+    status: record.status,
+    agreedRoomRate: record.agreed_room_rate_pkr,
+    totalExpected: financialSummary.baseExpected,
+    amountPaid: record.amount_paid_pkr,
+    balanceDue: financialSummary.outstanding,
+    paymentConfirmationLabel: paymentConfirmation.label,
+  });
   const priorityAlerts = [
+    paymentCoverageAlert,
     idVerification.label !== "Verified"
       ? {
           title: "ID Verification Needs Attention",
@@ -392,6 +569,20 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
       ? {
           title: "Multi-room booking finance check",
           detail: "Keep this room/stay amount separate from lead booking reference totals to avoid double-counting.",
+          tone: "info" as const,
+        }
+      : null,
+    previousStayWithBalanceDue
+      ? {
+          title: "Previous stay had Balance Due",
+          detail: `Review previous stay before confirming new stay. Prior Balance Due: ${formatPkr(getBalanceDue(previousStayWithBalanceDue))}.`,
+          tone: "warning" as const,
+        }
+      : null,
+    previousStayNeedingFollowUp
+      ? {
+          title: "Previous stay needed payment follow-up or document review",
+          detail: "Soft reminder only. Current stay details, payment, and documents still need their own review.",
           tone: "info" as const,
         }
       : null,
@@ -686,6 +877,97 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
           </CardContent>
         </Card>
 
+        <Card id="repeat-guest-history">
+          <CardHeader>
+            <CardTitle>Repeat Guest / Stay History</CardTitle>
+            <CardDescription>
+              Guest profile foundation from previous room-level stays. Previous rates and documents are guidance only; current stay payment and verification remain separate.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <InfoRow label="Repeat guest" value={previousStays.length || record.has_stayed_before ? "Appears to be a repeat guest" : "No previous stays found"} />
+              <InfoRow label="Previous stay count" value={previousStays.length} />
+              <InfoRow
+                label="Previous documents"
+                value={
+                  previousStayDocuments?.length
+                    ? "Previous ID/supporting documents on file"
+                    : previousDocumentsAddedForReview.length
+                      ? "Previous documents added for review"
+                      : "None found"
+                }
+              />
+            </div>
+
+            {previousDocumentsAddedForReview.length ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                <p className="font-semibold">Previous documents added for review</p>
+                <p className="mt-1">
+                  Previous ID documents attached for this stay. Please review and confirm they are still valid. Current stay ID Verification remains pending until staff approve it.
+                </p>
+              </div>
+            ) : null}
+
+            {previousStayRows.length ? (
+              <div className="overflow-x-auto rounded-lg border border-brand-sage">
+                <table className="w-full min-w-[960px] text-left text-sm">
+                  <thead className="border-b border-brand-sage bg-brand-ivory text-xs uppercase tracking-[0.12em] text-brand-deep">
+                    <tr>
+                      <th className="px-4 py-3">Dates</th>
+                      <th className="px-4 py-3">Room / Suite</th>
+                      <th className="px-4 py-3">Booking Source</th>
+                      <th className="px-4 py-3">Rate / Night</th>
+                      <th className="px-4 py-3">Expected</th>
+                      <th className="px-4 py-3">Paid</th>
+                      <th className="px-4 py-3">Balance Due</th>
+                      <th className="px-4 py-3">Documents</th>
+                      <th className="px-4 py-3">Stay</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brand-sage/70">
+                    {previousStayRows.map((stay) => {
+                      const previousRoom = stay.assigned_room_id ? rooms?.find((room) => room.id === stay.assigned_room_id) ?? null : null;
+                      const previousDocuments = previousDocumentsByStay.get(stay.id) ?? [];
+                      const previousBalance = getBalanceDue(stay) ?? 0;
+
+                      return (
+                        <tr key={stay.id} className="bg-white">
+                          <td className="px-4 py-3">{formatStayRangeWithNights(stay.check_in_date, stay.check_out_date)}</td>
+                          <td className="px-4 py-3">{previousRoom ? formatUnitRoomLabel(previousRoom) : "Not assigned"}</td>
+                          <td className="px-4 py-3">{findLabel(bookingSourceOptions, stay.booking_source)}</td>
+                          <td className="px-4 py-3">{getRatePerNightLabel(stay)}</td>
+                          <td className="px-4 py-3">{formatPkr(stay.total_expected_amount_pkr ?? stay.agreed_room_rate_pkr)}</td>
+                          <td className="px-4 py-3">{formatPkr(stay.amount_paid_pkr)}</td>
+                          <td className="px-4 py-3">
+                            {previousBalance > 0 ? <Badge tone="warning">{formatPkr(previousBalance)}</Badge> : <Badge tone="success">Clear</Badge>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {previousDocuments.length ? (
+                              <Badge tone="info">ID/supporting on file</Badge>
+                            ) : (
+                              <Badge tone="neutral">None found</Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/admin/guest-records/${stay.id}`}>Open</Link>
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="rounded-lg border border-brand-sage bg-brand-ivory p-4 text-sm text-slate-600">
+                No earlier matching Guest Stays found by phone, email, or ID/passport.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
           <div className="space-y-6">
             <Card id="stay-details">
@@ -709,7 +991,6 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   <InfoRow label="Arrival time" value={record.estimated_arrival_time} />
                   <InfoRow label="Purpose" value={findLabel(purposeOptions, record.purpose_of_visit)} />
                   <InfoRow label="Payment method" value={findLabel(paymentMethodOptions, record.payment_method)} />
-                  <InfoRow label="Advance claimed" value={formatPkr(record.advance_paid_amount_pkr)} />
                   <InfoRow label="Address" value={record.address} />
                 </dl>
                 <div className="mt-3 rounded-lg bg-brand-ivory p-3">
@@ -751,6 +1032,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                 <DocumentGroup title="Primary ID / passport" documents={primaryDocuments} />
                 <DocumentGroup title="Additional guest IDs/passports" documents={additionalDocuments} />
                 <DocumentGroup title="Payment Confirmation" documents={paymentDocuments} />
+                <DocumentGroup title="Supporting Documents" documents={supportingDocuments} />
               </CardContent>
             </Card>
 
@@ -767,18 +1049,31 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                   <input type="hidden" name="id" value={record.id} />
                   <div className="space-y-2">
                     <Label htmlFor="primary_document">Primary guest ID/passport</Label>
-                    <Input id="primary_document" name="primary_document" type="file" accept=".jpg,.jpeg,.png,.pdf" />
-                    <p className="text-xs text-slate-500">Optional. JPG, PNG, or PDF up to 10 MB.</p>
+                    <Input id="primary_document" name="primary_document" type="file" accept="image/*,.pdf" capture="environment" multiple />
+                    <p className="text-xs text-slate-500">
+                      Upload one or more images/files for the primary guest ID or passport. You can upload files or take a photo from a supported device.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="additional_documents">Additional guest IDs/passports</Label>
-                    <Input id="additional_documents" name="additional_documents" type="file" accept=".jpg,.jpeg,.png,.pdf" multiple />
-                    <p className="text-xs text-slate-500">Optional. Multiple files allowed.</p>
+                    <Input id="additional_documents" name="additional_documents" type="file" accept="image/*,.pdf" capture="environment" multiple />
+                    <p className="text-xs text-slate-500">
+                      Upload ID/passport files for additional guests. You can upload files or take a photo from a supported device.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="payment_proof">Payment Confirmation</Label>
-                    <Input id="payment_proof" name="payment_proof" type="file" accept=".jpg,.jpeg,.png,.pdf" />
-                    <p className="text-xs text-slate-500">Optional. Upload later even if confirmation was missing originally.</p>
+                    <Input id="payment_proof" name="payment_proof" type="file" accept="image/*,.pdf" capture="environment" />
+                    <p className="text-xs text-slate-500">
+                      Optional. Upload later even if confirmation was missing originally. You can upload files or take a photo from a supported device.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="supporting_documents">Supporting Documents</Label>
+                    <Input id="supporting_documents" name="supporting_documents" type="file" accept="image/*,.pdf" capture="environment" multiple />
+                    <p className="text-xs text-slate-500">
+                      Marriage certificate, authorization letter, company letter, or other supporting document. You can upload files or take a photo from a supported device.
+                    </p>
                   </div>
                   <div className="flex items-end">
                     <Button type="submit">Upload documents</Button>
@@ -1078,10 +1373,6 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     <Input id="total_expected_amount_pkr" name="total_expected_amount_pkr" type="number" min={0} defaultValue={record.total_expected_amount_pkr ?? ""} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="advance_paid_amount_pkr">Advance paid</Label>
-                    <Input id="advance_paid_amount_pkr" name="advance_paid_amount_pkr" type="number" min={0} defaultValue={record.advance_paid_amount_pkr ?? ""} />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="amount_paid_pkr">Amount paid</Label>
                     <Input id="amount_paid_pkr" name="amount_paid_pkr" type="number" min={0} defaultValue={record.amount_paid_pkr ?? ""} />
                   </div>
@@ -1091,6 +1382,7 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                     </p>
                   ) : null}
                 </div>
+                <input type="hidden" name="advance_paid_amount_pkr" value={record.advance_paid_amount_pkr ?? ""} />
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">

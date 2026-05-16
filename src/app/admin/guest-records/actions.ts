@@ -441,7 +441,8 @@ async function uploadGuestDocument({
 }) {
   validateUpload(file);
 
-  const filePath = `${uploadedBy}/${checkinId}/admin-${documentType}-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
+  const documentFolder = documentType === "supporting_document" ? "supporting-documents" : documentType;
+  const filePath = `${uploadedBy}/${checkinId}/${documentFolder}/admin-${documentType}-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
   const { error: uploadError } = await supabase.storage.from("guest-documents").upload(filePath, file, {
     cacheControl: "3600",
     upsert: false,
@@ -486,6 +487,7 @@ export async function uploadGuestRecordDocuments(formData: FormData) {
     ...getUploadFiles(formData, "primary_document").map((file) => ({ documentType: "primary_cnic" as const, file })),
     ...getUploadFiles(formData, "additional_documents").map((file) => ({ documentType: "additional_guest_cnic" as const, file })),
     ...getUploadFiles(formData, "payment_proof").map((file) => ({ documentType: "payment_proof" as const, file })),
+    ...getUploadFiles(formData, "supporting_documents").map((file) => ({ documentType: "supporting_document" as const, file })),
   ];
 
   if (uploads.length === 0) {

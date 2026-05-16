@@ -138,7 +138,8 @@ async function uploadDocument({
   userId: string;
 }) {
   const supabase = createClient();
-  const filePath = `${userId}/${checkinId}/${documentType}-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
+  const documentFolder = documentType === "supporting_document" ? "supporting-documents" : documentType;
+  const filePath = `${userId}/${checkinId}/${documentFolder}/${documentType}-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
 
   const { error: uploadError } = await supabase.storage.from("guest-documents").upload(filePath, file, {
     cacheControl: "3600",
@@ -214,7 +215,6 @@ export function CheckInForm({ profile }: CheckInFormProps) {
       booking_source: values.booking_source,
       has_stayed_before: values.has_stayed_before === "yes",
       payment_method: values.payment_method,
-      advance_paid_amount_pkr: values.advance_paid_amount_pkr ?? null,
       special_requests: values.special_requests || null,
     });
 
@@ -224,17 +224,19 @@ export function CheckInForm({ profile }: CheckInFormProps) {
     }
 
     try {
-      const primaryFile = values.primary_document.item(0);
-      if (!primaryFile) {
+      const primaryFiles = Array.from(values.primary_document);
+      if (!primaryFiles.length) {
         throw new Error("Primary CNIC/passport upload is required.");
       }
 
-      await uploadDocument({
-        checkinId,
-        documentType: "primary_cnic",
-        file: primaryFile,
-        userId: profile.id,
-      });
+      for (const file of primaryFiles) {
+        await uploadDocument({
+          checkinId,
+          documentType: "primary_cnic",
+          file,
+          userId: profile.id,
+        });
+      }
 
       const additionalFiles = values.additional_documents ? Array.from(values.additional_documents) : [];
       for (const file of additionalFiles) {
@@ -252,6 +254,16 @@ export function CheckInForm({ profile }: CheckInFormProps) {
           checkinId,
           documentType: "payment_proof",
           file: paymentProof,
+          userId: profile.id,
+        });
+      }
+
+      const supportingFiles = values.supporting_documents ? Array.from(values.supporting_documents) : [];
+      for (const file of supportingFiles) {
+        await uploadDocument({
+          checkinId,
+          documentType: "supporting_document",
+          file,
           userId: profile.id,
         });
       }
@@ -405,21 +417,26 @@ export function CheckInForm({ profile }: CheckInFormProps) {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="primary_document">Primary CNIC/passport upload</Label>
-              <Input id="primary_document" type="file" accept=".jpg,.jpeg,.png,.pdf" {...register("primary_document")} />
-              <p className="text-xs text-slate-500">JPG, PNG, or PDF up to 10 MB.</p>
+              <Label htmlFor="primary_document">Primary guest ID/passport</Label>
+              <Input id="primary_document" type="file" accept="image/*,.pdf" capture="environment" multiple {...register("primary_document")} />
+              <p className="text-xs text-slate-500">
+                Upload one or more images/files for the primary guest ID or passport. You can upload files or take a photo from a supported device.
+              </p>
               <FieldError message={errors.primary_document?.message} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="additional_documents">Additional guest CNIC/passport uploads</Label>
+              <Label htmlFor="additional_documents">Additional guest ID/passports</Label>
               <Input
                 id="additional_documents"
                 type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
+                accept="image/*,.pdf"
+                capture="environment"
                 multiple
                 {...register("additional_documents")}
               />
-              <p className="text-xs text-slate-500">Optional. Upload multiple files if needed.</p>
+              <p className="text-xs text-slate-500">
+                Upload ID/passport files for additional guests. You can upload files or take a photo from a supported device.
+              </p>
               <FieldError message={errors.additional_documents?.message} />
             </div>
           </div>
@@ -456,20 +473,24 @@ export function CheckInForm({ profile }: CheckInFormProps) {
                 ))}
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="advance_paid_amount_pkr">Advance paid amount, if already paid</Label>
-              <Input id="advance_paid_amount_pkr" type="number" min={0} step="1" {...register("advance_paid_amount_pkr")} />
-              <FieldError message={errors.advance_paid_amount_pkr?.message} />
-            </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="payment_proof">Payment Confirmation {paymentProofRequired ? "(required)" : "(optional)"}</Label>
-            <Input id="payment_proof" type="file" accept=".jpg,.jpeg,.png,.pdf" {...register("payment_proof")} />
+            <Input id="payment_proof" type="file" accept="image/*,.pdf" capture="environment" {...register("payment_proof")} />
             <p className="text-xs text-slate-500">
-              Our team will review uploaded confirmation. This screen does not mark payment as confirmed.
+              Our team will review uploaded confirmation. You can upload files or take a photo from a supported device.
             </p>
             <FieldError message={errors.payment_proof?.message} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="supporting_documents">Supporting Documents</Label>
+            <Input id="supporting_documents" type="file" accept="image/*,.pdf" capture="environment" multiple {...register("supporting_documents")} />
+            <p className="text-xs text-slate-500">
+              Marriage certificate, authorization letter, company letter, or other supporting document. You can upload files or take a photo from a supported device.
+            </p>
+            <FieldError message={errors.supporting_documents?.message} />
           </div>
         </div>
       </StepCard>

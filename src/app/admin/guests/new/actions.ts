@@ -75,6 +75,7 @@ const manualGuestSchema = z
     assigned_room_id: z.uuid().nullable(),
     booking_group_id: z.uuid().nullable(),
     create_new_booking_group: z.boolean(),
+    repeat_source_checkin_id: z.uuid().nullable(),
     booking_group_expected_total: z.number().min(0).nullable(),
     booking_group_paid_total: z.number().min(0).nullable(),
     booking_group_notes: z.string().trim().nullable(),
@@ -135,7 +136,8 @@ async function uploadGuestDocument({
 }) {
   validateUploadFile(file);
 
-  const filePath = `${uploadedBy}/${checkinId}/${documentType}-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
+  const documentFolder = documentType === "supporting_document" ? "supporting-documents" : documentType;
+  const filePath = `${uploadedBy}/${checkinId}/${documentFolder}/${documentType}-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
   const { error: uploadError } = await supabase.storage.from("guest-documents").upload(filePath, file, {
     cacheControl: "3600",
     upsert: false,
@@ -159,6 +161,52 @@ async function uploadGuestDocument({
   if (documentError) {
     throw new Error(documentError.message);
   }
+}
+
+async function attachPreviousDocumentsForReview({
+  supabase,
+  sourceCheckinId,
+  targetCheckinId,
+  uploadedBy,
+}: {
+  supabase: Awaited<ReturnType<typeof requireRole>>["supabase"];
+  sourceCheckinId: string;
+  targetCheckinId: string;
+  uploadedBy: string;
+}) {
+  const { data: previousDocuments, error: previousDocumentsError } = await supabase
+    .from("guest_documents")
+    .select("document_type,file_path,file_url,mime_type")
+    .eq("checkin_id", sourceCheckinId)
+    .in("document_type", ["primary_cnic", "additional_guest_cnic", "supporting_document"]);
+
+  if (previousDocumentsError) {
+    throw new Error(previousDocumentsError.message);
+  }
+
+  const reusableDocuments = (previousDocuments ?? []).filter((document) => document.file_path);
+
+  if (!reusableDocuments.length) {
+    return 0;
+  }
+
+  const { error: insertError } = await supabase.from("guest_documents").insert(
+    reusableDocuments.map((document) => ({
+      checkin_id: targetCheckinId,
+      uploaded_by: uploadedBy,
+      document_type: document.document_type,
+      document_status: "pending" as DocumentStatus,
+      file_path: document.file_path,
+      file_url: document.file_url,
+      mime_type: document.mime_type,
+    })),
+  );
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  return reusableDocuments.length;
 }
 
 async function findOrCreateAuthUser({
@@ -256,6 +304,7 @@ function parseManualGuest(formData: FormData) {
     assigned_room_id: nullableString(formData.get("assigned_room_id")),
     booking_group_id: nullableString(formData.get("booking_group_id")),
     create_new_booking_group: formData.get("create_new_booking_group") === "on",
+    repeat_source_checkin_id: nullableString(formData.get("repeat_source_checkin_id")),
     booking_group_expected_total: nullableNumber(formData.get("booking_group_expected_total")),
     booking_group_paid_total: nullableNumber(formData.get("booking_group_paid_total")),
     booking_group_notes: nullableString(formData.get("booking_group_notes")),
@@ -284,6 +333,7 @@ export async function createManualGuest(formData: FormData) {
   const primaryDocuments = getFiles(formData, "primary_document");
   const additionalDocuments = getFiles(formData, "additional_documents");
   const paymentProofs = getFiles(formData, "payment_proof");
+  const supportingDocuments = getFiles(formData, "supporting_documents");
   const cnicVerified = values.cnic_verified && primaryDocuments.length > 0;
   const paymentVerified = values.payment_status === "paid" || values.payment_verified;
   const { guestUserId, warning } = await findOrCreateAuthUser({
@@ -428,15 +478,39 @@ export async function createManualGuest(formData: FormData) {
         documentStatus: paymentVerified ? "verified" : "pending",
       });
     }
+
+    for (const file of supportingDocuments) {
+      await uploadGuestDocument({
+        supabase,
+        checkinId: guestId,
+        documentType: "supporting_document",
+        file,
+        uploadedBy: profile.id,
+      });
+    }
+
+    if (values.repeat_source_checkin_id) {
+      await attachPreviousDocumentsForReview({
+        supabase,
+        sourceCheckinId: values.repeat_source_checkin_id,
+        targetCheckinId: guestId,
+        uploadedBy: profile.id,
+      });
+    }
   } catch (uploadError) {
     revalidatePath("/admin");
     revalidatePath("/admin/guest-records");
-    const message = uploadError instanceof Error ? uploadError.message : "Document upload failed.";
-    redirect(`/admin/guest-records/${guestId}?message=${encodeURIComponent(`Guest record created, but upload failed: ${message}`)}`);
+    const message = uploadError instanceof Error ? uploadError.message : "Document upload or previous document reuse failed.";
+    redirect(`/admin/guest-records/${guestId}?message=${encodeURIComponent(`Guest record created, but document handling needs attention: ${message}`)}`);
   }
 
   revalidatePath("/admin");
   revalidatePath("/admin/guest-records");
-  const successMessage = warning ? `Guest record created. ${warning}` : "Guest record created.";
+  const previousDocumentsMessage = values.repeat_source_checkin_id
+    ? " Previous ID/supporting documents added for review when available. Please review and confirm they are still valid."
+    : "";
+  const successMessage = warning
+    ? `Guest record created.${previousDocumentsMessage} ${warning}`
+    : `Guest record created.${previousDocumentsMessage}`;
   redirect(`/admin/guest-records/${guestId}?message=${encodeURIComponent(successMessage)}`);
 }
