@@ -4,13 +4,22 @@ import {
   checkinStatusOptions,
   expenseCategoryOptions,
   formatEnumLabel,
+  formatUnitRoomLabel,
   getBusinessTodayDate,
   getExpectedAmount,
   guestChargeOptions,
-  formatUnitRoomLabel,
   paymentStatusOptions,
   purposeOptions,
 } from "@/lib/check-in/options";
+import {
+  addReportDays,
+  allocateAmountByNights,
+  formatReportDate,
+  getReportRangeNights,
+  getStayOverlapAllocation,
+  parseReportDate,
+  type NightlyAllocation,
+} from "@/lib/reports/nightly-allocation";
 import type { Database } from "@/types/database";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -23,6 +32,7 @@ type RoomRow = Database["public"]["Tables"]["rooms"]["Row"];
 export type ReportCheckin = Pick<
   CheckinRow,
   | "id"
+  | "full_name"
   | "assigned_room_id"
   | "booking_source"
   | "purpose_of_visit"
@@ -32,29 +42,34 @@ export type ReportCheckin = Pick<
   | "agreed_room_rate_pkr"
   | "total_expected_amount_pkr"
   | "amount_paid_pkr"
+  | "check_in_date"
+  | "check_out_date"
+  | "payment_verified"
+  | "cnic_verified"
+  | "booking_group_id"
 >;
 
 export type ReportExpense = Pick<ExpenseRow, "id" | "category" | "amount_pkr" | "related_room_id">;
-export type ReportCharge = Pick<ChargeRow, "id" | "guest_checkin_id" | "charge_type" | "total_amount_pkr" | "is_paid">;
+export type ReportCharge = Pick<ChargeRow, "id" | "guest_checkin_id" | "charge_type" | "total_amount_pkr" | "is_paid" | "charged_at">;
 export type ReportMaintenanceLog = Pick<MaintenanceRow, "id" | "room_id" | "status" | "cost_pkr">;
-export type ReportRoom = Pick<RoomRow, "id" | "unit_number" | "name" | "type">;
+export type ReportRoom = Pick<RoomRow, "id" | "unit_number" | "name" | "type" | "status">;
 
-export type ReportDateRangePreset = "this_month" | "last_month" | "last_7_days" | "last_30_days" | "custom";
+export type ReportMode = "daily" | "weekly" | "monthly" | "custom";
+export type ReportDateRangePreset =
+  | ReportMode
+  | "this_month"
+  | "last_month"
+  | "last_7_days"
+  | "last_30_days";
 
 export type ReportDateRange = {
   preset: ReportDateRangePreset;
+  mode?: ReportMode;
   startDate: string;
   endDate: string;
   label: string;
-};
-
-type MoneyRow = {
-  key: string;
-  label: string;
-  bookings: number;
-  expectedRevenue: number;
-  paidRevenue: number;
-  outstandingBalance: number;
+  anchorDate?: string;
+  month?: string;
 };
 
 type ChargeSummary = {
@@ -62,42 +77,64 @@ type ChargeSummary = {
   paid: number;
 };
 
+type AllocatedStay = {
+  checkin: ReportCheckin;
+  allocation: NightlyAllocation;
+  roomExpectedRevenue: number;
+  roomPaidRevenue: number;
+  additionalCharges: number;
+  paidAdditionalCharges: number;
+  expectedRevenue: number;
+  paidRevenue: number;
+  balanceDue: number;
+  fullStayBalanceDue: number;
+  ratePerNight: number | null;
+  roomLabel: string;
+  unitType: string;
+  isOccupiedStatus: boolean;
+};
+
+type PerformanceRow = {
+  key: string;
+  label: string;
+  bookings: number;
+  bookedRoomNights: number;
+  occupiedNights: number;
+  expectedRevenue: number;
+  paidRevenue: number;
+  additionalCharges: number;
+  paidAdditionalCharges: number;
+  balanceDue: number;
+  averageRatePerNight: number;
+  paidAverageRatePerNight: number;
+};
+
+type DailyPerformanceRow = {
+  date: string;
+  bookedRoomNights: number;
+  occupiedNights: number;
+  occupancyPercentage: number;
+  expectedRevenue: number;
+  paidRevenue: number;
+  balanceDue: number;
+  averageRatePerNight: number;
+  arrivals: number;
+  departures: number;
+};
+
+export const reportModeOptions: Array<{ value: ReportMode; label: string }> = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "custom", label: "Custom" },
+];
+
 export const reportPresetOptions: Array<{ value: ReportDateRangePreset; label: string }> = [
   { value: "this_month", label: "This month" },
   { value: "last_month", label: "Last month" },
   { value: "last_7_days", label: "Last 7 days" },
   { value: "last_30_days", label: "Last 30 days" },
 ];
-
-const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
-
-function parseIsoDate(value: string) {
-  if (!isoDatePattern.test(value)) {
-    return null;
-  }
-
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date;
-}
-
-function formatIsoDate(date: Date) {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setUTCDate(next.getUTCDate() + days);
-  return next;
-}
 
 function monthStart(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -111,43 +148,168 @@ function formatDateLabel(startDate: string, endDate: string) {
   return `${startDate} to ${endDate}`;
 }
 
-export function getReportDateRange(params: { range?: string; start?: string; end?: string }): ReportDateRange {
-  const today = parseIsoDate(getBusinessTodayDate()) ?? new Date();
-  const requestedPreset = reportPresetOptions.some((option) => option.value === params.range) ? params.range : "this_month";
+function monthValue(date: Date) {
+  return formatReportDate(date).slice(0, 7);
+}
 
-  if (params.range === "custom") {
-    const start = params.start ? parseIsoDate(params.start) : null;
-    const end = params.end ? parseIsoDate(params.end) : null;
+function dateRange({
+  preset,
+  mode,
+  startDate,
+  endDate,
+  label,
+  anchorDate = startDate,
+  month = startDate.slice(0, 7),
+}: {
+  preset: ReportDateRangePreset;
+  mode: ReportMode;
+  startDate: string;
+  endDate: string;
+  label: string;
+  anchorDate?: string;
+  month?: string;
+}): ReportDateRange {
+  return { preset, mode, startDate, endDate, label, anchorDate, month };
+}
+
+function weekStart(date: Date) {
+  const day = date.getUTCDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  return addReportDays(date, mondayOffset);
+}
+
+function monthFromValue(value: string | null | undefined) {
+  if (!value || !/^\d{4}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  return parseReportDate(`${value}-01`);
+}
+
+export function getReportDateRange(params: { mode?: string; range?: string; date?: string; month?: string; start?: string; end?: string }): ReportDateRange {
+  const today = parseReportDate(getBusinessTodayDate()) ?? new Date();
+  const todayDate = formatReportDate(today);
+  const requestedMode = reportModeOptions.some((option) => option.value === params.mode) ? (params.mode as ReportMode) : null;
+
+  if (requestedMode === "daily") {
+    const date = parseReportDate(params.date ?? params.start) ?? today;
+    const reportDate = formatReportDate(date);
+    return dateRange({
+      preset: "daily",
+      mode: "daily",
+      startDate: reportDate,
+      endDate: reportDate,
+      label: reportDate,
+      anchorDate: reportDate,
+      month: reportDate.slice(0, 7),
+    });
+  }
+
+  if (requestedMode === "weekly") {
+    const anchor = parseReportDate(params.date ?? params.start) ?? today;
+    const start = weekStart(anchor);
+    const startDate = formatReportDate(start);
+    const endDate = formatReportDate(addReportDays(start, 6));
+    const anchorDate = formatReportDate(anchor);
+    return dateRange({
+      preset: "weekly",
+      mode: "weekly",
+      startDate,
+      endDate,
+      label: `Week of ${startDate}`,
+      anchorDate,
+      month: startDate.slice(0, 7),
+    });
+  }
+
+  if (requestedMode === "monthly") {
+    const monthDate = monthFromValue(params.month) ?? parseReportDate(params.date) ?? today;
+    const startDate = formatReportDate(monthStart(monthDate));
+    const endDate = formatReportDate(monthEnd(monthDate));
+    return dateRange({
+      preset: "monthly",
+      mode: "monthly",
+      startDate,
+      endDate,
+      label: monthValue(monthDate),
+      anchorDate: startDate,
+      month: monthValue(monthDate),
+    });
+  }
+
+  if (requestedMode === "custom" || params.range === "custom") {
+    const start = params.start ? parseReportDate(params.start) : null;
+    const end = params.end ? parseReportDate(params.end) : null;
 
     if (start && end && start <= end) {
-      const startDate = formatIsoDate(start);
-      const endDate = formatIsoDate(end);
-      return { preset: "custom", startDate, endDate, label: formatDateLabel(startDate, endDate) };
+      const startDate = formatReportDate(start);
+      const endDate = formatReportDate(end);
+      return dateRange({
+        preset: "custom",
+        mode: "custom",
+        startDate,
+        endDate,
+        label: formatDateLabel(startDate, endDate),
+        anchorDate: startDate,
+        month: startDate.slice(0, 7),
+      });
     }
   }
 
+  const requestedPreset = reportPresetOptions.some((option) => option.value === params.range) ? params.range : "this_month";
+
   if (requestedPreset === "last_month") {
     const previousMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1));
-    const startDate = formatIsoDate(monthStart(previousMonth));
-    const endDate = formatIsoDate(monthEnd(previousMonth));
-    return { preset: "last_month", startDate, endDate, label: "Last month" };
+    const startDate = formatReportDate(monthStart(previousMonth));
+    const endDate = formatReportDate(monthEnd(previousMonth));
+    return dateRange({
+      preset: "last_month",
+      mode: "monthly",
+      startDate,
+      endDate,
+      label: "Last month",
+      anchorDate: startDate,
+      month: monthValue(previousMonth),
+    });
   }
 
   if (requestedPreset === "last_7_days") {
-    const startDate = formatIsoDate(addDays(today, -6));
-    const endDate = formatIsoDate(today);
-    return { preset: "last_7_days", startDate, endDate, label: "Last 7 days" };
+    const startDate = formatReportDate(addReportDays(today, -6));
+    return dateRange({
+      preset: "last_7_days",
+      mode: "custom",
+      startDate,
+      endDate: todayDate,
+      label: "Last 7 days",
+      anchorDate: todayDate,
+      month: startDate.slice(0, 7),
+    });
   }
 
   if (requestedPreset === "last_30_days") {
-    const startDate = formatIsoDate(addDays(today, -29));
-    const endDate = formatIsoDate(today);
-    return { preset: "last_30_days", startDate, endDate, label: "Last 30 days" };
+    const startDate = formatReportDate(addReportDays(today, -29));
+    return dateRange({
+      preset: "last_30_days",
+      mode: "custom",
+      startDate,
+      endDate: todayDate,
+      label: "Last 30 days",
+      anchorDate: todayDate,
+      month: startDate.slice(0, 7),
+    });
   }
 
-  const startDate = formatIsoDate(monthStart(today));
-  const endDate = formatIsoDate(today);
-  return { preset: "this_month", startDate, endDate, label: "This month" };
+  const startDate = formatReportDate(monthStart(today));
+  const endDate = formatReportDate(monthEnd(today));
+  return dateRange({
+    preset: "this_month",
+    mode: "monthly",
+    startDate,
+    endDate,
+    label: "This month",
+    anchorDate: todayDate,
+    month: monthValue(today),
+  });
 }
 
 export function percent(part: number, total: number) {
@@ -180,6 +342,11 @@ function makeChargeSummary(): ChargeSummary {
   return { total: 0, paid: 0 };
 }
 
+function chargeInRange(charge: ReportCharge, range: ReportDateRange) {
+  const chargedDate = charge.charged_at.slice(0, 10);
+  return chargedDate >= range.startDate && chargedDate <= range.endDate;
+}
+
 function buildChargeSummaryByCheckin(charges: ReportCharge[]) {
   const summaries = new Map<string, ChargeSummary>();
 
@@ -197,34 +364,64 @@ function buildChargeSummaryByCheckin(charges: ReportCharge[]) {
   return summaries;
 }
 
-function checkinExpectedWithCharges(checkin: ReportCheckin, charges: ChargeSummary) {
-  return expectedRevenue(checkin) + charges.total;
-}
-
-function checkinPaidWithCharges(checkin: ReportCheckin, charges: ChargeSummary) {
-  return paidRevenue(checkin) + charges.paid;
-}
-
-function checkinOutstandingWithCharges(checkin: ReportCheckin, charges: ChargeSummary) {
-  return Math.max(checkinExpectedWithCharges(checkin, charges) - checkinPaidWithCharges(checkin, charges), 0);
-}
-
-function makeMoneyRow(key: string, label: string): MoneyRow {
+function makePerformanceRow(key: string, label: string): PerformanceRow {
   return {
     key,
     label,
     bookings: 0,
+    bookedRoomNights: 0,
+    occupiedNights: 0,
     expectedRevenue: 0,
     paidRevenue: 0,
-    outstandingBalance: 0,
+    additionalCharges: 0,
+    paidAdditionalCharges: 0,
+    balanceDue: 0,
+    averageRatePerNight: 0,
+    paidAverageRatePerNight: 0,
   };
 }
 
-function addCheckinToMoneyRow(row: MoneyRow, checkin: ReportCheckin, charges: ChargeSummary) {
+function addAllocatedStayToPerformanceRow(row: PerformanceRow, stay: AllocatedStay) {
   row.bookings += 1;
-  row.expectedRevenue += checkinExpectedWithCharges(checkin, charges);
-  row.paidRevenue += checkinPaidWithCharges(checkin, charges);
-  row.outstandingBalance += checkinOutstandingWithCharges(checkin, charges);
+  row.bookedRoomNights += stay.allocation.overlappingNights;
+  row.occupiedNights += stay.isOccupiedStatus ? stay.allocation.overlappingNights : 0;
+  row.expectedRevenue += stay.expectedRevenue;
+  row.paidRevenue += stay.paidRevenue;
+  row.additionalCharges += stay.additionalCharges;
+  row.paidAdditionalCharges += stay.paidAdditionalCharges;
+  row.balanceDue += stay.balanceDue;
+}
+
+function finalizePerformanceRow(row: PerformanceRow) {
+  const expectedRoomRevenue = Math.max(row.expectedRevenue - row.additionalCharges, 0);
+  const paidRoomRevenue = Math.max(row.paidRevenue - row.paidAdditionalCharges, 0);
+
+  row.averageRatePerNight = row.bookedRoomNights > 0 ? Math.round(expectedRoomRevenue / row.bookedRoomNights) : 0;
+  row.paidAverageRatePerNight = row.bookedRoomNights > 0 ? Math.round(paidRoomRevenue / row.bookedRoomNights) : 0;
+  return row;
+}
+
+function fullStayBalanceDue(checkin: ReportCheckin, charges: ChargeSummary) {
+  return Math.max(expectedRevenue(checkin) + charges.total - paidRevenue(checkin) - charges.paid, 0);
+}
+
+function reportDateList(startDate: string, endDate: string) {
+  const start = parseReportDate(startDate);
+  const end = parseReportDate(endDate);
+
+  if (!start || !end || start > end) {
+    return [];
+  }
+
+  const dates: string[] = [];
+  let cursor = start;
+
+  while (cursor <= end) {
+    dates.push(formatReportDate(cursor));
+    cursor = addReportDays(cursor, 1);
+  }
+
+  return dates;
 }
 
 export async function fetchReportInputs(supabase: SupabaseServerClient, range: ReportDateRange) {
@@ -232,10 +429,10 @@ export async function fetchReportInputs(supabase: SupabaseServerClient, range: R
     supabase
       .from("guest_checkins")
       .select(
-        "id,assigned_room_id,booking_source,purpose_of_visit,payment_status,status,has_stayed_before,agreed_room_rate_pkr,total_expected_amount_pkr,amount_paid_pkr",
+        "id,full_name,assigned_room_id,booking_source,purpose_of_visit,payment_status,status,has_stayed_before,agreed_room_rate_pkr,total_expected_amount_pkr,amount_paid_pkr,check_in_date,check_out_date,payment_verified,cnic_verified,booking_group_id",
       )
-      .gte("check_in_date", range.startDate)
-      .lte("check_in_date", range.endDate),
+      .lte("check_in_date", range.endDate)
+      .gt("check_out_date", range.startDate),
     supabase
       .from("expenses")
       .select("id,category,amount_pkr,related_room_id")
@@ -246,17 +443,18 @@ export async function fetchReportInputs(supabase: SupabaseServerClient, range: R
       .select("id,room_id,status,cost_pkr")
       .gte("reported_date", range.startDate)
       .lte("reported_date", range.endDate),
-    supabase.from("rooms").select("id,unit_number,name,type").order("unit_number", { nullsFirst: false }),
+    supabase.from("rooms").select("id,unit_number,name,type,status").order("unit_number", { nullsFirst: false }),
   ]);
   const checkinIds = (checkinsResult.data ?? []).map((checkin) => checkin.id);
   const chargesResult = checkinIds.length
     ? await supabase
         .from("guest_charges")
-        .select("id,guest_checkin_id,charge_type,total_amount_pkr,is_paid")
+        .select("id,guest_checkin_id,charge_type,total_amount_pkr,is_paid,charged_at")
         .in("guest_checkin_id", checkinIds)
     : { data: [], error: null };
 
   return {
+    range,
     checkins: (checkinsResult.data ?? []) as ReportCheckin[],
     expenses: (expensesResult.data ?? []) as ReportExpense[],
     guestCharges: (chargesResult.data ?? []) as ReportCharge[],
@@ -269,12 +467,14 @@ export async function fetchReportInputs(supabase: SupabaseServerClient, range: R
 }
 
 export function buildBusinessReport({
+  range,
   checkins,
   expenses,
   guestCharges,
   maintenanceLogs,
   rooms,
 }: {
+  range: ReportDateRange;
   checkins: ReportCheckin[];
   expenses: ReportExpense[];
   guestCharges: ReportCharge[];
@@ -283,103 +483,166 @@ export function buildBusinessReport({
 }) {
   const roomLabels = new Map(rooms.map((room) => [room.id, formatUnitRoomLabel(room)]));
   const roomTypes = new Map(rooms.map((room) => [room.id, room.type]));
-  const chargeSummaryByCheckin = buildChargeSummaryByCheckin(guestCharges);
-  const getCheckinCharges = (checkin: ReportCheckin) => chargeSummaryByCheckin.get(checkin.id) ?? makeChargeSummary();
-  const basePaidRevenue = checkins.reduce((sum, checkin) => sum + paidRevenue(checkin), 0);
-  const baseExpectedRevenue = checkins.reduce((sum, checkin) => sum + expectedRevenue(checkin), 0);
-  const guestChargesTotal = guestCharges.reduce((sum, charge) => sum + charge.total_amount_pkr, 0);
-  const paidGuestCharges = guestCharges.reduce((sum, charge) => sum + (charge.is_paid ? charge.total_amount_pkr : 0), 0);
+  const inRangeCharges = guestCharges.filter((charge) => chargeInRange(charge, range));
+  const allChargesByCheckin = buildChargeSummaryByCheckin(guestCharges);
+  const inRangeChargesByCheckin = buildChargeSummaryByCheckin(inRangeCharges);
+  const allocatedStays = checkins
+    .map((checkin): AllocatedStay => {
+      const allocation = getStayOverlapAllocation({
+        checkInDate: checkin.check_in_date,
+        checkOutDate: checkin.check_out_date,
+        rangeStartDate: range.startDate,
+        rangeEndDate: range.endDate,
+      });
+      const periodCharges = inRangeChargesByCheckin.get(checkin.id) ?? makeChargeSummary();
+      const allCharges = allChargesByCheckin.get(checkin.id) ?? makeChargeSummary();
+      const roomExpectedRevenue = allocateAmountByNights(expectedRevenue(checkin), allocation);
+      const roomPaidRevenue = allocateAmountByNights(paidRevenue(checkin), allocation);
+      const expectedWithCharges = roomExpectedRevenue + periodCharges.total;
+      const paidWithCharges = roomPaidRevenue + periodCharges.paid;
+      const assignedRoomType = checkin.assigned_room_id ? roomTypes.get(checkin.assigned_room_id) ?? "assigned_unit" : "unassigned";
+
+      return {
+        checkin,
+        allocation,
+        roomExpectedRevenue,
+        roomPaidRevenue,
+        additionalCharges: periodCharges.total,
+        paidAdditionalCharges: periodCharges.paid,
+        expectedRevenue: expectedWithCharges,
+        paidRevenue: paidWithCharges,
+        balanceDue: Math.max(expectedWithCharges - paidWithCharges, 0),
+        fullStayBalanceDue: fullStayBalanceDue(checkin, allCharges),
+        ratePerNight: allocation.overlappingNights > 0 ? Math.round(roomExpectedRevenue / allocation.overlappingNights) : null,
+        roomLabel: checkin.assigned_room_id ? roomLabels.get(checkin.assigned_room_id) ?? "Assigned unit" : "Unassigned",
+        unitType: assignedRoomType,
+        isOccupiedStatus: checkin.status === "checked_in" || checkin.status === "checked_out",
+      };
+    })
+    .filter((stay) => stay.allocation.overlappingNights > 0);
+  const totalAvailableUnits = rooms.filter((room) => room.status === "active").length || rooms.length;
+  const reportRangeNights = getReportRangeNights(range.startDate, range.endDate);
+  const availableRoomNights = totalAvailableUnits * reportRangeNights;
+  const bookedRoomNights = allocatedStays.reduce((sum, stay) => sum + stay.allocation.overlappingNights, 0);
+  const occupiedNights = allocatedStays.reduce((sum, stay) => sum + (stay.isOccupiedStatus ? stay.allocation.overlappingNights : 0), 0);
+  const expectedRoomRevenue = allocatedStays.reduce((sum, stay) => sum + stay.roomExpectedRevenue, 0);
+  const paidRoomRevenue = allocatedStays.reduce((sum, stay) => sum + stay.roomPaidRevenue, 0);
+  const guestChargesTotal = inRangeCharges.reduce((sum, charge) => sum + charge.total_amount_pkr, 0);
+  const paidGuestCharges = inRangeCharges.reduce((sum, charge) => sum + (charge.is_paid ? charge.total_amount_pkr : 0), 0);
   const unpaidGuestCharges = Math.max(guestChargesTotal - paidGuestCharges, 0);
-  const totalRevenue = basePaidRevenue + paidGuestCharges;
-  const expectedTotal = baseExpectedRevenue + guestChargesTotal;
-  const outstandingTotal = Math.max(expectedTotal - totalRevenue, 0);
-  // Financial source of truth: net profit subtracts only rows from expenses.
-  // room_maintenance_logs.cost_pkr is operational tracking and must not be double-counted as cash spend.
+  const expectedTotal = allocatedStays.reduce((sum, stay) => sum + stay.expectedRevenue, 0);
+  const totalRevenue = allocatedStays.reduce((sum, stay) => sum + stay.paidRevenue, 0);
+  const outstandingTotal = allocatedStays.reduce((sum, stay) => sum + stay.balanceDue, 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount_pkr, 0);
-  const directBookingRevenue = checkins
-    .filter((checkin) => checkin.booking_source === "direct_whatsapp_call")
-    .reduce((sum, checkin) => sum + checkinPaidWithCharges(checkin, getCheckinCharges(checkin)), 0);
-  const platformBookingRevenue = checkins
-    .filter((checkin) => checkin.booking_source === "booking_com" || checkin.booking_source === "airbnb")
-    .reduce((sum, checkin) => sum + checkinPaidWithCharges(checkin, getCheckinCharges(checkin)), 0);
+  const directBookingRevenue = allocatedStays
+    .filter((stay) => stay.checkin.booking_source === "direct_whatsapp_call")
+    .reduce((sum, stay) => sum + stay.paidRevenue, 0);
+  const platformBookingRevenue = allocatedStays
+    .filter((stay) => stay.checkin.booking_source === "booking_com" || stay.checkin.booking_source === "airbnb" || stay.checkin.booking_source === "agoda")
+    .reduce((sum, stay) => sum + stay.paidRevenue, 0);
+  const dailyRows: DailyPerformanceRow[] = reportDateList(range.startDate, range.endDate).map((date) => {
+    const dayRoomTotals = allocatedStays.reduce(
+      (totals, stay) => {
+        const dayAllocation = getStayOverlapAllocation({
+          checkInDate: stay.checkin.check_in_date,
+          checkOutDate: stay.checkin.check_out_date,
+          rangeStartDate: date,
+          rangeEndDate: date,
+        });
+        const dayExpectedRoomRevenue = allocateAmountByNights(expectedRevenue(stay.checkin), dayAllocation);
+        const dayPaidRoomRevenue = allocateAmountByNights(paidRevenue(stay.checkin), dayAllocation);
 
-  const bookingSourceRows = bookingSourceOptions.map((option) => makeMoneyRow(option.value, option.label));
+        totals.bookedRoomNights += dayAllocation.overlappingNights;
+        totals.occupiedNights += stay.isOccupiedStatus ? dayAllocation.overlappingNights : 0;
+        totals.expectedRoomRevenue += dayExpectedRoomRevenue;
+        totals.paidRoomRevenue += dayPaidRoomRevenue;
+        totals.arrivals += stay.checkin.check_in_date === date ? 1 : 0;
+        totals.departures += stay.checkin.check_out_date === date ? 1 : 0;
+
+        return totals;
+      },
+      {
+        bookedRoomNights: 0,
+        occupiedNights: 0,
+        expectedRoomRevenue: 0,
+        paidRoomRevenue: 0,
+        arrivals: 0,
+        departures: 0,
+      },
+    );
+    const dayCharges = inRangeCharges.filter((charge) => charge.charged_at.slice(0, 10) === date);
+    const dayAdditionalCharges = dayCharges.reduce((sum, charge) => sum + charge.total_amount_pkr, 0);
+    const dayPaidAdditionalCharges = dayCharges.reduce((sum, charge) => sum + (charge.is_paid ? charge.total_amount_pkr : 0), 0);
+    const expectedForDay = dayRoomTotals.expectedRoomRevenue + dayAdditionalCharges;
+    const paidForDay = dayRoomTotals.paidRoomRevenue + dayPaidAdditionalCharges;
+
+    return {
+      date,
+      bookedRoomNights: dayRoomTotals.bookedRoomNights,
+      occupiedNights: dayRoomTotals.occupiedNights,
+      occupancyPercentage: percent(dayRoomTotals.bookedRoomNights, totalAvailableUnits),
+      expectedRevenue: expectedForDay,
+      paidRevenue: paidForDay,
+      balanceDue: Math.max(expectedForDay - paidForDay, 0),
+      averageRatePerNight:
+        dayRoomTotals.bookedRoomNights > 0 ? Math.round(dayRoomTotals.expectedRoomRevenue / dayRoomTotals.bookedRoomNights) : 0,
+      arrivals: dayRoomTotals.arrivals,
+      departures: dayRoomTotals.departures,
+    };
+  });
+
+  const bookingSourceRows = bookingSourceOptions.map((option) => makePerformanceRow(option.value, option.label));
   const bookingSourceMap = new Map(bookingSourceRows.map((row) => [row.key, row]));
-  checkins.forEach((checkin) => {
-    const row = bookingSourceMap.get(checkin.booking_source) ?? makeMoneyRow(checkin.booking_source, formatEnumLabel(checkin.booking_source));
-    addCheckinToMoneyRow(row, checkin, getCheckinCharges(checkin));
+  allocatedStays.forEach((stay) => {
+    const key = stay.checkin.booking_source;
+    const row = bookingSourceMap.get(key) ?? makePerformanceRow(key, formatEnumLabel(key));
+    addAllocatedStayToPerformanceRow(row, stay);
 
-    if (!bookingSourceMap.has(checkin.booking_source)) {
-      bookingSourceMap.set(checkin.booking_source, row);
+    if (!bookingSourceMap.has(key)) {
+      bookingSourceMap.set(key, row);
       bookingSourceRows.push(row);
     }
   });
+  bookingSourceRows.forEach(finalizePerformanceRow);
 
-  const roomRows = rooms.map((room) => ({
-    ...makeMoneyRow(room.id, formatUnitRoomLabel(room)),
-    activeStays: 0,
-    averagePaidPerBooking: 0,
-  }));
+  const roomRows = rooms.map((room) => makePerformanceRow(room.id, formatUnitRoomLabel(room)));
   const roomMap = new Map(roomRows.map((row) => [row.key, row]));
-  const unassignedRoomRow = {
-    ...makeMoneyRow("unassigned", "Unassigned"),
-    activeStays: 0,
-    averagePaidPerBooking: 0,
-  };
-  checkins.forEach((checkin) => {
-    const key = checkin.assigned_room_id ?? "unassigned";
+  const unassignedRoomRow = makePerformanceRow("unassigned", "Unassigned");
+  allocatedStays.forEach((stay) => {
+    const key = stay.checkin.assigned_room_id ?? "unassigned";
     let row = key === "unassigned" ? unassignedRoomRow : roomMap.get(key);
 
     if (!row) {
-      row = {
-        ...makeMoneyRow(key, roomLabels.get(key) ?? "Assigned unit"),
-        activeStays: 0,
-        averagePaidPerBooking: 0,
-      };
+      row = makePerformanceRow(key, stay.roomLabel);
       roomMap.set(key, row);
       roomRows.push(row);
     }
 
-    addCheckinToMoneyRow(row, checkin, getCheckinCharges(checkin));
-
-    if (checkin.status === "checked_in") {
-      row.activeStays += 1;
-    }
+    addAllocatedStayToPerformanceRow(row, stay);
   });
 
   if (unassignedRoomRow.bookings > 0) {
     roomRows.push(unassignedRoomRow);
   }
 
-  roomRows.forEach((row) => {
-    row.averagePaidPerBooking = row.bookings > 0 ? row.paidRevenue / row.bookings : 0;
-  });
+  roomRows.forEach(finalizePerformanceRow);
 
-  const categoryRows: Array<MoneyRow & { activeStays: number; averagePaidPerBooking: number }> = [];
-  const categoryMap = new Map<string, MoneyRow & { activeStays: number; averagePaidPerBooking: number }>();
-  checkins.forEach((checkin) => {
-    const key = checkin.assigned_room_id ? roomTypes.get(checkin.assigned_room_id) ?? "assigned_unit" : "unassigned";
-    let row = categoryMap.get(key);
+  const unitTypeRows: PerformanceRow[] = [];
+  const unitTypeMap = new Map<string, PerformanceRow>();
+  allocatedStays.forEach((stay) => {
+    const key = stay.unitType;
+    const label = key === "unassigned" ? "Unassigned" : formatEnumLabel(key);
+    let row = unitTypeMap.get(key);
 
     if (!row) {
-      row = {
-        ...makeMoneyRow(key, key === "unassigned" ? "Unassigned" : formatEnumLabel(key)),
-        activeStays: 0,
-        averagePaidPerBooking: 0,
-      };
-      categoryMap.set(key, row);
-      categoryRows.push(row);
+      row = makePerformanceRow(key, label);
+      unitTypeMap.set(key, row);
+      unitTypeRows.push(row);
     }
 
-    addCheckinToMoneyRow(row, checkin, getCheckinCharges(checkin));
-
-    if (checkin.status === "checked_in") {
-      row.activeStays += 1;
-    }
+    addAllocatedStayToPerformanceRow(row, stay);
   });
-  categoryRows.forEach((row) => {
-    row.averagePaidPerBooking = row.bookings > 0 ? row.paidRevenue / row.bookings : 0;
-  });
+  unitTypeRows.forEach(finalizePerformanceRow);
 
   const expenseRows = expenseCategoryOptions.map((option) => ({
     key: option.value,
@@ -428,7 +691,7 @@ export function buildBusinessReport({
     unpaidAmount: 0,
   }));
   const chargeMap = new Map(chargeRows.map((row) => [row.key, row]));
-  guestCharges.forEach((charge) => {
+  inRangeCharges.forEach((charge) => {
     const row =
       chargeMap.get(charge.charge_type) ??
       {
@@ -493,27 +756,41 @@ export function buildBusinessReport({
     });
 
   const repeatGuestRows = [
-    { key: "new", label: "New guests", count: checkins.filter((checkin) => !checkin.has_stayed_before).length },
-    { key: "repeat", label: "Repeat guests", count: checkins.filter((checkin) => checkin.has_stayed_before).length },
+    { key: "new", label: "New guests", count: allocatedStays.filter((stay) => !stay.checkin.has_stayed_before).length },
+    { key: "repeat", label: "Repeat guests", count: allocatedStays.filter((stay) => stay.checkin.has_stayed_before).length },
   ];
 
   const purposeRows = purposeOptions.map((option) => ({
     key: option.value,
     label: option.label,
-    count: checkins.filter((checkin) => checkin.purpose_of_visit === option.value).length,
+    count: allocatedStays.filter((stay) => stay.checkin.purpose_of_visit === option.value).length,
   }));
 
   const checkinStatusRows = checkinStatusOptions.map((option) => ({
     key: option.value,
     label: option.label,
-    count: checkins.filter((checkin) => checkin.status === option.value).length,
+    count: allocatedStays.filter((stay) => stay.checkin.status === option.value).length,
   }));
 
   const paymentStatusRows = paymentStatusOptions.map((option) => ({
     key: option.value,
     label: option.label,
-    count: checkins.filter((checkin) => checkin.payment_status === option.value).length,
+    count: allocatedStays.filter((stay) => stay.checkin.payment_status === option.value).length,
   }));
+
+  const attentionRows = allocatedStays
+    .filter((stay) => stay.fullStayBalanceDue > 0 || stay.allocation.crossesReportRange || !stay.checkin.payment_verified)
+    .map((stay) => ({
+      id: stay.checkin.id,
+      guestName: stay.checkin.full_name,
+      roomLabel: stay.roomLabel,
+      stayPeriod: `${stay.checkin.check_in_date} to ${stay.checkin.check_out_date}`,
+      bookedRoomNights: stay.allocation.overlappingNights,
+      balanceDue: stay.fullStayBalanceDue,
+      crossesReportRange: stay.allocation.crossesReportRange,
+      paymentConfirmationMissing: !stay.checkin.payment_verified,
+    }))
+    .sort((a, b) => b.balanceDue - a.balanceDue || Number(b.paymentConfirmationMissing) - Number(a.paymentConfirmationMissing));
 
   const highestRevenueUnit = roomRows
     .filter((row) => row.paidRevenue > 0)
@@ -527,33 +804,51 @@ export function buildBusinessReport({
   const directRevenueShare = percent(directBookingRevenue, totalRevenue);
 
   return {
+    definitions: {
+      bookedRoomNights: "Nights from stays that overlap the selected date range, clipped to the range.",
+      nightsStayed: "Occupied nights are overlapping nights from checked-in or checked-out stays; other booked statuses remain Booked Room Nights.",
+      expectedRevenue: "Expected room revenue is allocated by overlapping booked nights; additional charges are included by charged_at date.",
+      paidRevenue: "Paid Revenue Recorded is allocated from paid amounts on included stays because payment-date accounting is not available.",
+      balanceDue: "Balance Due is expected room revenue plus additional charges minus paid room revenue and paid charges.",
+    },
     kpis: {
       totalRevenue,
+      paidRevenue: totalRevenue,
       expectedTotal,
-      basePaidRevenue,
-      baseExpectedRevenue,
+      expectedRoomRevenue,
+      basePaidRevenue: paidRoomRevenue,
+      baseExpectedRevenue: expectedRoomRevenue,
       guestChargesTotal,
       paidGuestCharges,
       unpaidGuestCharges,
       totalExpenses,
       netProfit: totalRevenue - totalExpenses,
       outstandingTotal,
-      totalBookings: checkins.length,
-      activeStays: checkins.filter((checkin) => checkin.status === "checked_in").length,
+      totalBookings: allocatedStays.length,
+      activeStays: allocatedStays.filter((stay) => stay.checkin.status === "checked_in").length,
       directBookingRevenue,
       platformBookingRevenue,
+      bookedRoomNights,
+      occupiedNights,
+      availableRoomNights,
+      occupancyPercentage: percent(bookedRoomNights, availableRoomNights),
+      averageRatePerNight: bookedRoomNights > 0 ? Math.round(expectedRoomRevenue / bookedRoomNights) : 0,
+      paidAverageRatePerNight: bookedRoomNights > 0 ? Math.round(paidRoomRevenue / bookedRoomNights) : 0,
+      reportRangeNights,
+      totalAvailableUnits,
     },
     bookingSourceRows,
     roomRows,
-    categoryRows,
+    unitTypeRows,
+    categoryRows: unitTypeRows,
     expenseRows,
     chargeRows,
+    attentionRows,
     maintenance: {
       openIssues: maintenanceLogs.filter((log) => log.status === "reported").length,
       inProgressIssues: maintenanceLogs.filter((log) => log.status === "in_progress").length,
       resolvedIssues: maintenanceLogs.filter((log) => log.status === "resolved").length,
       recordedExpenseTotal: maintenanceExpenseTotal,
-      // Operational estimate/repair tracking only. Actual profit/loss impact comes from expenses.
       costTotal: maintenanceLogs.reduce((sum, log) => sum + (log.cost_pkr ?? 0), 0),
       costByRoomRows: Array.from(maintenanceCostByRoom.values()).sort((a, b) => b.totalCost - a.totalCost),
       expenseByRoomRows: Array.from(maintenanceExpenseByRoom.values()).sort((a, b) => b.totalCost - a.totalCost),
@@ -566,17 +861,18 @@ export function buildBusinessReport({
     },
     insights: [
       highestRevenueUnit
-        ? `Highest revenue unit: ${highestRevenueUnit.label} (${highestRevenueUnit.bookings} bookings).`
+        ? `Highest revenue unit: ${highestRevenueUnit.label} (${highestRevenueUnit.bookedRoomNights} booked room nights).`
         : "Highest revenue unit: no paid unit revenue in this range.",
       topBookingSource
-        ? `Top booking source: ${topBookingSource.label} (${topBookingSource.bookings} bookings).`
+        ? `Top booking source: ${topBookingSource.label} (${topBookingSource.bookedRoomNights} booked room nights).`
         : "Top booking source: no bookings in this range.",
       largestExpenseCategory
         ? `Largest expense category: ${largestExpenseCategory.label}.`
         : "Largest expense category: no expenses recorded in this range.",
-      `Outstanding balance: PKR ${new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(outstandingTotal)}.`,
+      `Balance Due: PKR ${new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(outstandingTotal)}.`,
       `Direct bookings account for ${formatPercent(directRevenueShare)} of paid revenue.`,
     ],
+    dailyRows,
   };
 }
 
@@ -592,51 +888,89 @@ export function createBusinessReportCsv({
   report: ReturnType<typeof buildBusinessReport>;
   range: ReportDateRange;
 }) {
-  const rows: Array<Array<string | number>> = [
-    ["GreenLux Residency Business Report"],
+  const rows: Array<Array<string | number | boolean>> = [
+    ["GreenLux Residency Business Analytics v2"],
     ["Date range", range.startDate, range.endDate, range.label],
     [],
-    ["KPI", "Value"],
-    ["Total Revenue", report.kpis.totalRevenue],
-    ["Base Stay Paid Revenue", report.kpis.basePaidRevenue],
-    ["Paid Guest Charges", report.kpis.paidGuestCharges],
-    ["Total Expected Revenue", report.kpis.expectedTotal],
-    ["Guest Charges Total", report.kpis.guestChargesTotal],
-    ["Unpaid Guest Charges", report.kpis.unpaidGuestCharges],
-    ["Total Expenses", report.kpis.totalExpenses],
-    ["Net Profit", report.kpis.netProfit],
-    ["Outstanding Balance", report.kpis.outstandingTotal],
-    ["Total Bookings", report.kpis.totalBookings],
-    ["Active Stays", report.kpis.activeStays],
-    ["Direct Booking Revenue", report.kpis.directBookingRevenue],
-    ["Platform Booking Revenue", report.kpis.platformBookingRevenue],
+    ["Definitions"],
+    ["Booked Room Nights", report.definitions.bookedRoomNights],
+    ["Nights Stayed / Occupied Nights", report.definitions.nightsStayed],
+    ["Expected Room Revenue", report.definitions.expectedRevenue],
+    ["Paid Revenue Recorded", report.definitions.paidRevenue],
+    ["Balance Due", report.definitions.balanceDue],
     [],
-    ["Booking Source Breakdown"],
-    ["Booking source", "Bookings", "Expected revenue", "Paid revenue", "Outstanding balance"],
-    ...report.bookingSourceRows.map((row) => [row.label, row.bookings, row.expectedRevenue, row.paidRevenue, row.outstandingBalance]),
+    ["Executive Summary"],
+    ["Metric", "Value"],
+    ["Expected Revenue", report.kpis.expectedTotal],
+    ["Paid Revenue Recorded", report.kpis.totalRevenue],
+    ["Balance Due", report.kpis.outstandingTotal],
+    ["Expenses", report.kpis.totalExpenses],
+    ["Net Profit", report.kpis.netProfit],
+    ["Booked Room Nights", report.kpis.bookedRoomNights],
+    ["Nights Stayed / Occupied Nights", report.kpis.occupiedNights],
+    ["Occupancy %", formatPercent(report.kpis.occupancyPercentage)],
+    ["Average Rate / Night", report.kpis.averageRatePerNight],
+    ["Paid Average Rate / Night", report.kpis.paidAverageRatePerNight],
+    ["Additional Charges", report.kpis.guestChargesTotal],
+    ["Paid Additional Charges", report.kpis.paidGuestCharges],
+    [],
+    ["Daily Performance"],
+    ["Date", "Booked nights", "Occupied nights", "Occupancy %", "Expected revenue", "Paid Revenue Recorded", "Balance Due", "Average rate/night", "Arrivals", "Departures"],
+    ...report.dailyRows.map((row) => [
+      row.date,
+      row.bookedRoomNights,
+      row.occupiedNights,
+      formatPercent(row.occupancyPercentage),
+      row.expectedRevenue,
+      row.paidRevenue,
+      row.balanceDue,
+      row.averageRatePerNight,
+      row.arrivals,
+      row.departures,
+    ]),
+    [],
+    ["Booking Source Performance"],
+    ["Booking source", "Bookings", "Booked nights", "Expected revenue", "Paid revenue", "Average rate/night", "Paid average rate/night", "Balance Due", "Additional charges"],
+    ...report.bookingSourceRows.map((row) => [
+      row.label,
+      row.bookings,
+      row.bookedRoomNights,
+      row.expectedRevenue,
+      row.paidRevenue,
+      row.averageRatePerNight,
+      row.paidAverageRatePerNight,
+      row.balanceDue,
+      row.additionalCharges,
+    ]),
     [],
     ["Unit Performance"],
-    ["Unit", "Bookings", "Expected revenue", "Paid revenue", "Outstanding balance", "Average paid per booking", "Active stays"],
+    ["Unit", "Bookings", "Booked nights", "Occupied nights", "Expected revenue", "Paid revenue", "Average rate/night", "Paid average rate/night", "Balance Due", "Additional charges"],
     ...report.roomRows.map((row) => [
       row.label,
       row.bookings,
+      row.bookedRoomNights,
+      row.occupiedNights,
       row.expectedRevenue,
       row.paidRevenue,
-      row.outstandingBalance,
-      row.averagePaidPerBooking,
-      row.activeStays,
+      row.averageRatePerNight,
+      row.paidAverageRatePerNight,
+      row.balanceDue,
+      row.additionalCharges,
     ]),
     [],
-    ["Category Summary"],
-    ["Category", "Bookings", "Expected revenue", "Paid revenue", "Outstanding balance", "Average paid per booking", "Active stays"],
-    ...report.categoryRows.map((row) => [
+    ["Unit Type Performance"],
+    ["Unit type", "Bookings", "Booked nights", "Occupied nights", "Expected revenue", "Paid revenue", "Average rate/night", "Paid average rate/night", "Balance Due", "Additional charges"],
+    ...report.unitTypeRows.map((row) => [
       row.label,
       row.bookings,
+      row.bookedRoomNights,
+      row.occupiedNights,
       row.expectedRevenue,
       row.paidRevenue,
-      row.outstandingBalance,
-      row.averagePaidPerBooking,
-      row.activeStays,
+      row.averageRatePerNight,
+      row.paidAverageRatePerNight,
+      row.balanceDue,
+      row.additionalCharges,
     ]),
     [],
     ["Expense Breakdown"],
@@ -646,6 +980,18 @@ export function createBusinessReportCsv({
     ["Guest Charges Breakdown"],
     ["Charge type", "Count", "Total amount", "Paid amount", "Unpaid amount"],
     ...report.chargeRows.map((row) => [row.label, row.count, row.totalAmount, row.paidAmount, row.unpaidAmount]),
+    [],
+    ["Attention List"],
+    ["Guest", "Room", "Stay period", "Booked nights in period", "Balance Due", "Crosses report period", "Payment Confirmation missing"],
+    ...report.attentionRows.map((row) => [
+      row.guestName,
+      row.roomLabel,
+      row.stayPeriod,
+      row.bookedRoomNights,
+      row.balanceDue,
+      row.crossesReportRange,
+      row.paymentConfirmationMissing,
+    ]),
     [],
     ["Maintenance Expenses by Unit"],
     ["Unit", "Expense entries", "Recorded expenses"],
