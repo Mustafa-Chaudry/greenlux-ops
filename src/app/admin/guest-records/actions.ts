@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
-import { managementRoles } from "@/lib/auth/roles";
+import { managementRoles, superAdminRoles } from "@/lib/auth/roles";
 import {
+  bookingSourceOptions,
   checkinStatusOptions,
   documentStatusOptions,
   exceptionReasonOptions,
@@ -24,11 +25,12 @@ import {
 } from "@/lib/check-in/options";
 import { findUnitAssignmentConflict, formatUnitConflictMessage } from "@/lib/check-in/unit-availability";
 import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/uploads";
-import type { Database } from "@/types/database";
+import type { Database, Json } from "@/types/database";
 
 type DocumentType = Database["public"]["Enums"]["document_type"];
 type DocumentStatus = Database["public"]["Tables"]["guest_documents"]["Row"]["document_status"];
 type GuestCheckinUpdate = Database["public"]["Tables"]["guest_checkins"]["Update"];
+type GuestCheckinRow = Database["public"]["Tables"]["guest_checkins"]["Row"];
 type SupabaseClient = Awaited<ReturnType<typeof requireRole>>["supabase"];
 
 const nullableNumber = (value: FormDataEntryValue | null) => {
@@ -136,6 +138,220 @@ const updateGuestRecordSchema = z.object({
   cnic_verified: z.boolean(),
   payment_verified: z.boolean(),
 });
+
+const correctionReasonOptions = [
+  "data_entry_mistake",
+  "guest_extended_stay",
+  "wrong_room_selected",
+  "payment_amount_corrected",
+  "booking_source_corrected",
+  "duplicate_repeat_guest_correction",
+  "document_status_correction",
+  "other",
+] as const;
+
+const superAdminCorrectionSchema = z
+  .object({
+    id: z.uuid(),
+    full_name: z.string().trim().min(1),
+    phone: z.string().trim().min(1),
+    email: z.string().trim().nullable(),
+    cnic_passport_number: z.string().trim().nullable(),
+    check_in_date: z.string().trim().min(1),
+    check_out_date: z.string().trim().min(1),
+    assigned_room_id: z.uuid().nullable(),
+    booking_group_id: z.uuid().nullable(),
+    booking_source: z.enum(bookingSourceOptions.map((option) => option.value)),
+    number_of_guests: z.number().int().min(1),
+    status: z.enum(checkinStatusOptions.map((option) => option.value)),
+    payment_status: z.enum(paymentStatusOptions.map((option) => option.value)),
+    payment_method: z.enum(paymentMethodOptions.map((option) => option.value)),
+    agreed_room_rate_pkr: z.number().min(0).nullable(),
+    total_expected_amount_pkr: z.number().min(0).nullable(),
+    amount_paid_pkr: z.number().min(0).nullable(),
+    internal_notes: z.string().trim().nullable(),
+    cnic_verified: z.boolean(),
+    payment_verified: z.boolean(),
+    correction_reason: z.enum(correctionReasonOptions),
+    correction_note: z.string().trim().nullable(),
+  })
+  .superRefine((values, context) => {
+    if (values.check_out_date <= values.check_in_date) {
+      context.addIssue({
+        code: "custom",
+        path: ["check_out_date"],
+        message: "Check-out date must be after check-in date.",
+      });
+    }
+
+    if (values.correction_reason === "other" && !values.correction_note) {
+      context.addIssue({
+        code: "custom",
+        path: ["correction_note"],
+        message: "Add an internal note when the correction reason is Other.",
+      });
+    }
+  });
+
+function serializeAuditValue(value: unknown): Json {
+  if (value === undefined) {
+    return null;
+  }
+
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+
+  return String(value);
+}
+
+function getChangedFields(
+  currentRecord: GuestCheckinRow,
+  nextValues: Pick<
+    GuestCheckinUpdate,
+    | "full_name"
+    | "phone"
+    | "email"
+    | "cnic_passport_number"
+    | "check_in_date"
+    | "check_out_date"
+    | "assigned_room_id"
+    | "booking_group_id"
+    | "booking_source"
+    | "number_of_guests"
+    | "status"
+    | "payment_status"
+    | "payment_method"
+    | "agreed_room_rate_pkr"
+    | "total_expected_amount_pkr"
+    | "amount_paid_pkr"
+    | "internal_notes"
+    | "cnic_verified"
+    | "payment_verified"
+  >,
+) {
+  return Object.entries(nextValues)
+    .filter(([field, newValue]) => currentRecord[field as keyof GuestCheckinRow] !== newValue)
+    .map(([field, newValue]) => ({
+      field_name: field,
+      old_value: serializeAuditValue(currentRecord[field as keyof GuestCheckinRow]),
+      new_value: serializeAuditValue(newValue),
+    }));
+}
+
+export async function saveSuperAdminGuestCorrection(formData: FormData) {
+  const { supabase, profile } = await requireRole(superAdminRoles);
+  const parsed = superAdminCorrectionSchema.safeParse({
+    id: formData.get("id"),
+    full_name: formData.get("full_name"),
+    phone: formData.get("phone"),
+    email: nullableString(formData.get("email")),
+    cnic_passport_number: nullableString(formData.get("cnic_passport_number")),
+    check_in_date: formData.get("check_in_date"),
+    check_out_date: formData.get("check_out_date"),
+    assigned_room_id: nullableString(formData.get("assigned_room_id")),
+    booking_group_id: nullableString(formData.get("booking_group_id")),
+    booking_source: formData.get("booking_source"),
+    number_of_guests: Number(formData.get("number_of_guests") || 1),
+    status: formData.get("status"),
+    payment_status: formData.get("payment_status"),
+    payment_method: formData.get("payment_method"),
+    agreed_room_rate_pkr: nullableNumber(formData.get("agreed_room_rate_pkr")),
+    total_expected_amount_pkr: nullableNumber(formData.get("total_expected_amount_pkr")),
+    amount_paid_pkr: nullableNumber(formData.get("amount_paid_pkr")),
+    internal_notes: nullableString(formData.get("internal_notes")),
+    cnic_verified: formData.get("cnic_verified") === "on",
+    payment_verified: formData.get("payment_verified") === "on",
+    correction_reason: formData.get("correction_reason"),
+    correction_note: nullableString(formData.get("correction_note")),
+  });
+
+  if (!parsed.success) {
+    redirect(`/admin/guest-records?message=${encodeURIComponent("Invalid super admin correction. Correction reason is required.")}`);
+  }
+
+  const { id, correction_reason, correction_note, ...nextValues } = parsed.data;
+  const { data: currentRecord, error: currentRecordError } = await supabase
+    .from("guest_checkins")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (currentRecordError || !currentRecord) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(currentRecordError?.message ?? "Guest record not found.")}`);
+  }
+
+  const changed_fields = getChangedFields(currentRecord as GuestCheckinRow, nextValues);
+
+  if (changed_fields.length === 0) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent("No correction changes were detected.")}`);
+  }
+
+  let roomAssignmentOverlapWarning: string | null = null;
+
+  if (
+    nextValues.assigned_room_id &&
+    (nextValues.assigned_room_id !== currentRecord.assigned_room_id ||
+      nextValues.check_in_date !== currentRecord.check_in_date ||
+      nextValues.check_out_date !== currentRecord.check_out_date)
+  ) {
+    try {
+      const conflict = await findUnitAssignmentConflict(supabase, {
+        assignedRoomId: nextValues.assigned_room_id,
+        checkInDate: nextValues.check_in_date,
+        checkOutDate: nextValues.check_out_date,
+        excludeCheckinId: id,
+      });
+
+      if (conflict) {
+        roomAssignmentOverlapWarning = formatUnitConflictMessage(conflict);
+      }
+    } catch (error) {
+      roomAssignmentOverlapWarning = error instanceof Error ? error.message : "Could not check unit overlap.";
+    }
+  }
+
+  const financialFields = ["agreed_room_rate_pkr", "total_expected_amount_pkr", "amount_paid_pkr", "payment_status", "payment_method"];
+  const old_values: Record<string, Json> = Object.fromEntries(changed_fields.map((change) => [change.field_name, change.old_value]));
+  const new_values: Record<string, Json> = Object.fromEntries(changed_fields.map((change) => [change.field_name, change.new_value]));
+  const correctionMetadata: Json = {
+    correction_reason,
+    correction_note,
+    changed_fields,
+    old_values,
+    new_values,
+    financial_correction: changed_fields.some((change) => financialFields.includes(change.field_name)),
+    room_assignment_overlap_warning: roomAssignmentOverlapWarning,
+    lead_booking_context_only: true,
+    audit_recorded_before_update: true,
+  };
+
+  const { error: auditError } = await supabase.from("audit_logs").insert({
+    actor_user_id: profile.id,
+    action: "super_admin_guest_stay_correction",
+    entity_type: "guest_checkins",
+    entity_id: id,
+    metadata: correctionMetadata,
+  });
+
+  if (auditError) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(`Correction was not saved because audit logging failed: ${auditError.message}`)}`);
+  }
+
+  const { error } = await supabase.from("guest_checkins").update(nextValues).eq("id", id);
+
+  if (error) {
+    redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/admin/guest-records");
+  revalidatePath(`/admin/guest-records/${id}`);
+  revalidatePath("/admin/reports");
+  const message = roomAssignmentOverlapWarning
+    ? `Correction saved. Room overlap warning: ${roomAssignmentOverlapWarning}`
+    : "Super Admin correction saved and audit logged.";
+  redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(message)}`);
+}
 
 export async function updateGuestRecord(formData: FormData) {
   const { supabase, profile } = await requireRole(managementRoles);

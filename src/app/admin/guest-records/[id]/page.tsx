@@ -6,6 +6,7 @@ import {
   createGuestCharge,
   extendGuestStay,
   markGuestChargePaid,
+  saveSuperAdminGuestCorrection,
   updateCheckinStatus,
   updateGuestDocumentStatus,
   updateGuestRecord,
@@ -23,6 +24,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { managementRoles } from "@/lib/auth/roles";
 import {
   bookingSourceOptions,
+  checkinStatusOptions,
   checkinStatusTone,
   documentStatusOptions,
   formatEnumLabel,
@@ -336,7 +338,8 @@ function DocumentGroup({ title, documents }: { title: string; documents: GuestDo
 export default async function GuestRecordDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const queryParams = await searchParams;
-  const { supabase } = await requireRole(managementRoles);
+  const { supabase, profile } = await requireRole(managementRoles);
+  const isSuperAdmin = profile.role === "super_admin";
 
   const [{ data: record, error: recordError }, { data: rooms }, { data: documents }, { data: charges }] = await Promise.all([
     supabase.from("guest_checkins").select("*").eq("id", id).single(),
@@ -740,6 +743,14 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                 <Link href={`/admin/booking-groups/${bookingGroup.id}`}>View Lead Booking</Link>
               </Button>
             ) : null}
+            {isSuperAdmin ? (
+              <Button asChild variant="outline">
+                <a href="#super-admin-corrections">
+                  <TriangleAlert className="h-4 w-4" aria-hidden="true" />
+                  Correction Console
+                </a>
+              </Button>
+            ) : null}
             <Button asChild variant="outline">
               <a href="#admin-actions">
                 <LogIn className="h-4 w-4" aria-hidden="true" />
@@ -748,6 +759,226 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
             </Button>
           </CardContent>
         </Card>
+
+        {isSuperAdmin ? (
+          <Card id="super-admin-corrections" className="border-amber-200 bg-amber-50/40">
+            <CardHeader>
+              <CardTitle>Super Admin Corrections</CardTitle>
+              <CardDescription>
+                Controlled Correction Console for real-world data entry mistakes. Every correction requires a reason and
+                is written to audit_logs with old value, new value, who changed it, and when.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-3 rounded-lg border border-amber-200 bg-white p-4 text-sm text-amber-950 md:grid-cols-3">
+                <InfoRow label="Current Balance Due" value={formatPkr(financialSummary.outstanding)} />
+                <InfoRow label="Current room/stay expected" value={formatPkr(financialSummary.baseExpected)} />
+                <InfoRow label="Current amount paid" value={formatPkr(financialSummary.basePaid)} />
+                <p className="md:col-span-3">
+                  Financial corrections affect receipts, Balance Due, and analytics. Confirm the reason before saving.
+                  Do not edit additional guest charges here.
+                </p>
+                <p className="md:col-span-3">
+                  Date or room corrections may create overlapping stays. The system records any overlap warning in the
+                  audit trail so the risk is visible and recoverable.
+                </p>
+                <p className="md:col-span-3">
+                  Lead Booking context only. Room/stay financial truth remains on this Guest Stay.
+                </p>
+              </div>
+
+              <form action={saveSuperAdminGuestCorrection} className="space-y-5 rounded-lg border border-amber-200 bg-white p-4">
+                <input type="hidden" name="id" value={record.id} />
+
+                <section className="space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-brand-deep">Guest Identity</h3>
+                    <p className="text-sm text-slate-600">Correct contact and identity fields only when the existing record is wrong.</p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_full_name">Guest name</Label>
+                      <Input id="correction_full_name" name="full_name" defaultValue={record.full_name} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_phone">Phone</Label>
+                      <Input id="correction_phone" name="phone" defaultValue={record.phone} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_email">Email</Label>
+                      <Input id="correction_email" name="email" type="email" defaultValue={record.email ?? ""} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_cnic">CNIC/passport number</Label>
+                      <Input id="correction_cnic" name="cnic_passport_number" defaultValue={record.cnic_passport_number ?? ""} />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-brand-deep">Stay & Room</h3>
+                    <p className="text-sm text-slate-600">Use for wrong dates, wrong assigned unit, source, guest count, or status.</p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_check_in_date">Check-in date</Label>
+                      <Input id="correction_check_in_date" name="check_in_date" type="date" defaultValue={record.check_in_date} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_check_out_date">Check-out date</Label>
+                      <Input id="correction_check_out_date" name="check_out_date" type="date" defaultValue={record.check_out_date} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_number_of_guests">Guest count</Label>
+                      <Input id="correction_number_of_guests" name="number_of_guests" type="number" min={1} defaultValue={record.number_of_guests} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_assigned_room_id">Assigned room</Label>
+                      <Select id="correction_assigned_room_id" name="assigned_room_id" defaultValue={record.assigned_room_id ?? ""}>
+                        <option value="">Not assigned</option>
+                        {(rooms ?? []).map((room) => (
+                          <option key={room.id} value={room.id}>
+                            {formatUnitRoomLabel(room)} ({formatEnumLabel(room.status)}
+                            {room.cleaning_status !== "ready" ? ` - ${roomCleaningStatusLabels[room.cleaning_status]}` : ""})
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_booking_source">Booking source</Label>
+                      <Select id="correction_booking_source" name="booking_source" defaultValue={record.booking_source}>
+                        {bookingSourceOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_status">Stay status</Label>
+                      <Select id="correction_status" name="status" defaultValue={record.status}>
+                        {checkinStatusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-brand-deep">Payment & Amounts</h3>
+                    <p className="text-sm text-slate-600">
+                      Correct room/stay money only. Additional charges stay in the dedicated charges section below.
+                    </p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_agreed_room_rate_pkr">Corrected room rate</Label>
+                      <Input id="correction_agreed_room_rate_pkr" name="agreed_room_rate_pkr" type="number" min={0} defaultValue={record.agreed_room_rate_pkr ?? ""} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_total_expected_amount_pkr">Corrected expected amount</Label>
+                      <Input id="correction_total_expected_amount_pkr" name="total_expected_amount_pkr" type="number" min={0} defaultValue={record.total_expected_amount_pkr ?? ""} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_amount_paid_pkr">Corrected amount paid</Label>
+                      <Input id="correction_amount_paid_pkr" name="amount_paid_pkr" type="number" min={0} defaultValue={record.amount_paid_pkr ?? ""} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_payment_status">Corrected payment status</Label>
+                      <Select id="correction_payment_status" name="payment_status" defaultValue={record.payment_status}>
+                        {paymentStatusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_payment_method">Payment method</Label>
+                      <Select id="correction_payment_method" name="payment_method" defaultValue={record.payment_method}>
+                        {paymentMethodOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="grid gap-3 rounded-lg border border-brand-sage bg-brand-ivory p-3">
+                      <label className="flex items-center gap-3 text-sm font-medium text-brand-deep">
+                        <input type="checkbox" name="cnic_verified" defaultChecked={record.cnic_verified} className="h-4 w-4 accent-brand-fresh" />
+                        ID Verification corrected
+                      </label>
+                      <label className="flex items-center gap-3 text-sm font-medium text-brand-deep">
+                        <input type="checkbox" name="payment_verified" defaultChecked={record.payment_verified} className="h-4 w-4 accent-brand-fresh" />
+                        Payment Confirmation corrected
+                      </label>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-brand-deep">Lead Booking</h3>
+                    <p className="text-sm text-slate-600">
+                      Attach, detach, or change Lead Booking context. Reports still calculate revenue from this Guest Stay.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="correction_booking_group_id">Lead Booking</Label>
+                    <Select id="correction_booking_group_id" name="booking_group_id" defaultValue={record.booking_group_id ?? ""}>
+                      <option value="">No Lead Booking</option>
+                      {(bookingGroups ?? []).map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.lead_guest_name} - {group.lead_guest_phone} - {formatStayRangeWithNights(group.check_in_date, group.check_out_date)}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </section>
+
+                <section className="space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-brand-deep">Notes / Reason</h3>
+                    <p className="text-sm text-slate-600">Correction reason is required. Optional note adds human context to the audit trail.</p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_reason">Correction reason</Label>
+                      <Select id="correction_reason" name="correction_reason" required defaultValue="">
+                        <option value="">Select reason</option>
+                        <option value="data_entry_mistake">Data entry mistake</option>
+                        <option value="guest_extended_stay">Guest extended stay</option>
+                        <option value="wrong_room_selected">Wrong room selected</option>
+                        <option value="payment_amount_corrected">Payment amount corrected</option>
+                        <option value="booking_source_corrected">Booking source corrected</option>
+                        <option value="duplicate_repeat_guest_correction">Duplicate/repeat guest correction</option>
+                        <option value="document_status_correction">Document status correction</option>
+                        <option value="other">Other</option>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="correction_note">Correction note optional</Label>
+                      <Input id="correction_note" name="correction_note" placeholder="Short internal note for audit trail" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="correction_internal_notes">Internal notes</Label>
+                    <Textarea id="correction_internal_notes" name="internal_notes" defaultValue={record.internal_notes ?? ""} rows={5} />
+                  </div>
+                </section>
+
+                <Button type="submit" className="w-full bg-amber-700 text-white hover:bg-amber-800">
+                  Save Correction
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
