@@ -34,7 +34,7 @@ export function VideoCard({ video, featured = false, label = "Video tour" }: Vid
               alt={`${video.title} poster`}
               fill
               sizes={featured ? "(min-width: 1024px) 45vw, 100vw" : "(min-width: 1024px) 24vw, 100vw"}
-              className="object-cover transition duration-700 group-hover:scale-[1.03]"
+              className={cn("object-cover transition duration-700 group-hover:scale-[1.03]", video.imagePosition || "object-center")}
             />
           ) : (
             <video
@@ -42,7 +42,7 @@ export function VideoCard({ video, featured = false, label = "Video tour" }: Vid
               muted
               playsInline
               preload="metadata"
-              className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]"
+              className={cn("h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]", video.imagePosition || "object-center")}
               aria-label={`${video.title} preview`}
             />
           )}

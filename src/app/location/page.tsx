@@ -170,6 +170,51 @@ export default function LocationPage() {
             </div>
           </div>
         </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="Local guides"
+            title="Plan the stay around your visit."
+            description="These guides help guests think through medical visits, family plans, food nearby, and Rawalpindi / Islamabad access."
+          />
+          <div className="mt-12 space-y-16">
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+              <div>
+                <h3 className="font-serif text-3xl font-semibold text-brand-deep">Westridge, Rawalpindi Base</h3>
+                <p className="mt-4 text-lg leading-8 text-slate-600">
+                  A quiet base for Rawalpindi and Islamabad visits with useful access to city errands.
+                </p>
+              </div>
+              <div className="relative aspect-video w-full rounded-2xl bg-brand-deep/5 shadow-soft border border-brand-deep/10">
+                {/* Placeholder for Westridge area photography */}
+              </div>
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+              <div className="order-2 lg:order-1 relative aspect-video w-full rounded-2xl bg-brand-deep/5 shadow-soft border border-brand-deep/10">
+                {/* Placeholder for nearby hospitals photography */}
+              </div>
+              <div className="order-1 lg:order-2">
+                <h3 className="font-serif text-3xl font-semibold text-brand-deep">Medical Visits & Nearby Hospitals</h3>
+                <p className="mt-4 text-lg leading-8 text-slate-600">
+                  A practical guide for guests visiting for appointments, attendants, or recovery time.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+              <div>
+                <h3 className="font-serif text-3xl font-semibold text-brand-deep">Food, Groceries, and Daily Essentials</h3>
+                <p className="mt-4 text-lg leading-8 text-slate-600">
+                  Useful notes for nearby dining, groceries, and standard lifestyle needs.
+                </p>
+              </div>
+              <div className="relative aspect-video w-full rounded-2xl bg-brand-deep/5 shadow-soft border border-brand-deep/10">
+                {/* Placeholder for local food/groceries photography */}
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     </SiteShell>
   );

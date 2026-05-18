@@ -6,6 +6,7 @@ export type SiteVideo = {
   description: string;
   src: string;
   poster?: string;
+  imagePosition?: string;
   durationLabel: string;
   orientation: "landscape" | "portrait";
   quality: "good" | "usable" | "weak";

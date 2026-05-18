@@ -23,6 +23,7 @@ export const approvedVideoTestimonials: VideoTestimonial[] = [
     stayContext: "Overseas guest stay",
     consentStatus: "approved",
     caption: "A guest perspective shared for future overseas visitors.",
+    imagePosition: "object-center",
   },
   {
     slug: "slovakian-guest-testimonial",
@@ -39,6 +40,7 @@ export const approvedVideoTestimonials: VideoTestimonial[] = [
     stayContext: "International short stay",
     consentStatus: "approved",
     caption: "A short guest note for people comparing GreenLux before booking.",
+    imagePosition: "object-center",
   },
   {
     slug: "international-female-guest-testimonial",
@@ -55,5 +57,6 @@ export const approvedVideoTestimonials: VideoTestimonial[] = [
     stayContext: "International visitor stay",
     consentStatus: "approved",
     caption: "A simple guest video note, shown without names or added quotes.",
+    imagePosition: "object-top",
   },
 ];

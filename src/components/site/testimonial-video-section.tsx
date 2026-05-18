@@ -14,11 +14,11 @@ export function TestimonialVideoSection({ testimonials, className }: Testimonial
 
   return (
     <section className={className}>
-      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Video testimonials"
-          title="Real guests, real stays at GreenLux"
-          description="Short video notes from international and overseas guests who stayed here."
+          title="Real Guests. Authentic Experiences."
+          description="Hear directly from our global community of overseas families and international travelers who choose GreenLux for calm, privacy, and control."
           align="center"
         />
         <div className="mt-10 grid gap-5 md:grid-cols-3">

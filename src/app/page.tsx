@@ -1,6 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, Hospital, MapPin, MessageCircle, Plane, Route, Trees, Utensils } from "lucide-react";
+import { CheckCircle2, MapPin, MessageCircle } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
 import { FAQSection } from "@/components/site/faq-section";
 import { Hero } from "@/components/site/hero";
@@ -10,50 +9,14 @@ import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
 import { TestimonialVideoSection } from "@/components/site/testimonial-video-section";
 import { VideoTourSection } from "@/components/site/video-tour-section";
-import { directBookingBenefits, guestReviews, platformTrustSignals, propertyMoments } from "@/lib/site/content";
+import { propertyMoments } from "@/lib/site/content";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
-import { guides, type GuideIcon } from "@/lib/site/guides";
+
 import { featuredRooms } from "@/lib/site/rooms";
 import { approvedVideoTestimonials } from "@/lib/site/testimonials";
 import { homepageRatings } from "@/lib/site/trust";
 import { homepageVideos } from "@/lib/site/videos";
 
-const guideIcons: Record<GuideIcon, typeof MapPin> = {
-  map: MapPin,
-  hospital: Hospital,
-  food: Utensils,
-  park: Trees,
-  route: Route,
-  passport: Plane,
-};
-
-const visitIntents = [
-  {
-    label: "Visiting family",
-    message:
-      "Hi GreenLux Residency, I am visiting family in Rawalpindi. Please suggest the right stay for my dates.",
-  },
-  {
-    label: "Medical visit",
-    message:
-      "Hi GreenLux Residency, I am coming for a medical visit. Please suggest a quiet stay that fits my guest count and dates.",
-  },
-  {
-    label: "Short stay (1-3 nights)",
-    message:
-      "Hi GreenLux Residency, I need a short stay for 1-3 nights. Please share suitable rooms and direct rates.",
-  },
-  {
-    label: "Work trip",
-    message:
-      "Hi GreenLux Residency, I am coming for a work trip. Please suggest a quiet room, studio, or apartment with WiFi.",
-  },
-  {
-    label: "Coming from abroad",
-    message:
-      "Hi GreenLux Residency, I am coming from abroad. Please suggest the best stay and arrival guidance for my dates.",
-  },
-];
 
 const guestMentionHighlights = [
   "Clean and well-kept rooms",
@@ -61,109 +24,34 @@ const guestMentionHighlights = [
   "Responsive and helpful host",
 ];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "LodgingBusiness",
+  name: "GreenLux Residency",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Rawalpindi / Islamabad",
+    addressCountry: "Pakistan",
+  },
+  description: "Thoughtfully managed stays in Rawalpindi — designed for calm, privacy, and control.",
+  priceRange: "$$",
+};
+
 export default function HomePage() {
   return (
     <SiteShell>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <main>
         <Hero />
 
-        <TestimonialVideoSection testimonials={approvedVideoTestimonials} className="bg-brand-ivory" />
-
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <SectionHeading
-              eyebrow="Featured stays"
-              title="Start with the stays guests ask for most."
-              description="A private studio, a family apartment, and a polished room. Each one gives a different level of space, privacy, and value."
-              className="max-w-3xl"
-            />
-            <CTAButton href="/rooms" variant="outline" showArrow>
-              View rooms
-            </CTAButton>
-          </div>
-
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            {featuredRooms.slice(0, 4).map((room) => (
-              <RoomCard key={room.slug} room={room} featured />
-            ))}
-          </div>
-        </section>
-
-        <VideoTourSection
-          className="bg-white"
-          title="Take a quick look around GreenLux."
-          description="Short local videos help you understand the entrance, shared spaces, and overall feel before you message for availability."
-          videos={homepageVideos}
-        />
-
-        <section className="bg-white py-20">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-            <div className="relative min-h-[420px] overflow-hidden rounded-[2rem] bg-brand-ivory shadow-soft">
-              <Image
-                src="/greenlux/booking/booking-common-area-01.jpg"
-                alt="GreenLux Residency common terrace seating"
-                fill
-                sizes="(min-width: 1024px) 45vw, 100vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="flex flex-col justify-center">
-              <SectionHeading
-                eyebrow="Book direct"
-                title="Message your dates. Get a clear answer."
-                description="Direct booking is simple here: ask on WhatsApp, confirm the room and rate, then complete online check-in after your stay is confirmed."
-              />
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                {directBookingBenefits.map((benefit) => (
-                  <div key={benefit.title} className="border-t border-brand-deep/10 pt-5">
-                    <benefit.icon className="h-6 w-6 text-brand-gold" aria-hidden="true" />
-                    <h3 className="mt-4 font-serif text-xl font-semibold text-brand-deep">{benefit.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{benefit.description}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <CTAButton href={getWhatsAppHref()} external whatsapp>
-                  Check availability on WhatsApp
-                </CTAButton>
-                <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" showArrow>
-                  Already booked? Complete online check-in
-                </CTAButton>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="grid gap-8 rounded-[2rem] border border-brand-deep/10 bg-white p-6 shadow-sm lg:grid-cols-[0.72fr_1.28fr] lg:p-10">
-            <SectionHeading
-              eyebrow="Help me choose"
-              title="Tell us your visit — we’ll suggest the right stay"
-              description="Send one message with your reason for visiting. GreenLux can suggest a room, studio, or apartment before you commit."
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {visitIntents.map((intent) => (
-                <CTAButton
-                  key={intent.label}
-                  href={getWhatsAppHref(intent.message)}
-                  external
-                  whatsapp
-                  variant="outline"
-                  showArrow
-                  className="justify-between bg-brand-ivory text-left"
-                >
-                  {intent.label}
-                </CTAButton>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <SectionHeading
             eyebrow="What guests say"
-            title="Platform presence plus real guest themes."
-            description="GreenLux is visible on major travel platforms, while direct booking stays simple through WhatsApp."
+            title="Highly Rated Across Platforms. Optimized for Direct Bookings."
+            description="Enjoy verified peace of mind with our standout ratings on major networks, paired with a seamless, personalized direct booking experience right through WhatsApp."
             align="center"
           />
           <div className="mt-10 rounded-[1.75rem] border border-brand-deep/10 bg-brand-ivory p-5 shadow-sm sm:p-7">
@@ -184,41 +72,9 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <div className="mt-8 grid gap-3 md:grid-cols-5">
-            {platformTrustSignals.map((signal) => (
-              <div key={signal.title} className="rounded-2xl border border-brand-deep/10 bg-white p-4 text-center shadow-sm">
-                <p className="font-serif text-xl font-semibold leading-tight text-brand-deep">{signal.title}</p>
-                <p className="mt-2 text-xs leading-5 text-slate-600">{signal.description}</p>
-              </div>
-            ))}
-          </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <SectionHeading
-            eyebrow="Written notes"
-            title="Short notes from real stays."
-            description="Short public review excerpts are shown with source labels, without adding names or extra claims."
-            align="center"
-          />
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {guestReviews.slice(0, 6).map((review) => (
-              <figure key={`${review.source}-${review.quote}`} className="rounded-[1.5rem] border border-brand-deep/10 bg-white p-6 shadow-sm">
-                <div className="mb-5 flex items-center gap-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-ivory font-serif text-lg font-semibold text-brand-deep">
-                    {review.source.slice(0, 1)}
-                  </span>
-                  <span className="rounded-full bg-brand-sage/45 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-brand-deep">
-                    {review.source}
-                  </span>
-                </div>
-                <blockquote className="font-serif text-2xl leading-9 text-brand-deep">&quot;{review.quote}&quot;</blockquote>
-              </figure>
-            ))}
-          </div>
-        </section>
-
-        <section className="bg-white py-20">
+        <section className="bg-white py-12">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-end">
               <SectionHeading
@@ -256,46 +112,37 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-end">
-            <SectionHeading
-              eyebrow="Local guides"
-              title="Plan the stay around your visit."
-              description="A useful stay starts with location clarity. These guides help guests think through medical visits, family plans, food nearby, and Rawalpindi / Islamabad access."
-            />
-            <div className="flex justify-start lg:justify-end">
-              <CTAButton href="/guides" variant="outline" showArrow>
-                View guides
-              </CTAButton>
-            </div>
-          </div>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {guides.slice(0, 3).map((guide) => {
-              const Icon = guideIcons[guide.icon] ?? Trees;
+        <TestimonialVideoSection testimonials={approvedVideoTestimonials} className="bg-brand-ivory" />
 
-              return (
-              <Link
-                key={guide.slug}
-                href={guide.href}
-                className="group rounded-[1.5rem] border border-brand-deep/10 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-soft"
-              >
-                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-ivory text-brand-fresh">
-                  <Icon className="h-7 w-7" aria-hidden="true" />
-                </span>
-                <span className="block p-5">
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">{guide.shortTitle}</span>
-                  <span className="mt-3 block font-serif text-2xl font-semibold leading-tight text-brand-deep">
-                    {guide.title}
-                  </span>
-                  <span className="mt-2 block text-sm leading-6 text-slate-600">{guide.description}</span>
-                </span>
-              </Link>
-              );
-            })}
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <SectionHeading
+              eyebrow="Featured stays"
+              title="Start with the stays guests ask for most."
+              description="A private studio, a family apartment, and a polished room. Each one gives a different level of space, privacy, and value."
+              className="max-w-3xl"
+            />
+            <CTAButton href="/rooms" variant="outline" showArrow>
+              View rooms
+            </CTAButton>
+          </div>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            {featuredRooms.slice(0, 4).map((room) => (
+              <RoomCard key={room.slug} room={room} featured />
+            ))}
           </div>
         </section>
 
-        <section className="bg-brand-ivory py-20">
+        <VideoTourSection
+          className="bg-white"
+          title="Take a quick look around GreenLux."
+          description="Short local videos help you understand the entrance, shared spaces, and overall feel before you message for availability."
+          videos={homepageVideos}
+        />
+
+
+        <section className="bg-brand-ivory py-12">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
             <SectionHeading
               eyebrow="FAQ"
@@ -316,39 +163,85 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[2rem] bg-[#05281f] text-white shadow-soft lg:grid-cols-[1fr_0.8fr]">
-            <div className="p-8 sm:p-12">
-              <MessageCircle className="h-10 w-10 text-brand-gold" aria-hidden="true" />
-              <p className="mt-6 text-xs font-bold uppercase tracking-[0.24em] text-brand-gold">Ready to ask?</p>
-              <h2 className="mt-4 max-w-2xl font-serif text-4xl font-semibold leading-tight">
-                Tell us your dates and guest count. We will suggest the right stay.
-              </h2>
-              <p className="mt-4 max-w-xl text-white/70">
-                Ask for availability, room fit, and arrival details in one WhatsApp conversation.
-              </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
-                  Check availability on WhatsApp
-                </CTAButton>
-                <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
-                  Already booked? Complete online check-in
-                </CTAButton>
+<section className="px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#05281f] text-white shadow-soft">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 p-8 md:p-12">
+
+              {/* Columns 1-5: The Value Proposition Layer */}
+              <div className="lg:col-span-5 flex flex-col justify-center">
+                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-1">
+                  {[
+                    {
+                      title: "Faster response",
+                      description: "Send your dates and get a clear reply from our team.",
+                    },
+                    {
+                      title: "No platform fees",
+                      description: "Ask for the direct rate for your dates.",
+                    },
+                    {
+                      title: "Direct communication",
+                      description: "Share arrival time, guest count, and room preference in one chat.",
+                    },
+                    {
+                      title: "Flexible stays",
+                      description: "Ask about short stays, family trips, work visits, and longer bookings.",
+                    },
+                  ].map((pillar) => (
+                    <div key={pillar.title} className="flex gap-4">
+                      <div className="mt-1 flex-none">
+                        <CheckCircle2 className="h-6 w-6 text-brand-gold" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <h3 className="font-serif text-lg font-semibold text-white/95">{pillar.title}</h3>
+                        <p className="mt-1 text-sm leading-6 text-white/70">{pillar.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Columns 6-12: The Conversion & Intent Hub */}
+              <div className="lg:col-span-7 flex flex-col justify-center lg:pl-12 lg:border-l lg:border-white/10">
+                <MessageCircle className="h-10 w-10 text-brand-gold" aria-hidden="true" />
+                <p className="mt-6 text-xs font-bold uppercase tracking-[0.24em] text-brand-gold">Ready to ask?</p>
+                <h2 className="mt-4 max-w-2xl font-serif text-4xl font-semibold leading-tight">
+                  Tell us your dates and guest count. We will suggest the right stay.
+                </h2>
+                <p className="mt-4 max-w-xl text-white/70">
+                  Ask for availability, room fit, and arrival details in one WhatsApp conversation.
+                </p>
+
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {[
+                    { label: "Visiting Family", msg: "Hi GreenLux, I'm planning a visit to see family..." },
+                    { label: "Medical Visit", msg: "Hi GreenLux, I'm planning a medical visit stay..." },
+                    { label: "Work Trip", msg: "Hi GreenLux, I'm planning a work trip..." },
+                    { label: "International Travel", msg: "Hi GreenLux, I'm planning an international travel stay..." },
+                  ].map((intent) => (
+                    <a
+                      key={intent.label}
+                      href={getWhatsAppHref(intent.msg)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border border-brand-deep/10 bg-brand-ivory/50 px-3 py-1 text-xs text-brand-deep/80 transition-colors hover:bg-brand-ivory"
+                    >
+                      {intent.label}
+                    </a>
+                  ))}
+                </div>
+
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
+                    Check availability on WhatsApp
+                  </CTAButton>
+                  <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+                    Already booked? Complete online check-in
+                  </CTAButton>
+                </div>
+              </div>
+
             </div>
-            <Link href="/rooms" className="group relative min-h-80 overflow-hidden">
-              <Image
-                src="/greenlux/booking/booking-exterior-01.jpg"
-                alt="GreenLux Residency terrace walkway at night"
-                fill
-                sizes="(min-width: 1024px) 40vw, 100vw"
-                className="object-cover transition duration-700 group-hover:scale-105"
-              />
-              <span className="absolute bottom-6 left-6 inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-brand-deep shadow-sm">
-                View rooms
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </span>
-            </Link>
           </div>
         </section>
       </main>

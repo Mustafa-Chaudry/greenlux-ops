@@ -49,7 +49,7 @@ export const platformRatings: PlatformRating[] = [
     score: "4.89",
     scale: "/ 5",
     label: "Superhost",
-    reviewCount: "91-92 reviews shown on listings",
+    reviewCount: "92 reviews shown on listings",
     context: "Host signal",
     sourceLabel: "Airbnb",
   },

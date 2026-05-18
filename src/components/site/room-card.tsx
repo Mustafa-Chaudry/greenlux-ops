@@ -20,7 +20,7 @@ export function RoomCard({ room, featured = false }: RoomCardProps) {
           alt={room.imageAlt}
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-contain transition-transform duration-700 group-hover:scale-[1.02]"
+          className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
         />
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           {featured ? (
@@ -42,7 +42,7 @@ export function RoomCard({ room, featured = false }: RoomCardProps) {
       <CardContent className="space-y-4 p-5 pt-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-serif text-3xl font-semibold leading-none text-brand-deep">{room.name}</h2>
+            <h3 className="font-serif text-3xl font-semibold leading-none text-brand-deep">{room.name}</h3>
             <p className="mt-2 text-sm font-semibold leading-5 text-brand-fresh">{room.hook}</p>
           </div>
           <div className="shrink-0 rounded-2xl bg-brand-ivory px-4 py-3 text-right text-brand-deep shadow-sm">
