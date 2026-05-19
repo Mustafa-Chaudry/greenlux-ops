@@ -1,4 +1,5 @@
 import { VideoCard } from "@/components/site/video-card";
+import { MobileCarousel } from "@/components/site/mobile-carousel";
 import { SectionHeading } from "@/components/site/section-heading";
 import type { SiteVideo } from "@/lib/site/videos";
 
@@ -17,6 +18,8 @@ export function VideoTourSection({ eyebrow = "Video tour", title, description, v
     return null;
   }
 
+  const displayedVideos = videos.slice(0, 3);
+
   return (
     <section className={className}>
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
@@ -28,7 +31,13 @@ export function VideoTourSection({ eyebrow = "Video tour", title, description, v
           </p>
         </div>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+        <MobileCarousel ariaLabel="Video tours" className="mt-8">
+          {displayedVideos.map((video) => (
+            <VideoCard key={video.slug} video={video} />
+          ))}
+        </MobileCarousel>
+
+        <div className="mt-10 hidden gap-5 md:grid lg:grid-cols-[1.15fr_0.85fr]">
           <VideoCard video={primaryVideo} featured />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
             {secondaryVideos.slice(0, 2).map((video) => (

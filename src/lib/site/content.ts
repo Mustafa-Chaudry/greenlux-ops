@@ -155,23 +155,23 @@ export const platformTrustSignals: TrustSignal[] = [
 
 export const directBookingBenefits = [
   {
-    title: "Faster response",
-    description: "Send your dates and get a clear reply from the GreenLux team.",
+    title: "Calm arrival support on WhatsApp",
+    description: "Message before arrival so timing, location, and next steps feel clear.",
     icon: MessageCircle,
   },
   {
-    title: "No platform fees",
-    description: "Ask for the direct rate for your dates.",
+    title: "Direct communication with the stay team",
+    description: "Speak with GreenLux about dates, room fit, and arrival details.",
     icon: CircleDollarSign,
   },
   {
-    title: "Direct communication",
-    description: "Share arrival time, guest count, and room preference in one WhatsApp chat.",
+    title: "Flexible stays for real travel plans",
+    description: "Share family visits, work trips, medical plans, or short stays.",
     icon: HeartHandshake,
   },
   {
-    title: "Flexible stays",
-    description: "Ask about short stays, family trips, work visits, and longer bookings.",
+    title: "Easier booking without platform friction",
+    description: "Ask directly for availability, rates, and the stay that fits.",
     icon: CalendarClock,
   },
 ];

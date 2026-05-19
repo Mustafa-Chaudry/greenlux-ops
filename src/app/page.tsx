@@ -3,6 +3,7 @@ import { CheckCircle2, MapPin, MessageCircle } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
 import { FAQSection } from "@/components/site/faq-section";
 import { Hero } from "@/components/site/hero";
+import { MobileCarousel } from "@/components/site/mobile-carousel";
 import { RatingCards } from "@/components/site/rating-cards";
 import { RoomCard } from "@/components/site/room-card";
 import { SectionHeading } from "@/components/site/section-heading";
@@ -63,7 +64,14 @@ export default function HomePage() {
                   Direct communication available before arrival via WhatsApp.
                 </p>
               </div>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <MobileCarousel ariaLabel="Guest review themes" className="mt-4 md:mt-0">
+                {guestMentionHighlights.map((highlight) => (
+                  <div key={highlight} className="rounded-2xl bg-brand-ivory px-4 py-3 text-sm font-bold text-brand-deep">
+                    {highlight}
+                  </div>
+                ))}
+              </MobileCarousel>
+              <div className="hidden gap-2 md:grid md:grid-cols-3">
                 {guestMentionHighlights.map((highlight) => (
                   <div key={highlight} className="rounded-2xl bg-brand-ivory px-4 py-3 text-sm font-bold text-brand-deep">
                     {highlight}
@@ -90,7 +98,26 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
+            <MobileCarousel ariaLabel="Common areas" className="mt-8">
+              {propertyMoments.map((moment) => (
+                <article key={moment.title} className="overflow-hidden rounded-[1.5rem] border border-brand-deep/10 bg-brand-ivory">
+                  <div className="relative aspect-[4/3]">
+                    <Image
+                      src={moment.image}
+                      alt={moment.alt}
+                      fill
+                      sizes="(min-width: 1024px) 30vw, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-serif text-2xl font-semibold text-brand-deep">{moment.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{moment.description}</p>
+                  </div>
+                </article>
+              ))}
+            </MobileCarousel>
+            <div className="mt-10 hidden gap-5 md:grid md:grid-cols-3">
               {propertyMoments.map((moment) => (
                 <article key={moment.title} className="overflow-hidden rounded-[1.5rem] border border-brand-deep/10 bg-brand-ivory">
                   <div className="relative aspect-[4/3]">
@@ -172,20 +199,20 @@ export default function HomePage() {
                 <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-1">
                   {[
                     {
-                      title: "Faster response",
-                      description: "Send your dates and get a clear reply from our team.",
+                      title: "Calm arrival support on WhatsApp",
+                      description: "Message before arrival so timing, location, and next steps feel clear.",
                     },
                     {
-                      title: "No platform fees",
-                      description: "Ask for the direct rate for your dates.",
+                      title: "Direct communication with the stay team",
+                      description: "Speak with GreenLux about dates, room fit, and arrival details.",
                     },
                     {
-                      title: "Direct communication",
-                      description: "Share arrival time, guest count, and room preference in one chat.",
+                      title: "Flexible stays for real travel plans",
+                      description: "Share family visits, work trips, medical plans, or short stays.",
                     },
                     {
-                      title: "Flexible stays",
-                      description: "Ask about short stays, family trips, work visits, and longer bookings.",
+                      title: "Easier booking without platform friction",
+                      description: "Ask directly for availability, rates, and the stay that fits.",
                     },
                   ].map((pillar) => (
                     <div key={pillar.title} className="flex gap-4">

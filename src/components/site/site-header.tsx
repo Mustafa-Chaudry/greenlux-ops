@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, MessageCircle } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
 import { Button } from "@/components/ui/button";
@@ -16,12 +17,24 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-brand-deep/10 bg-brand-ivory/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="min-w-0">
-          <span className="block font-serif text-2xl font-semibold leading-6 text-brand-deep">
-            {siteConfig.name}
-          </span>
-          <span className="hidden text-[11px] font-bold uppercase tracking-[0.22em] text-brand-gold sm:block">
-            Quiet, clean stays
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <div className="relative h-11 w-11 flex-none shrink-0">
+            <Image
+              src="/greenlux/brand/glr-emblem.png"
+              alt="GreenLux Residency Emblem"
+              fill
+              sizes="44px"
+              className="object-contain"
+              priority
+            />
+          </div>
+          <span className="min-w-0">
+            <span className="block truncate font-serif text-xl font-semibold leading-6 text-brand-deep sm:text-2xl">
+              {siteConfig.name}
+            </span>
+            <span className="hidden text-[11px] font-bold uppercase tracking-[0.22em] text-brand-gold sm:block">
+              Quiet, clean stays
+            </span>
           </span>
         </Link>
 

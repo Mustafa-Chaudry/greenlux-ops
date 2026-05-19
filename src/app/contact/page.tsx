@@ -126,7 +126,7 @@ export default function ContactPage() {
 
         <section className="bg-white py-20">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
-            <div className="flex flex-col justify-center">
+            <div className="flex min-w-0 flex-col justify-center">
               <SectionHeading
                 eyebrow="How booking works"
                 title="A simple direct conversation."
@@ -162,7 +162,7 @@ export default function ContactPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-brand-deep/10 bg-brand-ivory p-5 shadow-soft sm:p-7">
+            <div className="min-w-0 rounded-[2rem] border border-brand-deep/10 bg-brand-ivory p-5 shadow-soft sm:p-7">
               <div className="rounded-[1.5rem] bg-white p-5 shadow-sm sm:p-7">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Quick inquiry</p>
                 <h2 className="mt-3 font-serif text-3xl font-semibold text-brand-deep">Send details on WhatsApp</h2>

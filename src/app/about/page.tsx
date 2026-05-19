@@ -99,6 +99,32 @@ export default function AboutPage() {
           </div>
         </section>
 
+        <section className="bg-brand-ivory px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-6xl gap-8 rounded-[2rem] border border-brand-deep/10 bg-white p-6 shadow-sm sm:p-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
+            <div className="flex justify-center lg:justify-start">
+              <div className="relative h-40 w-40 sm:h-48 sm:w-48 shrink-0 drop-shadow-sm">
+                <Image
+                  src="/greenlux/brand/glr-emblem.png"
+                  alt="GreenLux Residency emblem"
+                  fill
+                  sizes="(min-width: 640px) 192px, 160px"
+                  className="object-contain"
+                />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-gold">GreenLux identity</p>
+              <h2 className="mt-4 font-serif text-3xl font-semibold leading-tight text-brand-deep sm:text-5xl">
+                A stay brand built around calm, greenery, and managed hospitality.
+              </h2>
+              <p className="mt-5 text-base leading-7 text-slate-700">
+                The GreenLux emblem brings together the house, natural surroundings, and a more cared-for residential
+                stay. On the public site it stays quiet: a small mark of identity, not decoration everywhere.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <VideoTourSection
           className="bg-brand-ivory"
           eyebrow="See the property"

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
@@ -19,8 +20,11 @@ export function SiteFooter() {
     <footer className="border-t border-brand-gold/20 bg-[#05281f] text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.25fr_0.75fr_0.9fr] lg:px-8">
         <div className="space-y-5">
-          <Link href="/" className="font-serif text-3xl font-semibold">
-            {siteConfig.name}
+          <Link href="/" className="inline-flex items-center gap-3.5">
+            <div className="relative h-16 w-16 flex-none shrink-0">
+              <Image src="/greenlux/brand/glr-emblem.png" alt="GreenLux Residency Emblem" fill sizes="64px" className="object-contain" />
+            </div>
+            <span className="font-serif text-3xl font-semibold">{siteConfig.name}</span>
           </Link>
           <p className="max-w-md text-sm leading-7 text-white/70">
             Quiet, clean stays for families, business travellers, short visits, and repeat guests across Rawalpindi and

@@ -7,6 +7,11 @@ The public site uses local image files only. It does not hotlink Airbnb, Booking
 - `property/` contains GreenLux-owned WordPress upload images from `https://greenluxresidency.com/wp-content/uploads/...`.
 - `rooms/` contains curated GreenLux-owned WordPress room/unit galleries. Each gallery is ordered as lead room image, alternate angle, sleeping area, lounge or kitchen, bathroom, then terrace/common/detail shots where available.
 - `booking/` contains selected GreenLux-owned property/common-area images originally uploaded by GreenLux/management to Booking.com. These were downloaded locally from Booking/bstatic image URLs exposed through a Booking-derived partner listing because the direct Booking.com page blocked automated inspection.
+- `brand/` contains approved GreenLux public brand marks used on the marketing website.
+
+## Brand Assets
+
+- `brand/glr-emblem.png` - approved GreenLux emblem copied from `booking/GLR Emblem logo.png`, used in the public header, footer, app icon metadata, and one restrained About-page identity section.
 
 ## Booking.com Local Images
 
@@ -62,13 +67,20 @@ These ratings are shown as platform/listing snapshots rather than a combined sco
 
 ## Location and Guide Visuals
 
-No third-party nearby-place photos were downloaded for hospitals, food, parks, airport, or Islamabad-access sections in this pass. To avoid misleading guests with GreenLux property photos and to avoid unsafe image licensing, `/guides` and nearby-place sections use illustrated icon/location cards instead.
+`location/` contains GreenLux-approved local/place visuals for `/location` and `/guides`. These assets are derived from existing GreenLux website/blog material or user-approved GreenLux planning screenshots, then copied locally so the prototype does not hotlink external images.
 
-GreenLux-owned property images remain in use only where the page is showing GreenLux itself, such as the property, entrance, terrace, lounge, and contact/location hero sections.
+- `location/army-museum-park.jpg` - Westridge / Army Museum local attraction context, used for the Westridge guide and location hero.
+- `location/afic-hospital.jpg` - Armed Forces Institute of Cardiology context, used for medical-visit guidance.
+- `location/race-course-park.jpg` - Race Course Park walkway, used for parks and family-outing guidance.
+- `location/westridge-food-options.jpg` - Westridge food-options collage including Cheezious, OPTP, Tehzeeb, and Hot N Spicy, used for food and essentials guidance.
+- `location/afic-route-map.png` - user-approved AFIC / hospital route map screenshot, used as a small contextual planning visual.
+- `location/race-course-park-route-satellite.png` - user-approved Race Course Park route map screenshot, used as a small contextual planning visual.
+
+GreenLux-owned property images remain in use only where the page is showing GreenLux itself, such as the property, entrance, terrace, lounge, and contact sections. Nearby-place cards should use these approved location/guide images rather than unrelated room or property photos.
 
 The public location pages use the provided address and approximate coordinates:
 
-- Address: `J268+6C3, Mian Iqbal Road, Westridge 1, Rawalpindi, 46000, Pakistan`
+- Address: `28A, Mian Iqbal Road, Westridge 1, Rawalpindi, 46000, Pakistan`
 - Coordinates: `33.6062 N, 73.0232 E`
 - Google Maps link: `https://www.google.com/maps/search/?api=1&query=33.6062,73.0232`
 

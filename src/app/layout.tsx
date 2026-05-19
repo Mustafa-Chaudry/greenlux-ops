@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   },
   description:
     "Chosen by overseas families, international visitors, and short-stay guests who want a clean, quiet base with direct support — without the uncertainty of typical rentals.",
+  icons: {
+    icon: "/greenlux/brand/glr-emblem.png",
+    apple: "/greenlux/brand/glr-emblem.png",
+  },
   openGraph: {
     title: "Thoughtfully managed stays in Rawalpindi — designed for calm, privacy, and control.",
     description:

@@ -61,7 +61,7 @@ export function Hero() {
             {siteConfig.tagline}
           </p>
           <h1 className="font-serif text-5xl font-semibold leading-[0.98] sm:text-6xl lg:text-7xl">
-            Thoughtfully managed stays in Rawalpindi — designed for calm, privacy, and control.
+            Thoughtfully managed stays — designed for calm, privacy, and control.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl sm:leading-9">
             Chosen by overseas families, international visitors, and short-stay guests who want a clean, quiet base with
@@ -94,7 +94,7 @@ export function Hero() {
               Already booked? Complete online check-in
             </CTAButton>
           </div>
-          <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-3">
+          <div className="mt-8 hidden max-w-3xl gap-3 sm:grid sm:grid-cols-3">
             {trustBullets.map((item) => (
               <div
                 key={item.label}
