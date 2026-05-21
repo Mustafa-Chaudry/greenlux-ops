@@ -25,6 +25,13 @@ const guestMentionHighlights = [
   "Responsive and helpful host",
 ];
 
+const featuredRoomImages: Record<string, string> = {
+  "studio-2": "/greenlux/curation-review/homepage/12_featured-stay-card-Studio-2-main-changed.jpg",
+  "apartment-3": "/greenlux/curation-review/homepage/13__featured-stay-card__Apartment-3__apartment-3-changed.webp",
+  "apartment-4": "/greenlux/curation-review/homepage/14__featured-stay-card__Apartment-4__apartment-4-1.jpg",
+  "room-5": "/greenlux/curation-review/homepage/15__featured-stay-card__Room-5__room-5-1.jpg",
+};
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "LodgingBusiness",
@@ -34,7 +41,7 @@ const jsonLd = {
     addressLocality: "Rawalpindi / Islamabad",
     addressCountry: "Pakistan",
   },
-  description: "Thoughtfully managed stays in Rawalpindi — designed for calm, privacy, and control.",
+  description: "Thoughtfully managed serviced stays in Rawalpindi with calm, privacy, and direct host care.",
   priceRange: "$$",
 };
 
@@ -51,8 +58,8 @@ export default function HomePage() {
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <SectionHeading
             eyebrow="What guests say"
-            title="Highly Rated Across Platforms. Optimized for Direct Bookings."
-            description="Enjoy verified peace of mind with our standout ratings on major networks, paired with a seamless, personalized direct booking experience right through WhatsApp."
+            title="Standout hospitality, trusted by guests worldwide."
+            description="Enjoy the peace of mind of a highly rated stay with the simplicity of direct personal contact. Message GreenLux on WhatsApp for dates, availability, and a warm, personalized welcome."
             align="center"
           />
           <div className="mt-10 rounded-[1.75rem] border border-brand-deep/10 bg-brand-ivory p-5 shadow-sm sm:p-7">
@@ -156,7 +163,7 @@ export default function HomePage() {
 
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             {featuredRooms.slice(0, 4).map((room) => (
-              <RoomCard key={room.slug} room={room} featured />
+              <RoomCard key={room.slug} room={room} featured imageSrc={featuredRoomImages[room.slug]} />
             ))}
           </div>
         </section>
@@ -211,8 +218,8 @@ export default function HomePage() {
                       description: "Share family visits, work trips, medical plans, or short stays.",
                     },
                     {
-                      title: "Easier booking without platform friction",
-                      description: "Ask directly for availability, rates, and the stay that fits.",
+                      title: "Direct pricing & hassle-free planning",
+                      description: "Book directly with no hidden service fees, receiving prompt, human replies to your specific dates and needs.",
                     },
                   ].map((pillar) => (
                     <div key={pillar.title} className="flex gap-4">

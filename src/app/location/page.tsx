@@ -25,10 +25,10 @@ import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
 export const metadata: Metadata = {
   title: "Location",
   description:
-    "GreenLux Residency in Westridge 1, Rawalpindi, with local guidance for hospitals, food, parks, families, work trips, and Islamabad access.",
+    "GreenLux Residency in Westridge 1, Rawalpindi, with nearby essentials for hospitals, food, parks, families, work trips, and Islamabad access.",
 };
 
-const exactAddress = "28A, Mian Iqbal Road, Westridge 1, Rawalpindi, 46000, Pakistan";
+const exactAddress = "28A, Street 8B, Westridge 1, Rawalpindi";
 
 const guestTypes: Array<{
   title: string;
@@ -57,7 +57,7 @@ const guestTypes: Array<{
   },
   {
     title: "International visitors",
-    description: "Share arrival details early so check-in, directions, and stay expectations are clear.",
+    description: "Message the team with your timing and stay needs so arrival feels simple.",
     icon: ShieldCheck,
   },
   {
@@ -79,7 +79,7 @@ const nearbyEssentials: Array<{
     title: "Hospitals",
     description: "AFIC, MH, CMH, Maryam Memorial, Mega Medical Complex, and other clinics are part of the local medical-access picture.",
     detail: "Good for appointments, attendants, follow-ups, and recovery stays.",
-    imageSrc: "/greenlux/location/afic-hospital.jpg",
+    imageSrc: "/greenlux/curation-review/location/03__location-image__afic-hospital__afic-hospital.jpg",
     imageAlt: "Armed Forces Institute of Cardiology hospital building",
     icon: Hospital,
   },
@@ -87,7 +87,7 @@ const nearbyEssentials: Array<{
     title: "Food",
     description: "Westridge has familiar food options including Cheezious, OPTP, Tehzeeb, Hot N Spicy, and other casual choices.",
     detail: "Helpful for late arrivals, families, and guests who want simple meals nearby.",
-    imageSrc: "/greenlux/location/westridge-food-options.jpg",
+    imageSrc: "/greenlux/curation-review/location/04__location-image__westridge-food-options__westridge-food-options.jpg",
     imageAlt: "Collage of Westridge food options including Cheezious, OPTP, Tehzeeb, and Hot N Spicy",
     icon: Utensils,
   },
@@ -95,24 +95,24 @@ const nearbyEssentials: Array<{
     title: "Parks",
     description: "Race Course Park gives families a green outing nearby, with walking tracks and room to slow down between plans.",
     detail: "Useful for children, longer stays, and relatives visiting together.",
-    imageSrc: "/greenlux/location/race-course-park.jpg",
+    imageSrc: "/greenlux/curation-review/location/05__location-image__race-course-park__race-course-park.jpg",
     imageAlt: "Tree-lined walkway inside Race Course Park Rawalpindi",
     icon: Trees,
   },
   {
     title: "Grocery and access",
-    description: "GreenLux's existing Westridge guidance notes nearby groceries, local errands, and practical daily essentials.",
+    description: "Nearby groceries, local errands, and practical daily essentials make longer stays easier.",
     detail: "Ask on WhatsApp if you need groceries, tea, transport, or arrival help.",
-    imageSrc: "/greenlux/location/army-museum-park.jpg",
-    imageAlt: "Aircraft display in a Westridge local attraction park",
+    imageSrc: "/greenlux/curation-review/location/grocery-csd.jpg",
+    imageAlt: "Nearby grocery and daily essentials access for GreenLux guests",
     icon: ShoppingBag,
   },
   {
     title: "Rawalpindi and Islamabad movement",
     description: "Westridge works as a Rawalpindi base for guests moving between family, work, medical, and Islamabad plans.",
     detail: "Share your visit purpose so the team can suggest a room and arrival timing.",
-    imageSrc: "/greenlux/location/race-course-park-route-satellite.png",
-    imageAlt: "Satellite-style route map from GreenLux Residency to Race Course Park",
+    imageSrc: "/greenlux/curation-review/location/10__guide-card__Rawalpindi-and-Islamabad-access__army-museum-park.jpg",
+    imageAlt: "Rawalpindi and Islamabad access near GreenLux Residency",
     icon: Route,
   },
 ];
@@ -166,7 +166,7 @@ export default function LocationPage() {
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-7 text-slate-700 sm:text-lg sm:leading-8">
                 GreenLux Residency is positioned for guests who want a quieter managed stay near Rawalpindi essentials,
-                with practical access toward Islamabad and direct WhatsApp guidance before arrival.
+                with practical access toward Islamabad and direct WhatsApp guidance for an easy arrival.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <CTAButton
@@ -185,24 +185,24 @@ export default function LocationPage() {
             <div className="grid gap-4 sm:grid-cols-[1.18fr_0.82fr]">
               <div className="relative min-h-[360px] overflow-hidden rounded-[1.5rem] bg-white shadow-soft sm:min-h-[480px]">
                 <Image
-                  src="/greenlux/location/army-museum-park.jpg"
-                  alt="Aircraft display in a Westridge local attraction park"
+                  src="/greenlux/curation-review/location/08__page-image__gates-day-custom__gates-day-custom.png"
+                  alt="GreenLux Residency secure gated entrance and arrival"
                   fill
                   priority
                   sizes="(min-width: 1024px) 36vw, 100vw"
                   className="object-cover"
                 />
-                <div className="absolute inset-x-4 bottom-4 rounded-2xl bg-white/95 p-4 shadow-soft">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold">Westridge 1 context</p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-brand-deep">
-                    A residential Rawalpindi base near local parks, daily essentials, and city movement.
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent px-5 pb-5 pt-16 text-white">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-gold drop-shadow">Westridge arrival</p>
+                  <p className="mt-2 text-sm font-semibold leading-6 drop-shadow">
+                    Secure residential entry.
                   </p>
                 </div>
               </div>
               <div className="grid gap-4">
                 <div className="relative min-h-44 overflow-hidden rounded-[1.5rem] bg-white shadow-sm">
                   <Image
-                    src="/greenlux/location/afic-hospital.jpg"
+                    src="/greenlux/curation-review/location/03__location-image__afic-hospital__afic-hospital.jpg"
                     alt="Armed Forces Institute of Cardiology hospital building"
                     fill
                     sizes="(min-width: 1024px) 22vw, 50vw"
@@ -211,12 +211,18 @@ export default function LocationPage() {
                 </div>
                 <div className="relative min-h-44 overflow-hidden rounded-[1.5rem] bg-white shadow-sm">
                   <Image
-                    src="/greenlux/location/race-course-park.jpg"
-                    alt="Tree-lined walkway inside Race Course Park Rawalpindi"
+                    src="/greenlux/curation-review/location/09__page-image__side-front-parking-new__side-front-parking-new.jpg"
+                    alt="GreenLux Residency secure parking and guest arrivals"
                     fill
                     sizes="(min-width: 1024px) 22vw, 50vw"
                     className="object-cover"
                   />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent px-4 pb-4 pt-12 text-white">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-gold drop-shadow">Parking</p>
+                    <p className="mt-0.5 text-xs font-semibold leading-tight drop-shadow">
+                      Dedicated space.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -233,14 +239,14 @@ export default function LocationPage() {
               </h2>
               <p className="mt-4 text-lg font-semibold leading-8 text-brand-deep">{exactAddress}</p>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Use the map for orientation, then message GreenLux for practical arrival guidance, room fit, and timing.
+                Open the map for orientation, then message GreenLux for arrival guidance, room fit, and timing.
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <CTAButton href={siteConfig.googleMapsHref} external variant="outline" showArrow>
                   Open in Google Maps
                 </CTAButton>
                 <CTAButton
-                  href={getWhatsAppHref("Hi GreenLux Residency, please share location and arrival guidance for 28A Mian Iqbal Road, Westridge 1.")}
+                  href={getWhatsAppHref("Hi GreenLux Residency, please share location and arrival guidance for 28A, Street 8B, Westridge 1, Rawalpindi.")}
                   external
                   whatsapp
                 >
@@ -251,10 +257,10 @@ export default function LocationPage() {
             <div className="rounded-[1.5rem] bg-[#05281f] p-6 text-white shadow-soft sm:p-8">
               <MessageCircle className="h-8 w-8 text-brand-gold" aria-hidden="true" />
               <h2 className="mt-5 font-serif text-3xl font-semibold leading-tight sm:text-4xl">
-                Before you arrive, send the stay context.
+                Share a few stay details for an easier arrival.
               </h2>
               <p className="mt-4 text-sm leading-7 text-white/75">
-                The fastest way to reduce arrival stress is to message the team with the few details that shape the stay.
+                The easiest way to reduce travel stress is to message the team with the few details that shape the stay.
               </p>
               <div className="mt-6 grid gap-2 sm:grid-cols-5">
                 {arrivalDetails.map((detail) => (
@@ -283,7 +289,7 @@ export default function LocationPage() {
             <SectionHeading
               eyebrow="Why this location works"
               title="Useful for real guest plans, not just sightseeing."
-              description="GreenLux is most helpful when the location supports the reason for travel: family, medical visits, work, overseas arrivals, international guests, or a short stay that needs to be simple."
+              description="GreenLux is most helpful when the location supports the reason for travel: family stays, hospital visits, work, overseas arrivals, international guests, or a short stay that needs to be simple."
             />
             <MobileCarousel ariaLabel="Guest types this location supports">
               {guestTypes.map((item) => (
@@ -325,15 +331,15 @@ export default function LocationPage() {
             <div className="relative overflow-hidden rounded-[1.5rem] border border-brand-deep/10 bg-white p-4 shadow-sm">
               <div className="relative aspect-[16/10] overflow-hidden rounded-[1.1rem] bg-brand-deep/5">
                 <Image
-                  src="/greenlux/location/afic-route-map.png"
-                  alt="Route map from GreenLux Residency toward nearby hospital access"
+                  src="/greenlux/curation-review/location/10__guide-card__Rawalpindi-and-Islamabad-access__army-museum-park.jpg"
+                  alt="Rawalpindi and Islamabad access near GreenLux Residency"
                   fill
                   sizes="(min-width: 1024px) 52vw, 100vw"
                   className="object-cover"
                 />
               </div>
               <p className="mt-4 px-1 text-sm font-semibold leading-6 text-brand-deep">
-                Route screenshots are shown only as planning context. Ask the team for current arrival guidance before travel.
+                Use this as a quick visual for nearby movement. Ask the team for current arrival guidance before you travel.
               </p>
             </div>
             <div>
@@ -342,7 +348,7 @@ export default function LocationPage() {
                 Use WhatsApp to turn the location into a clearer plan.
               </h2>
               <p className="mt-5 text-base leading-7 text-slate-700">
-                Tell GreenLux whether you are coming for a hospital visit, family stay, work trip, or short visit. The team can suggest a room type, arrival timing, and next step without sending you through a generic booking flow.
+                Tell GreenLux whether you are coming for a hospital visit, family stay, work trip, or short visit. The team can suggest a room type, arrival timing, and next step through one direct WhatsApp conversation.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <CTAButton

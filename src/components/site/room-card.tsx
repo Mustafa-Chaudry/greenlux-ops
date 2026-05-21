@@ -9,15 +9,20 @@ import { getRoomWhatsAppHref } from "@/lib/site/config";
 type RoomCardProps = {
   room: PublicRoom;
   featured?: boolean;
+  imageSrc?: string;
+  imageAlt?: string;
 };
 
-export function RoomCard({ room, featured = false }: RoomCardProps) {
+export function RoomCard({ room, featured = false, imageSrc, imageAlt }: RoomCardProps) {
+  const cardImageSrc = imageSrc ?? room.images[0];
+  const cardImageAlt = imageAlt ?? room.imageAlt;
+
   return (
     <Card className="group overflow-hidden rounded-[1.5rem] border-brand-deep/10 bg-white shadow-[0_18px_50px_rgba(15,61,46,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_64px_rgba(15,61,46,0.13)]">
       <Link href={`/rooms/${room.slug}`} className="relative block aspect-[4/3] overflow-hidden bg-[#f7f1e6]">
         <Image
-          src={room.images[0]}
-          alt={room.imageAlt}
+          src={cardImageSrc}
+          alt={cardImageAlt}
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"

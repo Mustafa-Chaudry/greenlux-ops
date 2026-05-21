@@ -16,19 +16,19 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   metadataBase: new URL("https://greenluxresidency.com"),
   title: {
-    default: "Thoughtfully managed stays in Rawalpindi — designed for calm, privacy, and control.",
+    default: "Thoughtfully managed serviced stays in Rawalpindi with calm, privacy, and direct host care.",
     template: "%s | GreenLux Residency",
   },
   description:
-    "Chosen by overseas families, international visitors, and short-stay guests who want a clean, quiet base with direct support — without the uncertainty of typical rentals.",
+    "A clean, green, and quiet serviced-stay retreat in Westridge 1 for overseas families, business executives, medical visitors, and short stays.",
   icons: {
     icon: "/greenlux/brand/glr-emblem.png",
     apple: "/greenlux/brand/glr-emblem.png",
   },
   openGraph: {
-    title: "Thoughtfully managed stays in Rawalpindi — designed for calm, privacy, and control.",
+    title: "Thoughtfully managed serviced stays in Rawalpindi with calm, privacy, and direct host care.",
     description:
-      "Chosen by overseas families, international visitors, and short-stay guests who want a clean, quiet base with direct support — without the uncertainty of typical rentals.",
+      "A clean, green, and quiet serviced-stay retreat in Westridge 1 for overseas families, business executives, medical visitors, and short stays.",
     type: "website",
     siteName: "GreenLux Residency",
     images: [
@@ -42,9 +42,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Thoughtfully managed stays in Rawalpindi — designed for calm, privacy, and control.",
+    title: "Thoughtfully managed serviced stays in Rawalpindi with calm, privacy, and direct host care.",
     description:
-      "Chosen by overseas families, international visitors, and short-stay guests who want a clean, quiet base with direct support — without the uncertainty of typical rentals.",
+      "A clean, green, and quiet serviced-stay retreat in Westridge 1 for overseas families, business executives, medical visitors, and short stays.",
     images: ["/greenlux/property/hero-terrace.jpg"],
   },
 };

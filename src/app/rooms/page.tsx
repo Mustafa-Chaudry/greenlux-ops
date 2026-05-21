@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
 import { RoomCard } from "@/components/site/room-card";
 import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
@@ -24,15 +23,24 @@ const roomTypes: Array<{ label: string; type?: RoomType }> = [
 ];
 
 const decisionGuide = [
-  { label: "Cheapest", room: rooms.find((room) => room.slug === "budget-room-11") },
+  { label: "Exceptional value", room: rooms.find((room) => room.slug === "budget-room-11") },
   { label: "Best for family", room: rooms.find((room) => room.slug === "apartment-3") },
   { label: "Most private", room: rooms.find((room) => room.slug === "studio-1") },
   { label: "Executive value", room: rooms.find((room) => room.slug === "room-10") },
 ];
 
-const comparisonRooms = rooms.filter((room) =>
-  ["budget-room-11", "apartment-3", "studio-1", "room-10", "studio-2"].includes(room.slug),
-);
+const roomCardImages: Record<string, string> = {
+  "studio-1": "/greenlux/curation-review/rooms-page/04__room-card__Studio-1__studio-1-main-updated.png",
+  "studio-2": "/greenlux/curation-review/rooms-page/05__room-card__Studio-2__studio-2-main-updated.jpg",
+  "apartment-3": "/greenlux/curation-review/rooms-page/06__room-card__Apartment-3__apartment-3-bed-changed.jpg",
+  "apartment-4": "/greenlux/curation-review/rooms-page/07__room-card__Apartment-4__apartment-4-1.jpg",
+  "room-5": "/greenlux/curation-review/rooms-page/08__room-card__Room-5__room-5-1.jpg",
+  "room-7": "/greenlux/curation-review/rooms-page/09__room-card__Room-7__room-7-1.jpg",
+  "room-6": "/greenlux/curation-review/rooms-page/10__room-card__Room-6__room-6-1.jpg",
+  "room-10": "/greenlux/curation-review/rooms-page/11__room-card__Room-10__room-10-1.jpg",
+  "room-9": "/greenlux/curation-review/rooms-page/12__room-card__Room-9__room-9-1.jpg",
+  "budget-room-11": "/greenlux/curation-review/rooms-page/13__room-card__Budget-Room-11__budget-room-11-1.jpg",
+};
 
 export default function RoomsPage() {
   return (
@@ -60,7 +68,7 @@ export default function RoomsPage() {
             </div>
             <div className="relative min-h-[360px] overflow-hidden rounded-[2rem] bg-white shadow-soft">
               <Image
-                src="/greenlux/booking/booking-lounge-01.jpg"
+                src="/greenlux/curation-review/rooms-page/03__rooms-page-image__booking-lounge-01__booking-lounge-01.jpg"
                 alt="GreenLux Residency shared lounge seating"
                 fill
                 priority
@@ -72,17 +80,6 @@ export default function RoomsPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mb-8 rounded-[1.5rem] border border-brand-deep/10 bg-white p-5 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Guest-rated stays</p>
-            <p className="mt-2 font-serif text-2xl font-semibold text-brand-deep">
-              Guest-rated on Booking.com, Airbnb, and travel platforms.
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Ratings vary by platform and listing. Room-specific ratings appear only where the listing clearly maps to
-              that stay.
-            </p>
-          </div>
-
           <div className="grid gap-4 rounded-[1.5rem] border border-brand-deep/10 bg-white p-5 shadow-sm md:grid-cols-4">
             {decisionGuide.map(({ label, room }) =>
               room ? (
@@ -110,45 +107,9 @@ export default function RoomsPage() {
             ))}
           </div>
 
-          <div className="mt-10 overflow-hidden rounded-[1.5rem] border border-brand-deep/10 bg-white shadow-sm">
-            <div className="border-b border-brand-deep/10 p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Help me choose</p>
-              <h2 className="mt-2 font-serif text-3xl font-semibold text-brand-deep">Compare the most-requested options.</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-[760px] w-full text-left text-sm">
-                <thead className="bg-brand-ivory text-xs uppercase tracking-[0.16em] text-brand-deep">
-                  <tr>
-                    <th className="px-5 py-4 font-bold">Stay</th>
-                    <th className="px-5 py-4 font-bold">Best for</th>
-                    <th className="px-5 py-4 font-bold">Guests</th>
-                    <th className="px-5 py-4 font-bold">Key feature</th>
-                    <th className="px-5 py-4 font-bold">From</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-deep/10">
-                  {comparisonRooms.map((room) => (
-                    <tr key={room.slug} className="align-top">
-                      <td className="px-5 py-4">
-                        <Link href={`/rooms/${room.slug}`} className="font-serif text-xl font-semibold text-brand-deep hover:text-brand-fresh">
-                          {room.name}
-                        </Link>
-                        <p className="mt-1 text-xs font-semibold text-brand-fresh">{room.categoryLabel}</p>
-                      </td>
-                      <td className="px-5 py-4 text-slate-700">{room.decisionLabel}</td>
-                      <td className="px-5 py-4 text-slate-700">Up to {room.maxGuests}</td>
-                      <td className="px-5 py-4 text-slate-700">{room.highlights[0]}</td>
-                      <td className="px-5 py-4 font-bold text-brand-deep">Rs {formatPricePkr(room.priceFromPkr)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
           <div id="all-stays" className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {rooms.map((room) => (
-              <RoomCard key={room.slug} room={room} />
+              <RoomCard key={room.slug} room={room} imageSrc={roomCardImages[room.slug]} />
             ))}
           </div>
         </section>
@@ -162,7 +123,7 @@ export default function RoomsPage() {
             />
             <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               {roomTypes.slice(1).map((type) => {
-                const count = rooms.filter((room) => room.type === type.type).length;
+                const count = type.type === "economy" ? 3 : rooms.filter((room) => room.type === type.type).length;
 
                 return (
                   <div key={type.label} id={type.type} className="rounded-2xl border border-brand-deep/10 bg-brand-ivory p-5">
@@ -177,20 +138,6 @@ export default function RoomsPage() {
           </div>
         </section>
 
-        <section className="px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-5xl rounded-[2rem] bg-[#05281f] p-8 text-center text-white shadow-soft sm:p-12">
-            <MessageCircle className="mx-auto h-10 w-10 text-brand-gold" aria-hidden="true" />
-            <h2 className="mt-5 font-serif text-4xl font-semibold">Not sure which one to choose?</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-white/70">
-              Send your dates, guest count, and budget. We will suggest the best available GreenLux stay.
-            </p>
-            <div className="mt-7 flex justify-center">
-              <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
-                Check availability on WhatsApp
-              </CTAButton>
-            </div>
-          </div>
-        </section>
       </main>
     </SiteShell>
   );

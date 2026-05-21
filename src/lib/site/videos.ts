@@ -21,7 +21,7 @@ export const siteVideos: SiteVideo[] = [
     title: "Main property walkthrough",
     description: "A fuller look through GreenLux for guests who want to understand the space before they book.",
     src: "/greenlux/videos/property-tour-main.mp4",
-    poster: "/greenlux/booking/booking-terrace-01.jpg",
+    poster: "/greenlux/curation-review/homepage/16__video-poster__Main-property-walkthrough__booking-terrace-updated.JPG",
     durationLabel: "2:55",
     orientation: "portrait",
     quality: "usable",
@@ -34,7 +34,7 @@ export const siteVideos: SiteVideo[] = [
     title: "Daytime entrance preview",
     description: "A quick look at the gate and arrival point for GreenLux Residency.",
     src: "/greenlux/videos/property-gate-day.mp4",
-    poster: "/greenlux/property/exterior-entry.jpg",
+    poster: "/greenlux/curation-review/homepage/17__video-poster__Daytime-entrance-preview__exterior-entry.jpg",
     durationLabel: "0:08",
     orientation: "portrait",
     quality: "good",
@@ -47,7 +47,7 @@ export const siteVideos: SiteVideo[] = [
     title: "First-floor lounge",
     description: "Shared lounge seating for guests who want somewhere calm beyond the bedroom.",
     src: "/greenlux/videos/first-floor-lounge.mp4",
-    poster: "/greenlux/booking/booking-lounge-01.jpg",
+    poster: "/greenlux/curation-review/homepage/18__video-poster__First-floor-lounge__updated.webp",
     durationLabel: "0:51",
     orientation: "landscape",
     quality: "good",
@@ -60,7 +60,7 @@ export const siteVideos: SiteVideo[] = [
     title: "Terrace at night",
     description: "A night view of GreenLux terrace space and outdoor seating.",
     src: "/greenlux/videos/terrace-night.mp4",
-    poster: "/greenlux/booking/booking-terrace-01.jpg",
+    poster: "/greenlux/curation-review/contact/06__video-poster__Terrace-at-night__booking-terrace-updated.webp",
     durationLabel: "1:13",
     orientation: "landscape",
     quality: "usable",
@@ -73,7 +73,7 @@ export const siteVideos: SiteVideo[] = [
     title: "One-bedroom apartment tour",
     description: "A daytime look at the one-bedroom apartment layout for families and longer stays.",
     src: "/greenlux/videos/1-bed-appartment-tour-day.mp4",
-    poster: "/greenlux/rooms/apartment-3-01.jpg",
+    poster: "/greenlux/rooms/apartment-3-bed-day.jpg",
     durationLabel: "0:35",
     orientation: "portrait",
     quality: "good",
@@ -86,7 +86,7 @@ export const siteVideos: SiteVideo[] = [
     title: "Studio tour",
     description: "A quick studio walkthrough for guests comparing the studio-style stays.",
     src: "/greenlux/videos/studio-tour.mp4",
-    poster: "/greenlux/rooms/studio-1-01.jpg",
+    poster: "/greenlux/rooms/studio-1-main-new.jpg",
     durationLabel: "0:27",
     orientation: "portrait",
     quality: "good",
@@ -99,7 +99,7 @@ export const siteVideos: SiteVideo[] = [
     title: "Terrace and apartment entrance",
     description: "A night walkthrough connecting terrace and apartment entrance areas.",
     src: "/greenlux/videos/terrace-studio-appartment-entrance-night.mp4",
-    poster: "/greenlux/booking/booking-exterior-01.jpg",
+    poster: "/greenlux/curation-review/about/09__video-poster__Terrace-and-apartment-entrance__booking-exterior-01.jpg",
     durationLabel: "1:46",
     orientation: "landscape",
     quality: "usable",
@@ -112,7 +112,7 @@ export const siteVideos: SiteVideo[] = [
     title: "Night exterior approach",
     description: "A longer night view of the gate opening and building exterior.",
     src: "/greenlux/videos/gate-opening-building-shots-night-landscape.mp4",
-    poster: "/greenlux/booking/booking-exterior-01.jpg",
+    poster: "/greenlux/curation-review/location/13__video-poster__Night-exterior-approach__booking-exterior-01.jpg",
     durationLabel: "1:38",
     orientation: "landscape",
     quality: "usable",
@@ -139,17 +139,40 @@ export const homepageVideos = siteVideos.filter((video) =>
   ["property-tour-main", "property-gate-day", "first-floor-lounge"].includes(video.slug),
 );
 
-export const aboutVideos = siteVideos.filter((video) =>
-  ["first-floor-lounge", "terrace-studio-apartment-entrance-night"].includes(video.slug),
-);
+export const aboutVideos = siteVideos
+  .filter((video) => ["property-tour-main", "first-floor-lounge", "terrace-studio-apartment-entrance-night"].includes(video.slug))
+  .map((video) => {
+    if (video.slug === "property-tour-main") {
+      return { ...video, poster: "/greenlux/curation-review/about/07__video-poster__Main-property-walkthrough__booking-terrace-updated.jpg" };
+    }
+    if (video.slug === "first-floor-lounge") {
+      return { ...video, poster: "/greenlux/curation-review/about/08__video-poster__First-floor-lounge__booking-lounge-updated.webp" };
+    }
+    return video;
+  });
 
-export const contactVideos = siteVideos.filter((video) =>
-  ["property-gate-day", "terrace-night"].includes(video.slug),
-);
+export const contactVideos = siteVideos
+  .filter((video) => ["property-gate-day", "terrace-night"].includes(video.slug))
+  .map((video) => {
+    if (video.slug === "property-gate-day") {
+      return { ...video, poster: "/greenlux/curation-review/contact/05__video-poster__Daytime-entrance-preview__exterior-updated.JPG" };
+    }
+    return video;
+  });
 
-export const locationVideos = siteVideos.filter((video) =>
-  ["property-gate-day", "terrace-studio-apartment-entrance-night"].includes(video.slug),
-);
+export const locationVideos = siteVideos
+  .filter((video) =>
+    ["property-gate-day", "terrace-studio-apartment-entrance-night", "gate-opening-building-shots-night"].includes(video.slug),
+  )
+  .map((video) => {
+    if (video.slug === "property-gate-day") {
+      return { ...video, poster: "/greenlux/curation-review/location/11__video-poster__Daytime-entrance-preview__exterior-entry.jpg" };
+    }
+    if (video.slug === "terrace-studio-apartment-entrance-night") {
+      return { ...video, poster: "/greenlux/curation-review/location/12__video-poster__Terrace-and-apartment-entrance__booking-exterior-01.jpg" };
+    }
+    return video;
+  });
 
 export function getVideoBySlug(slug?: string) {
   if (!slug) {

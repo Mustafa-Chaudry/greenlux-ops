@@ -140,8 +140,8 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
           </section>
         ) : null}
 
-        <section className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
-          <div className="space-y-10">
+        <section className="mx-auto grid w-full max-w-7xl gap-8 overflow-x-clip px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:px-8">
+          <div className="min-w-0 space-y-10">
             <div className="rounded-[1.75rem] border border-brand-deep/10 bg-white p-6 shadow-sm sm:p-8">
               <SectionHeading
                 eyebrow="Why choose this stay?"
@@ -215,7 +215,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
             </div>
           </div>
 
-          <aside className="lg:sticky lg:top-28 lg:self-start" id="book">
+          <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start" id="book">
             <div className="rounded-[1.75rem] border border-brand-deep/10 bg-white p-6 shadow-soft">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Direct booking</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold text-brand-deep">{room.name}</h2>

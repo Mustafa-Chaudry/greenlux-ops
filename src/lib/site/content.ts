@@ -170,8 +170,8 @@ export const directBookingBenefits = [
     icon: HeartHandshake,
   },
   {
-    title: "Easier booking without platform friction",
-    description: "Ask directly for availability, rates, and the stay that fits.",
+    title: "Direct pricing & hassle-free planning",
+    description: "Book directly with no hidden service fees, receiving prompt, human replies to your specific dates and needs.",
     icon: CalendarClock,
   },
 ];
@@ -179,21 +179,21 @@ export const directBookingBenefits = [
 export const propertyMoments: PropertyMoment[] = [
   {
     title: "Terrace seating",
-    description: "A calm outdoor corner for tea, calls, or a slower evening after travel.",
-    image: "/greenlux/booking/booking-terrace-01.jpg",
-    alt: "GreenLux Residency terrace seating with plants",
+    description: "A botanical outdoor corner for tea, calls, or a slower evening after travel.",
+    image: "/greenlux/curation-review/homepage/09__common-area__Terrace-seating-updated.jpg",
+    alt: "GreenLux Residency terrace seating and swing",
+  },
+  {
+    title: "Shared dining",
+    description: "Comfortable indoor space for selected rooms, useful when you want to sit outside your bedroom.",
+    image: "/greenlux/curation-review/homepage/10__common-area__Shared-dining-dining-updated.webp",
+    alt: "GreenLux Residency shared lounge and dining space",
   },
   {
     title: "Shared lounge",
-    description: "Extra sitting space for selected rooms, useful when you do not want to stay inside your bedroom.",
-    image: "/greenlux/booking/booking-lounge-01.jpg",
-    alt: "GreenLux Residency shared lounge seating",
-  },
-  {
-    title: "Dining and kitchen access",
-    description: "Practical shared spaces help short stays and longer visits feel easier.",
-    image: "/greenlux/booking/booking-dining-01.jpg",
-    alt: "GreenLux Residency common dining space",
+    description: "A green open-air walkway and seating area that gives longer stays more breathing room.",
+    image: "/greenlux/curation-review/homepage/11__common-area__shared-lounge-changed.jpg",
+    alt: "GreenLux Residency premium rooftop terrace garden and common area",
   },
 ];
 
@@ -201,7 +201,7 @@ export const faqs = [
   {
     question: "How do I book GreenLux Residency?",
     answer:
-      "Message GreenLux on WhatsApp with your dates, guest count, room preference, and arrival time. You will receive availability and rate details directly.",
+      "Simply click our WhatsApp link to start a personal chat. Share your planned dates, guest count, and any preferences. Our team will personally review availability, offer the best direct rates, and guide you through check-in.",
   },
   {
     question: "Can I check in online after booking?",

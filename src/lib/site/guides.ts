@@ -27,7 +27,7 @@ export const guides: SiteGuide[] = [
     shortTitle: "Westridge 1",
     description:
       "GreenLux sits in Westridge 1, a cantonment-side Rawalpindi neighbourhood that works well for guests who want a calmer base with practical city access.",
-    imageSrc: "/greenlux/location/army-museum-park.jpg",
+    imageSrc: "/greenlux/curation-review/guides/03__guide-card__Westridge-1-location-guide__army-museum-park.jpg",
     imageAlt: "Aircraft display in a Westridge local attraction park",
     sourceNote: "Based on GreenLux Westridge location guidance.",
     highlights: ["Cantonment-side residential feel", "Groceries and errands nearby", "Useful for Rawalpindi and Islamabad plans"],
@@ -44,7 +44,7 @@ export const guides: SiteGuide[] = [
     shortTitle: "Medical visits",
     description:
       "A practical stay-planning guide for patients, attendants, and families visiting Rawalpindi for appointments, follow-ups, or recovery time.",
-    imageSrc: "/greenlux/location/afic-hospital.jpg",
+    imageSrc: "/greenlux/curation-review/guides/04__guide-card__Nearby-hospitals-and-medical-visits__afic-hospital.jpg",
     imageAlt: "Armed Forces Institute of Cardiology hospital building",
     sourceNote: "Based on GreenLux hospital-access blog guidance.",
     highlights: ["AFIC, MH, CMH and private hospitals in reach", "Privacy between appointments", "WhatsApp help for timing and room fit"],
@@ -54,9 +54,6 @@ export const guides: SiteGuide[] = [
     stayTypes: ["Private rooms", "Studios", "Apartments"],
     icon: "hospital",
     href: "/guides#nearby-hospitals",
-    supportImageSrc: "/greenlux/location/afic-route-map.png",
-    supportImageAlt: "Route map from GreenLux Residency toward nearby hospital access",
-    supportLabel: "Hospital route context",
   },
   {
     slug: "parks-nearby",
@@ -64,7 +61,7 @@ export const guides: SiteGuide[] = [
     shortTitle: "Race Course Park",
     description:
       "Race Course Park gives families and longer-stay guests a nearby green outing for walks, children, and calmer evenings away from traffic.",
-    imageSrc: "/greenlux/location/race-course-park.jpg",
+    imageSrc: "/greenlux/curation-review/guides/05__guide-card__Race-Course-Park-and-family-outings__race-course-park.jpg",
     imageAlt: "Tree-lined walkway inside Race Course Park Rawalpindi",
     sourceNote: "Based on GreenLux Race Course Park blog guidance.",
     highlights: ["1.8 km walking track", "Green space for children and family time", "Useful reset between city plans"],
@@ -74,9 +71,6 @@ export const guides: SiteGuide[] = [
     stayTypes: ["Apartments", "Studios"],
     icon: "park",
     href: "/guides#parks-nearby",
-    supportImageSrc: "/greenlux/location/race-course-park-route-satellite.png",
-    supportImageAlt: "Satellite-style route map from GreenLux Residency to Race Course Park",
-    supportLabel: "Park route context",
   },
   {
     slug: "food-nearby",
@@ -84,7 +78,7 @@ export const guides: SiteGuide[] = [
     shortTitle: "Food nearby",
     description:
       "Westridge gives guests easy options for quick food, familiar chains, traditional meals, tea, snacks, and simple daily essentials.",
-    imageSrc: "/greenlux/location/westridge-food-options.jpg",
+    imageSrc: "/greenlux/curation-review/guides/06__guide-card__Food-chains-and-daily-essentials__westridge-food-options.jpg",
     imageAlt: "Collage of Westridge food options including Cheezious, OPTP, Tehzeeb, and Hot N Spicy",
     sourceNote: "Based on GreenLux Westridge food-chain guidance.",
     highlights: ["Cheezious, OPTP, Tehzeeb and Hot N Spicy nearby", "Good for late arrivals", "Groceries and basics within local reach"],
@@ -101,7 +95,7 @@ export const guides: SiteGuide[] = [
     shortTitle: "City access",
     description:
       "Use GreenLux as a calmer Rawalpindi base while planning work, family visits, appointments, or day movement across Islamabad.",
-    imageSrc: "/greenlux/location/army-museum-park.jpg",
+    imageSrc: "/greenlux/curation-review/guides/07__guide-card__Rawalpindi-and-Islamabad-access__army-museum-park.jpg",
     imageAlt: "Westridge local attraction park with aircraft display",
     sourceNote: "Based on GreenLux Westridge access and about-page context.",
     highlights: ["Rawalpindi base with Islamabad movement", "Useful for work and family visits", "Share plans before booking for room guidance"],
@@ -118,7 +112,7 @@ export const guides: SiteGuide[] = [
     shortTitle: "Guest tips",
     description:
       "Simple planning notes for overseas guests: share arrival time, guest count, luggage needs, visit purpose, and room preference before you travel.",
-    imageSrc: "/greenlux/location/race-course-park.jpg",
+    imageSrc: "/greenlux/curation-review/guides/08__guide-card__International-guest-practical-tips__race-course-park.jpg",
     imageAlt: "Calm tree-lined walkway in a nearby Rawalpindi park",
     sourceNote: "Based on GreenLux direct-arrival and serviced-stay guidance.",
     highlights: ["Confirm arrival time early", "Use online check-in after booking", "Ask on WhatsApp for location and room fit"],

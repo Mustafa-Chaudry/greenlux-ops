@@ -66,8 +66,8 @@ export default function AboutPage() {
             </div>
             <div className="relative min-h-[460px] overflow-hidden rounded-[2rem] bg-white shadow-soft">
               <Image
-                src="/greenlux/booking/booking-terrace-01.jpg"
-                alt="GreenLux Residency terrace seating with plants"
+                src="/greenlux/curation-review/about/03__about-image__terrace-swing-new__terrace-swing-new.jpg"
+                alt="GreenLux Residency terrace seating and swing"
                 fill
                 priority
                 sizes="(min-width: 1024px) 52vw, 100vw"
@@ -104,7 +104,7 @@ export default function AboutPage() {
             <div className="flex justify-center lg:justify-start">
               <div className="relative h-40 w-40 sm:h-48 sm:w-48 shrink-0 drop-shadow-sm">
                 <Image
-                  src="/greenlux/brand/glr-emblem.png"
+                  src="/greenlux/curation-review/about/04__brand-identity__glr-emblem__glr-emblem.png"
                   alt="GreenLux Residency emblem"
                   fill
                   sizes="(min-width: 640px) 192px, 160px"
@@ -118,8 +118,9 @@ export default function AboutPage() {
                 A stay brand built around calm, greenery, and managed hospitality.
               </h2>
               <p className="mt-5 text-base leading-7 text-slate-700">
-                The GreenLux emblem brings together the house, natural surroundings, and a more cared-for residential
-                stay. On the public site it stays quiet: a small mark of identity, not decoration everywhere.
+                The GreenLux signature represents our commitment to botanical serenity, home comfort, and dedicated
+                hospitality. We believe luxury lies in understated elegance, quiet green surroundings, and a stay that
+                feels cared for before you arrive.
               </p>
             </div>
           </div>
@@ -153,8 +154,8 @@ export default function AboutPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="relative min-h-[360px] overflow-hidden rounded-[1.5rem] bg-brand-ivory shadow-sm">
               <Image
-                src="/greenlux/booking/booking-lounge-01.jpg"
-                alt="GreenLux Residency shared lounge seating"
+                src="/greenlux/curation-review/about/05__common-area__Rooftop-terrace-garden__terrace-top-broad-changed.jpg"
+                alt="GreenLux Residency calm guest arrival courtyard"
                 fill
                 sizes="(min-width: 1024px) 24vw, 50vw"
                 className="object-cover"
@@ -162,8 +163,8 @@ export default function AboutPage() {
             </div>
             <div className="relative min-h-[360px] overflow-hidden rounded-[1.5rem] bg-brand-ivory shadow-sm sm:mt-12">
               <Image
-                src="/greenlux/booking/booking-exterior-01.jpg"
-                alt="GreenLux Residency terrace walkway at night"
+                src="/greenlux/curation-review/about/06__common-area__Shared-dining-dining-updated.JPG"
+                alt="GreenLux Residency shared dining and lounge"
                 fill
                 sizes="(min-width: 1024px) 24vw, 50vw"
                 className="object-cover"

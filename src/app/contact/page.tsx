@@ -88,8 +88,8 @@ export default function ContactPage() {
 
             <div className="relative min-h-[380px] overflow-hidden rounded-[2rem] bg-white shadow-soft">
               <Image
-                src="/greenlux/booking/booking-exterior-01.jpg"
-                alt="GreenLux Residency exterior terrace walkway"
+                src="/greenlux/curation-review/contact/03__contact-image__building-front-new__building-front-new.jpg"
+                alt="GreenLux Residency building facade and exterior"
                 fill
                 priority
                 sizes="(min-width: 1024px) 50vw, 100vw"
@@ -208,7 +208,7 @@ export default function ContactPage() {
               </h2>
               <p className="mt-5 max-w-2xl leading-7 text-slate-700">
                 GreenLux is suited to guests who want a quieter residential base with direct support before arrival.
-                The address is {siteConfig.addressLine}. Message us for room fit, location guidance, and check-in details.
+                The address is {siteConfig.addressLine}. Message us for room fit, arrival guidance, and check-in details.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <CTAButton href={siteConfig.googleMapsHref} external variant="outline" showArrow>
@@ -224,8 +224,8 @@ export default function ContactPage() {
             </div>
             <div className="relative min-h-80 bg-brand-ivory">
               <Image
-                src="/greenlux/booking/booking-terrace-01.jpg"
-                alt="GreenLux Residency terrace seating"
+                src="/greenlux/curation-review/contact/04_loungechanged.jpg"
+                alt="GreenLux Residency lounge seating"
                 fill
                 sizes="(min-width: 1024px) 42vw, 100vw"
                 className="object-cover"

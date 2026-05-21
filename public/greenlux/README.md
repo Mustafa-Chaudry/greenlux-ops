@@ -13,6 +13,17 @@ The public site uses local image files only. It does not hotlink Airbnb, Booking
 
 - `brand/glr-emblem.png` - approved GreenLux emblem copied from `booking/GLR Emblem logo.png`, used in the public header, footer, app icon metadata, and one restrained About-page identity section.
 
+## Final Hospitality Curation Assets
+
+The final curation pass keeps the strongest authentic Nikon/property visuals, restores older wide-angle room images where they explain spatial layout better, and avoids low-resolution square platform crops except where a unique amenity is shown.
+
+- `property/foyer-entrance-hall.jpg` - approved guest-arrival transition visual copied from the new GreenLux photo set, used in the homepage hero and About page.
+- `property/second-floor-landing-new.jpg` - copied from the new GreenLux photo set and retained as a reserve common-area visual.
+- `rooms/studio-1-terrace-garden-new.jpg` - Nikon terrace garden detail for Studio 1.
+- `rooms/studio-2-bed-alternate-new.jpg` - Nikon alternate room perspective for Studio 2.
+- `rooms/studio-2-terrace-garden-new.jpg` - Nikon terrace garden visual for Studio 2.
+- `rooms/apartment-4-projector-new.jpg` - approved platform image showing Apartment 4's private projector setup; retained because it documents a unique guest amenity.
+
 ## Booking.com Local Images
 
 - `booking/booking-terrace-01.jpg` - terrace seating, used on contact and common-area sections.
@@ -80,7 +91,7 @@ GreenLux-owned property images remain in use only where the page is showing Gree
 
 The public location pages use the provided address and approximate coordinates:
 
-- Address: `28A, Mian Iqbal Road, Westridge 1, Rawalpindi, 46000, Pakistan`
+- Address: `28A, Street 8B, Westridge 1, Rawalpindi`
 - Coordinates: `33.6062 N, 73.0232 E`
 - Google Maps link: `https://www.google.com/maps/search/?api=1&query=33.6062,73.0232`
 

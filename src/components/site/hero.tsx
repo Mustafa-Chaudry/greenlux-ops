@@ -8,16 +8,35 @@ import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
 
 const trustBullets = [
   { label: "Reply within minutes", icon: MessageCircle },
-  { label: "Direct pricing (no platform fees)", icon: ShieldCheck },
+  { label: "Direct pricing and clear room guidance", icon: ShieldCheck },
   { label: "Room suggestions based on your stay", icon: BedDouble },
 ];
 
 const backgroundImages = [
-  { src: "/greenlux/property/hero-terrace.jpg", alt: "GreenLux Residency main terrace" },
-  { src: "/greenlux/rooms/studio-2-1.jpg", alt: "GreenLux Residency studio apartment" },
-  { src: "/greenlux/rooms/apartment-4-1.jpg", alt: "GreenLux Residency 1-bed apartment" },
-  { src: "/greenlux/property/GLR%20Building.png", alt: "GreenLux Residency building exterior" },
-  { src: "/greenlux/property/hero-terrace.jpg", alt: "GreenLux Residency private terrace seating and serviced accommodation exterior" },
+  {
+    src: "/greenlux/curation-review/homepage/03__hero-slide__GreenLux-Residency-secure-gated-entry__gates-day-custom.png",
+    alt: "GreenLux Residency secure gated entry",
+  },
+  {
+    src: "/greenlux/curation-review/homepage/04__hero-slide__GreenLux-Residency-private-driveway-and-arrival-area__driveway-broad-custom.png",
+    alt: "GreenLux Residency private driveway and arrival area",
+  },
+  {
+    src: "/greenlux/curation-review/homepage/05__hero-slide__Terrace-seating-updated.jpg",
+    alt: "GreenLux Residency terrace seating",
+  },
+  {
+    src: "/greenlux/curation-review/homepage/06__hero-slide__GreenLux-Residency-premium-rooftop-terrace-flowers__terrace-broad-updated.JPG",
+    alt: "GreenLux Residency premium rooftop terrace flowers",
+  },
+  {
+    src: "/greenlux/curation-review/homepage/07__hero-slide__GreenLux-Residency-calm-Rooftop-terrace-garden__terrace-top-broad-changed.jpg",
+    alt: "GreenLux Residency calm rooftop terrace garden",
+  },
+  {
+    src: "/greenlux/curation-review/homepage/08__hero-slide__GreenLux-Residency-swing-main-apt-door-changed.JPG",
+    alt: "GreenLux Residency swing seating by apartment entrance",
+  },
 ];
 
 export function Hero() {
@@ -61,11 +80,11 @@ export function Hero() {
             {siteConfig.tagline}
           </p>
           <h1 className="font-serif text-5xl font-semibold leading-[0.98] sm:text-6xl lg:text-7xl">
-            Thoughtfully managed stays — designed for calm, privacy, and control.
+            Thoughtfully managed serviced stays — a lush, secure sanctuary for calm and absolute privacy.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl sm:leading-9">
-            Chosen by overseas families, international visitors, and short-stay guests who want a clean, quiet base with
-            direct support — without the uncertainty of typical rentals.
+            A preferred choice for overseas families, business executives, and returning visitors seeking a clean, green,
+            and quiet retreat with direct host support in Westridge 1, Rawalpindi.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <CTAButton
