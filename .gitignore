@@ -32,6 +32,41 @@ pnpm-debug.log*
 # local backups / exports
 backups/
 
+# local indexes / generated review output
+.codegraph/
+landing_page_audit*.md
+
+# operational reset scripts must stay local unless explicitly requested
+scripts/manual-reset-test-operational-data.sql
+
+# GreenLux raw/source image drops and working folders
+public/greenlux/GLR New Pictures/
+public/greenlux/Platform Pictures/
+public/greenlux/antigravity website work/
+
+# GreenLux unreferenced local asset candidates
+public/greenlux/curation-review/SUMMARY.json
+public/greenlux/curation-review/rooms/
+public/greenlux/booking/07__hero-slide__GreenLux-Residency-calm-guest-arrival-courtyard__foyer-entrance-hall.jpg
+public/greenlux/booking/10__common-area__Shared-dining-dining-updated.JPG
+public/greenlux/booking/11__common-area__Rooftop-terrace-garden__terrace-top-broad-new.jpg
+public/greenlux/booking/GLR Emblem logo.png
+public/greenlux/booking/GLR High res Logo.png
+public/greenlux/booking/first floor lounde.webp
+public/greenlux/booking/islamabad access.jpg
+public/greenlux/property/building-front-new.jpg
+public/greenlux/property/driveway-broad-custom.png
+public/greenlux/property/driveway-broad-new.jpg
+public/greenlux/property/first-floor-dining-new.jpg
+public/greenlux/property/foyer-entrance-hall.jpg
+public/greenlux/property/gates-day-custom.png
+public/greenlux/property/second-floor-landing-new.jpg
+public/greenlux/property/side-front-parking-new.jpg
+public/greenlux/property/stairs-mosaic-new.jpg
+public/greenlux/property/studio-terrace-new.jpg
+public/greenlux/property/terrace-swing-new.jpg
+public/greenlux/property/terrace-top-broad-new.jpg
+
 # system
 .DS_Store
 Thumbs.db

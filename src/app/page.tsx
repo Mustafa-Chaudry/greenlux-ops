@@ -218,8 +218,8 @@ export default function HomePage() {
                       description: "Share family visits, work trips, medical plans, or short stays.",
                     },
                     {
-                      title: "Direct pricing & hassle-free planning",
-                      description: "Book directly with no hidden service fees, receiving prompt, human replies to your specific dates and needs.",
+                      title: "Easier booking without platform friction",
+                      description: "Book directly with prompt, human replies to your specific dates and needs.",
                     },
                   ].map((pillar) => (
                     <div key={pillar.title} className="flex gap-4">

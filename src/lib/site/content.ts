@@ -170,8 +170,8 @@ export const directBookingBenefits = [
     icon: HeartHandshake,
   },
   {
-    title: "Direct pricing & hassle-free planning",
-    description: "Book directly with no hidden service fees, receiving prompt, human replies to your specific dates and needs.",
+    title: "Easier booking without platform friction",
+    description: "Book directly with prompt, human replies to your specific dates and needs.",
     icon: CalendarClock,
   },
 ];
