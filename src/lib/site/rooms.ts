@@ -54,7 +54,7 @@ export const rooms: PublicRoom[] = [
       "A warm studio with terrace garden, kitchen basics, refrigerator, microwave, and a 65 inch Smart TV.",
     description:
       "Choose Studio 1 when you want privacy, outdoor space, and the ease of a small apartment. The terrace garden gives you a quiet corner, while the kitchen basics, refrigerator, microwave, toaster, iron, and Smart TV help longer stays feel settled.",
-    priceFromPkr: 8500,
+    priceFromPkr: 10000,
     maxGuests: 3,
     sizeLabel: "Approx. 750 sq ft",
     amenities: [
@@ -110,7 +110,7 @@ export const rooms: PublicRoom[] = [
       "A private studio with warm finishes, kitchen essentials, refrigerator, freezer, and terrace access.",
     description:
       "Studio 2 works well when you want a private room with more independence. It gives you a calm studio feel, useful kitchen essentials, and easy access to shared outdoor space.",
-    priceFromPkr: 8500,
+    priceFromPkr: 10000,
     maxGuests: 3,
     amenities: [
       ...sharedAmenities,
@@ -165,7 +165,7 @@ export const rooms: PublicRoom[] = [
       "A one-bedroom apartment with separate lounge, dining area, kitchen, walk-in dresser, and two terraces.",
     description:
       "Apartment 3 is a strong choice for families and longer stays. You get a separate bedroom, TV lounge, dining area, kitchen, walk-in dresser, spacious bathroom, and two terraces, including a laundry terrace.",
-    priceFromPkr: 9000,
+    priceFromPkr: 10000,
     maxGuests: 4,
     sizeLabel: "Approx. 850 sq ft",
     amenities: [
@@ -232,7 +232,7 @@ export const rooms: PublicRoom[] = [
       "A split-level apartment with bedroom, work nook, bathroom, terrace, private kitchen, and lounge.",
     description:
       "Apartment 4 gives you a bedroom and seating or work corner upstairs, plus a private kitchen and lounge downstairs. It suits families, small groups, and business stays that need more room than a private bedroom.",
-    priceFromPkr: 9500,
+    priceFromPkr: 11000,
     maxGuests: 4,
     amenities: [
       ...sharedAmenities,
