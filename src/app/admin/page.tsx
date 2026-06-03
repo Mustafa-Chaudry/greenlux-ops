@@ -9,6 +9,12 @@ import { fetchOccupancySnapshot } from "@/lib/occupancy/snapshot";
 
 const adminAreas = [
   {
+    title: "Command Centre",
+    description: "Start-of-shift operating view for arrivals, departures, room readiness, Balance Due, and stays that Need Attention.",
+    href: "/admin/command-centre",
+    icon: CalendarDays,
+  },
+  {
     title: "Guest Stays",
     description: "Search guest stays, review verification status, open stay details, and update operational fields.",
     href: "/admin/guest-records",
@@ -130,8 +136,14 @@ export default async function AdminPage() {
             <Button asChild variant="outline">
               <Link href="/dashboard">Back to dashboard</Link>
             </Button>
+            <Button asChild>
+              <Link href="/admin/command-centre">
+                <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                Open Command Centre
+              </Link>
+            </Button>
             {canCreateGuests ? (
-              <Button asChild>
+              <Button asChild variant="secondary">
                 <Link href="/admin/guests/new">
                   <UserPlus className="h-4 w-4" aria-hidden="true" />
                   Add Guest Stay

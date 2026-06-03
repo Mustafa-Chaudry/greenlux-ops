@@ -1,9 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Banknote, CalendarDays, Hotel, LogOut, Plus, UserPlus } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Banknote,
+  CalendarCheck,
+  CalendarDays,
+  DoorOpen,
+  Hotel,
+  LogOut,
+  Plus,
+  ShieldAlert,
+  Sparkles,
+  UserPlus,
+  WalletCards,
+  Wrench,
+} from "lucide-react";
+import {
+  AdminActionRow,
+  AdminEmptyState,
+  AdminHero,
+  AdminMetricTile,
+  AdminPageShell,
+  AdminQuickLink,
+  AdminSection,
+} from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
 import { managementRoles } from "@/lib/auth/roles";
 import {
@@ -65,7 +88,9 @@ type SnapshotMetric = {
   label: string;
   value: string | number;
   href?: string;
-  tone?: "neutral" | "success" | "warning" | "danger" | "info";
+  tone?: "neutral" | "success" | "warning" | "danger" | "info" | "blue";
+  detail?: string;
+  icon?: typeof CalendarDays;
 };
 
 const quickActions = [
@@ -81,38 +106,6 @@ function addDays(dateText: string, days: number) {
   const date = new Date(Date.UTC(year, month - 1, day));
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
-}
-
-function actionTone(tone: CommandAction["tone"]) {
-  if (tone === "danger") {
-    return "border-red-200 bg-red-50 text-red-800";
-  }
-
-  if (tone === "warning") {
-    return "border-amber-200 bg-amber-50 text-amber-900";
-  }
-
-  return "border-brand-sage bg-brand-ivory text-brand-deep";
-}
-
-function readinessTone(metric: SnapshotMetric["tone"]) {
-  if (metric === "danger") {
-    return "border-red-200 bg-red-50";
-  }
-
-  if (metric === "warning") {
-    return "border-amber-200 bg-amber-50";
-  }
-
-  if (metric === "success") {
-    return "border-emerald-200 bg-emerald-50";
-  }
-
-  if (metric === "info") {
-    return "border-sky-200 bg-sky-50";
-  }
-
-  return "border-brand-sage bg-white";
 }
 
 function roomLabel(roomNames: Map<string, string>, roomId: string | null) {
@@ -277,23 +270,6 @@ function buildPriorityActions({
   return actions.sort((a, b) => a.urgency - b.urgency);
 }
 
-function Metric({ label, value, href, tone = "neutral" }: SnapshotMetric) {
-  const content = (
-    <div className={`rounded-lg border p-4 ${readinessTone(tone)}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">{label}</p>
-      <p className="mt-2 font-serif text-3xl font-semibold text-brand-deep">{value}</p>
-    </div>
-  );
-
-  return href ? (
-    <Link href={href} className="block transition hover:shadow-soft">
-      {content}
-    </Link>
-  ) : (
-    content
-  );
-}
-
 function countMultiRoomBookingsNeedingAttention({
   checkins,
   chargesByCheckin,
@@ -316,6 +292,30 @@ function countMultiRoomBookingsNeedingAttention({
   });
 
   return groups.size;
+}
+
+function actionIcon(action: CommandAction) {
+  if (action.id.startsWith("arrival")) {
+    return DoorOpen;
+  }
+
+  if (action.id.startsWith("departure")) {
+    return LogOut;
+  }
+
+  if (action.id.startsWith("verification")) {
+    return ShieldAlert;
+  }
+
+  if (action.id.startsWith("maintenance")) {
+    return Wrench;
+  }
+
+  if (action.id.startsWith("cleaning")) {
+    return Sparkles;
+  }
+
+  return AlertTriangle;
 }
 
 export default async function CommandCentrePage() {
@@ -390,26 +390,6 @@ export default async function CommandCentrePage() {
     chargesByCheckin,
     rejectedDocuments,
   });
-  const todayMetrics: SnapshotMetric[] = [
-    { label: "Arrivals Today", value: checkInsToday.length, href: "/admin/guest-records?view=needs_review", tone: checkInsToday.length ? "info" : "success" },
-    { label: "Departures Today", value: checkOutsToday.length, href: "/admin/guest-records?view=active", tone: checkOutsToday.length ? "warning" : "success" },
-    { label: "Rooms Needing Cleaning", value: roomsNeedingCleaning, href: "/admin/occupancy", tone: roomsNeedingCleaning ? "warning" : "success" },
-    { label: "Rooms Not Ready", value: roomsNotReady, href: "/admin/occupancy", tone: roomsNotReady ? "warning" : "success" },
-    { label: "Maintenance Blocked", value: maintenanceBlockedRooms, href: "/admin/maintenance", tone: maintenanceBlockedRooms ? "danger" : "success" },
-    { label: "Balance Due", value: formatPkr(openOutstanding), href: "/admin/guest-records?view=active", tone: openOutstanding ? "warning" : "success" },
-    {
-      label: "Pending ID / Payment Confirmation",
-      value: pendingVerification,
-      href: "/admin/guest-records?verification=payment",
-      tone: pendingVerification ? "warning" : "success",
-    },
-    {
-      label: "Multi-room bookings needing attention",
-      value: multiRoomBookingsNeedingAttention,
-      href: "/admin/guest-records?view=active",
-      tone: multiRoomBookingsNeedingAttention ? "warning" : "success",
-    },
-  ];
   const errors = [
     ...occupancy.errors,
     ...reportInputs.errors,
@@ -419,191 +399,333 @@ export default async function CommandCentrePage() {
     chargesResult.error?.message,
     rejectedDocumentsResult.error?.message,
   ].filter((message): message is string => Boolean(message));
-
+  const blockingActions = actions.filter((action) => action.tone === "danger");
+  const guestAttentionActions = actions.filter(
+    (action) => action.id.startsWith("arrival") || action.id.startsWith("departure") || action.id.startsWith("verification"),
+  );
+  const roomAttentionActions = actions.filter(
+    (action) => action.id.startsWith("maintenance") || action.id.startsWith("cleaning"),
+  );
+  const shiftStatus = errors.length
+    ? "Data Needs Attention"
+    : blockingActions.length
+      ? `${blockingActions.length} urgent`
+      : actions.length
+        ? `${actions.length} follow-ups`
+        : "Ready for Arrival";
+  const shiftStatusTone: NonNullable<SnapshotMetric["tone"]> =
+    errors.length || blockingActions.length ? "danger" : actions.length ? "warning" : "success";
+  const todayMetrics: SnapshotMetric[] = [
+    {
+      label: "Arrivals Today",
+      value: checkInsToday.length,
+      href: "/admin/guest-records?view=needs_review",
+      tone: checkInsToday.length ? "blue" : "success",
+      detail: checkInsToday.length ? "Check room, ID, and payment before arrival." : "No arrivals scheduled.",
+      icon: CalendarCheck,
+    },
+    {
+      label: "Departures Today",
+      value: checkOutsToday.length,
+      href: "/admin/guest-records?view=active",
+      tone: checkOutsToday.length ? "warning" : "success",
+      detail: checkOutsToday.length ? "Clear Balance Due and mark checked-out from the Guest Stay." : "No departures due.",
+      icon: LogOut,
+    },
+    {
+      label: "Rooms Needing Cleaning",
+      value: roomsNeedingCleaning,
+      href: "/admin/occupancy",
+      tone: roomsNeedingCleaning ? "warning" : "success",
+      detail: roomsNeedingCleaning ? "Open the Room Reality Board for housekeeping actions." : "No cleaning blockers.",
+      icon: Sparkles,
+    },
+    {
+      label: "Rooms Not Ready",
+      value: roomsNotReady,
+      href: "/admin/occupancy",
+      tone: roomsNotReady ? "warning" : "success",
+      detail: `${readyForArrivalRooms} units are currently Ready for Arrival.`,
+      icon: Hotel,
+    },
+    {
+      label: "Maintenance Blocked",
+      value: maintenanceBlockedRooms,
+      href: "/admin/maintenance",
+      tone: maintenanceBlockedRooms ? "danger" : "success",
+      detail: maintenanceBlockedRooms ? "Maintenance is blocking room readiness." : "No maintenance-blocked rooms.",
+      icon: Wrench,
+    },
+    {
+      label: "Balance Due",
+      value: formatPkr(openOutstanding),
+      href: "/admin/guest-records?view=active",
+      tone: openOutstanding ? "warning" : "success",
+      detail: "Open active Guest Stays before checkout or extension decisions.",
+      icon: WalletCards,
+    },
+    {
+      label: "Pending ID / Payment Confirmation",
+      value: pendingVerification,
+      href: "/admin/guest-records?verification=payment",
+      tone: pendingVerification ? "warning" : "success",
+      detail: pendingVerification ? "Review before approving or continuing stays." : "All open stays look verified.",
+      icon: BadgeCheck,
+    },
+    {
+      label: "Multi-room bookings needing attention",
+      value: multiRoomBookingsNeedingAttention,
+      href: "/admin/guest-records?view=active",
+      tone: multiRoomBookingsNeedingAttention ? "warning" : "success",
+      detail: "Counts linked stays only; room-level stays remain the operating truth.",
+      icon: Hotel,
+    },
+  ];
+  const moneyMetrics: SnapshotMetric[] = [
+    {
+      label: "Today's collected",
+      value: formatPkr(report.kpis.totalRevenue),
+      detail: "Stay-level revenue from today's report inputs.",
+      icon: Banknote,
+    },
+    {
+      label: "Balance Due",
+      value: formatPkr(openOutstanding),
+      href: "/admin/guest-records?view=active",
+      tone: openOutstanding ? "warning" : "success",
+      detail: "Open across current non-checked-out Guest Stays.",
+      icon: WalletCards,
+    },
+    {
+      label: "New charges",
+      value: formatPkr(newChargesToday),
+      detail: "Additional charges added today.",
+      icon: Plus,
+    },
+  ];
   return (
-    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-col gap-4 rounded-xl border border-brand-sage bg-white/85 p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase text-brand-fresh">Daily operations</p>
-            <h1 className="mt-1 font-serif text-3xl font-semibold text-brand-deep">Command Centre</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Today&apos;s calm operating view for arrivals, departures, room readiness, Balance Due, and stays that Need Attention.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <Link href="/admin">Back to admin</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/admin/guests/new">
-                <UserPlus className="h-4 w-4" aria-hidden="true" />
-                New Guest
-              </Link>
-            </Button>
-          </div>
-        </header>
+    <AdminPageShell>
+      <AdminHero
+        eyebrow="Daily operations"
+        title="Command Centre"
+        description="Today's calm operating view for arrivals, departures, room readiness, Balance Due, and stays that Need Attention."
+        status={shiftStatus}
+        statusTone={shiftStatusTone}
+      >
+        <Button asChild variant="outline">
+          <Link href="/admin">Back to admin</Link>
+        </Button>
+        <Button asChild>
+          <Link href="/admin/guests/new">
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            New Guest
+          </Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href="/admin/occupancy">
+            <Hotel className="h-4 w-4" aria-hidden="true" />
+            Room Reality Board
+          </Link>
+        </Button>
+      </AdminHero>
 
-        {errors.length > 0 ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            {errors.join(" ")}
-          </div>
-        ) : null}
+      {errors.length > 0 ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <p className="font-semibold">Some Command Centre data could not load.</p>
+          <p className="mt-1">{errors.join(" ")}</p>
+        </div>
+      ) : null}
 
-        <section aria-labelledby="today-at-greenlux">
-          <Card>
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle id="today-at-greenlux">Today at GreenLux</CardTitle>
-                <CardDescription>
-                  Operating snapshot for {today}. Green means calm; amber or red means staff should open the linked workflow.
-                </CardDescription>
+      <AdminSection
+        title="Today at GreenLux"
+        description={`Operating snapshot for ${today}. Green means calm; amber or red means staff should open the linked workflow.`}
+        action={<Badge tone={actions.length ? "warning" : "success"}>{actions.length ? "Needs Attention" : "Ready for Arrival"}</Badge>}
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {todayMetrics.map((metric) => (
+            <AdminMetricTile key={metric.label} {...metric} />
+          ))}
+        </div>
+      </AdminSection>
+
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <AdminSection
+          title="Priority Actions"
+          description="Ordered by what can disrupt today's guest stay first."
+          action={<Badge tone={actions.length ? "warning" : "success"}>{actions.length} open</Badge>}
+        >
+          <div className="space-y-3">
+            {actions.length ? (
+              actions.map((action) => (
+                <AdminActionRow
+                  key={action.id}
+                  title={action.title}
+                  detail={action.detail}
+                  href={action.href}
+                  tone={action.tone}
+                  meta={action.meta}
+                  icon={actionIcon(action)}
+                />
+              ))
+            ) : (
+              <AdminEmptyState
+                title="No priority actions right now."
+                detail="Rooms and Guest Stay follow-ups look calm. Keep the Command Centre open during the shift for new arrivals, departures, and readiness changes."
+              />
+            )}
+          </div>
+        </AdminSection>
+
+        <AdminSection title="Quick Actions" description="Common staff flows.">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+            {quickActions.map((action) => (
+              <AdminQuickLink key={action.href} href={action.href} label={action.label} icon={action.icon} />
+            ))}
+          </div>
+        </AdminSection>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <AdminSection title="Today Timeline" description={`${occupancy.summary.occupiedUnits} current in-house.`}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-deep">Check-ins today</h3>
+                <Badge tone="blue">{checkInsToday.length}</Badge>
               </div>
-              <Badge tone={actions.length ? "warning" : "success"}>{actions.length ? "Needs Attention" : "Ready for Arrival"}</Badge>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {todayMetrics.map((metric) => (
-                <Metric key={metric.label} {...metric} />
-              ))}
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-          <Card>
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Priority Actions</CardTitle>
-                <CardDescription>Ordered by what can disrupt today&apos;s guest stay first.</CardDescription>
-              </div>
-              <Badge tone={actions.length ? "warning" : "success"}>{actions.length} open</Badge>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {actions.length ? (
-                actions.map((action) => (
+              {checkInsToday.length ? (
+                checkInsToday.map((checkin) => (
                   <Link
-                    key={action.id}
-                    href={action.href}
-                    className={`block rounded-lg border p-4 transition hover:shadow-soft ${actionTone(action.tone)}`}
+                    key={checkin.id}
+                    href={`/admin/guest-records/${checkin.id}`}
+                    className="block rounded-lg border border-brand-sage bg-brand-ivory p-3 text-sm transition hover:shadow-soft"
                   >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="font-semibold">{action.title}</p>
-                        <p className="mt-1 text-sm">{action.detail}</p>
-                        {action.meta ? <p className="mt-1 text-xs opacity-80">{action.meta}</p> : null}
-                      </div>
-                      <span className="text-sm font-semibold">Open</span>
-                    </div>
+                    <p className="font-semibold text-brand-deep">{checkin.full_name}</p>
+                    <p className="mt-1 text-slate-600">{roomLabel(roomNames, checkin.assigned_room_id)}</p>
+                    <p className="mt-1 text-xs text-slate-500">{formatEnumLabel(checkin.booking_source)}</p>
                   </Link>
                 ))
               ) : (
-                <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-                  No priority actions right now. Rooms and Guest Stay follow-ups look calm.
-                </div>
+                <p className="rounded-lg border border-brand-sage bg-brand-ivory p-3 text-sm text-slate-600">No arrivals scheduled.</p>
               )}
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common staff flows.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-              {quickActions.map((action) => (
-                <Button key={action.href} asChild variant="outline" className="justify-start">
-                  <Link href={action.href}>
-                    <action.icon className="h-4 w-4" aria-hidden="true" />
-                    {action.label}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-deep">Check-outs today</h3>
+                <Badge tone="warning">{checkOutsToday.length}</Badge>
+              </div>
+              {checkOutsToday.length ? (
+                checkOutsToday.map((checkin) => (
+                  <Link
+                    key={checkin.id}
+                    href={`/admin/guest-records/${checkin.id}`}
+                    className="block rounded-lg border border-brand-sage bg-brand-ivory p-3 text-sm transition hover:shadow-soft"
+                  >
+                    <p className="font-semibold text-brand-deep">{checkin.full_name}</p>
+                    <p className="mt-1 text-slate-600">{roomLabel(roomNames, checkin.assigned_room_id)}</p>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                      <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+                      Mark checked-out from Guest Stay
+                    </p>
                   </Link>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-        </section>
+                ))
+              ) : (
+                <p className="rounded-lg border border-brand-sage bg-brand-ivory p-3 text-sm text-slate-600">No departures due.</p>
+              )}
+            </div>
+          </div>
+        </AdminSection>
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Today Timeline</CardTitle>
-              <CardDescription>{occupancy.summary.occupiedUnits} current in-house.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-deep">Check-ins today</h2>
-                  <Badge tone="info">{checkInsToday.length}</Badge>
-                </div>
-                {checkInsToday.length ? (
-                  checkInsToday.map((checkin) => (
-                    <Link key={checkin.id} href={`/admin/guest-records/${checkin.id}`} className="block rounded-lg bg-brand-ivory p-3 text-sm">
-                      <p className="font-semibold text-brand-deep">{checkin.full_name}</p>
-                      <p className="text-slate-600">{roomLabel(roomNames, checkin.assigned_room_id)}</p>
-                      <p className="text-xs text-slate-500">{formatEnumLabel(checkin.booking_source)}</p>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="rounded-lg bg-brand-ivory p-3 text-sm text-slate-600">No arrivals scheduled.</p>
-                )}
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-deep">Check-outs today</h2>
-                  <Badge tone="warning">{checkOutsToday.length}</Badge>
-                </div>
-                {checkOutsToday.length ? (
-                  checkOutsToday.map((checkin) => (
-                    <Link key={checkin.id} href={`/admin/guest-records/${checkin.id}`} className="block rounded-lg bg-brand-ivory p-3 text-sm">
-                      <p className="font-semibold text-brand-deep">{checkin.full_name}</p>
-                      <p className="text-slate-600">{roomLabel(roomNames, checkin.assigned_room_id)}</p>
-                      <p className="flex items-center gap-1 text-xs text-slate-500">
-                        <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
-                        Mark checked-out from guest stay
-                      </p>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="rounded-lg bg-brand-ivory p-3 text-sm text-slate-600">No departures due.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Room Readiness</CardTitle>
-                <CardDescription>Live 11-unit readiness position from the Room Reality Board.</CardDescription>
-              </div>
-              <Button asChild size="sm" variant="outline">
-                <Link href="/admin/occupancy">Open occupancy</Link>
-              </Button>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-3">
-              <Metric label="Ready for Arrival" value={readyForArrivalRooms} href="/admin/occupancy" tone="success" />
-              <Metric label="Occupied" value={occupancy.summary.occupiedUnits} href="/admin/occupancy" />
-              <Metric label="Rooms Not Ready" value={roomsNotReady} href="/admin/occupancy" tone={roomsNotReady ? "warning" : "success"} />
-              <Metric label="Active maintenance" value={maintenanceLogs.length} href="/admin/maintenance" tone={maintenanceLogs.length ? "warning" : "success"} />
-            </CardContent>
-          </Card>
-        </section>
-
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle>Money Snapshot</CardTitle>
-              <CardDescription>
-                Simple operating-day totals. Expenses today: {formatPkr(report.kpis.totalExpenses)}.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <Metric label="Today's collected" value={formatPkr(report.kpis.totalRevenue)} />
-              <Metric label="Balance Due" value={formatPkr(openOutstanding)} />
-              <Metric label="New charges" value={formatPkr(newChargesToday)} />
-            </CardContent>
-          </Card>
-        </section>
+        <AdminSection
+          title="Room Readiness"
+          description="Live 11-unit readiness position from the Room Reality Board."
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/occupancy">Open occupancy</Link>
+            </Button>
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2">
+            <AdminMetricTile label="Ready for Arrival" value={readyForArrivalRooms} href="/admin/occupancy" tone="success" icon={BadgeCheck} />
+            <AdminMetricTile label="Occupied" value={occupancy.summary.occupiedUnits} href="/admin/occupancy" icon={DoorOpen} />
+            <AdminMetricTile
+              label="Rooms Not Ready"
+              value={roomsNotReady}
+              href="/admin/occupancy"
+              tone={roomsNotReady ? "warning" : "success"}
+              icon={AlertTriangle}
+            />
+            <AdminMetricTile
+              label="Active maintenance"
+              value={maintenanceLogs.length}
+              href="/admin/maintenance"
+              tone={maintenanceLogs.length ? "warning" : "success"}
+              icon={Wrench}
+            />
+          </div>
+        </AdminSection>
       </div>
-    </main>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <AdminSection
+          title="Money Snapshot"
+          description={`Simple operating-day totals. Expenses today: ${formatPkr(report.kpis.totalExpenses)}.`}
+        >
+          <div className="grid gap-3 sm:grid-cols-3">
+            {moneyMetrics.map((metric) => (
+              <AdminMetricTile key={metric.label} {...metric} />
+            ))}
+          </div>
+        </AdminSection>
+
+        <AdminSection
+          title="Focused Lanes"
+          description="A quieter split between guest blockers and room blockers when the priority list gets busy."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-deep">Guest blockers</h3>
+                <Badge tone={guestAttentionActions.length ? "warning" : "success"}>{guestAttentionActions.length}</Badge>
+              </div>
+              {guestAttentionActions.slice(0, 3).map((action) => (
+                <AdminActionRow
+                  key={`lane-${action.id}`}
+                  title={action.title}
+                  detail={action.detail}
+                  href={action.href}
+                  tone={action.tone}
+                  meta={action.meta}
+                  icon={actionIcon(action)}
+                  actionLabel="Review"
+                />
+              ))}
+              {!guestAttentionActions.length ? <p className="rounded-lg bg-brand-ivory p-3 text-sm text-slate-600">No guest blockers.</p> : null}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand-deep">Room blockers</h3>
+                <Badge tone={roomAttentionActions.length ? "warning" : "success"}>{roomAttentionActions.length}</Badge>
+              </div>
+              {roomAttentionActions.slice(0, 3).map((action) => (
+                <AdminActionRow
+                  key={`lane-${action.id}`}
+                  title={action.title}
+                  detail={action.detail}
+                  href={action.href}
+                  tone={action.tone}
+                  meta={action.meta}
+                  icon={actionIcon(action)}
+                  actionLabel="Fix"
+                />
+              ))}
+              {!roomAttentionActions.length ? <p className="rounded-lg bg-brand-ivory p-3 text-sm text-slate-600">No room blockers.</p> : null}
+            </div>
+          </div>
+        </AdminSection>
+      </div>
+    </AdminPageShell>
   );
 }

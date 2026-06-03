@@ -85,8 +85,11 @@ export default async function DashboardPage() {
                   admin permissions.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-wrap gap-2">
                 <Button asChild>
+                  <Link href="/admin/command-centre">Open Command Centre</Link>
+                </Button>
+                <Button asChild variant="secondary">
                   <Link href="/admin">Open admin area</Link>
                 </Button>
               </CardContent>
