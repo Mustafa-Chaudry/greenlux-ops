@@ -36,6 +36,9 @@ backups/
 .codegraph/
 landing_page_audit*.md
 
+# local public-site experiments not approved for live
+src/app/design-preview/
+
 # operational reset scripts must stay local unless explicitly requested
 scripts/manual-reset-test-operational-data.sql
 
