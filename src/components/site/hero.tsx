@@ -80,7 +80,7 @@ export function Hero() {
             {siteConfig.tagline}
           </p>
           <h1 className="font-serif text-5xl font-semibold leading-[0.98] sm:text-6xl lg:text-7xl">
-            Thoughtfully managed serviced stays — a lush, secure sanctuary for calm and absolute privacy.
+            Thoughtfully managed serviced stays - a lush, secure sanctuary for calm and absolute privacy.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 sm:text-xl sm:leading-9">
             A preferred choice for overseas families, business executives, and returning visitors seeking a clean, green,

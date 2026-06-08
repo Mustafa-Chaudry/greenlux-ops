@@ -13,6 +13,8 @@ export function ContactInquiryForm() {
   const [name, setName] = useState("");
   const [dates, setDates] = useState("");
   const [guests, setGuests] = useState("");
+  const [arrivalTime, setArrivalTime] = useState("");
+  const [visitPurpose, setVisitPurpose] = useState("");
   const [room, setRoom] = useState("Not sure yet");
   const [message, setMessage] = useState("");
 
@@ -23,6 +25,8 @@ export function ContactInquiryForm() {
       name ? `Name: ${name}` : null,
       dates ? `Dates: ${dates}` : null,
       guests ? `Guests: ${guests}` : null,
+      arrivalTime ? `Arrival time: ${arrivalTime}` : null,
+      visitPurpose ? `Visit purpose: ${visitPurpose}` : null,
       room ? `Room preference: ${room}` : null,
       message ? `Notes: ${message}` : null,
     ]
@@ -56,6 +60,26 @@ export function ContactInquiryForm() {
           placeholder="Example: 2 adults, 1 child"
         />
       </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="arrival-time">Arrival time</Label>
+          <Input
+            id="arrival-time"
+            value={arrivalTime}
+            onChange={(event) => setArrivalTime(event.target.value)}
+            placeholder="Example: 9:30 PM"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="visit-purpose">Visit purpose</Label>
+          <Input
+            id="visit-purpose"
+            value={visitPurpose}
+            onChange={(event) => setVisitPurpose(event.target.value)}
+            placeholder="Family, medical, work, airport"
+          />
+        </div>
+      </div>
       <div className="space-y-2">
         <Label htmlFor="room">Room preference</Label>
         <select
@@ -78,7 +102,7 @@ export function ContactInquiryForm() {
           onChange={(event) => setMessage(event.target.value)}
           rows={4}
           className="w-full rounded-lg border border-brand-sage bg-white px-3 py-2 text-sm text-brand-charcoal shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-fresh focus:ring-2 focus:ring-brand-sage"
-          placeholder="Guests, arrival time, or any special request"
+          placeholder="Luggage, children, kitchen access, late arrival, or anything that matters"
         />
       </div>
       <Button type="submit" className="w-full">

@@ -14,7 +14,8 @@ export const siteConfig = {
   email: process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "info@greenluxresidency.com",
   whatsappNumber: "923337067065",
   whatsappMessage:
-    "Hi GreenLux Residency, I would like to check availability. Please share rates for my dates.",
+    "Hi GreenLux Residency, I would like to check availability. My dates are __, guest count is __, arrival time is __, and visit purpose is __. Please suggest the right stay and share the live rate.",
+  arrivalGuideHref: "/arrival",
   onlineCheckInHref: "/dashboard/check-in",
 };
 
@@ -24,6 +25,6 @@ export function getWhatsAppHref(message = siteConfig.whatsappMessage) {
 
 export function getRoomWhatsAppHref(roomName: string) {
   return getWhatsAppHref(
-    `Hi GreenLux Residency, I would like to check availability for ${roomName}. Please share rates for my dates.`,
+    `Hi GreenLux Residency, I am interested in ${roomName}. My dates are __, guest count is __, and arrival time is __. Please confirm availability, live rate, and whether this room fits my stay.`,
   );
 }

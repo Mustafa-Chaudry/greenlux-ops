@@ -13,8 +13,24 @@ import { homepageRatings } from "@/lib/site/trust";
 import { aboutVideos } from "@/lib/site/videos";
 
 export const metadata: Metadata = {
-  title: "About",
+  title: "About GreenLux - Westridge, Rawalpindi",
   description: "Learn about GreenLux Residency's boutique serviced accommodation in Rawalpindi.",
+  alternates: {
+    canonical: "/about",
+  },
+  openGraph: {
+    title: "About GreenLux Residency",
+    description: "Learn about GreenLux Residency's calm serviced rooms, studios, and apartments in Rawalpindi.",
+    url: "/about",
+    images: [
+      {
+        url: "/greenlux/curation-review/about/03__about-image__terrace-swing-new__terrace-swing-new.jpg",
+        width: 1200,
+        height: 800,
+        alt: "GreenLux Residency terrace seating and swing",
+      },
+    ],
+  },
 };
 
 const values = [
@@ -139,7 +155,7 @@ export default function AboutPage() {
             <SectionHeading
               eyebrow="Platform trust"
               title="Ratings from public travel platforms."
-              description="Ratings vary by platform and listing. This prototype shows the latest public snapshot provided for GreenLux."
+              description="Ratings vary by platform and listing. Check live platforms for current scores."
               align="center"
             />
             <div className="mt-10">

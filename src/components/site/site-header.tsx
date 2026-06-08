@@ -8,6 +8,7 @@ import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/rooms", label: "Rooms" },
+  { href: "/guides", label: "Guides" },
   { href: "/location", label: "Location" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
@@ -60,7 +61,7 @@ export function SiteHeader() {
             </Link>
           </Button>
           <CTAButton
-            href={siteConfig.onlineCheckInHref}
+            href={siteConfig.arrivalGuideHref}
             variant="outline"
             size="sm"
             className="hidden border-brand-deep/20 bg-white/75 sm:inline-flex"
@@ -96,10 +97,10 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link
-            href={siteConfig.onlineCheckInHref}
+            href={siteConfig.arrivalGuideHref}
             className="whitespace-nowrap rounded-full bg-brand-deep px-4 py-2 text-sm font-semibold text-white"
           >
-            Online check-in
+            Arrival guide
           </Link>
         </div>
       </nav>

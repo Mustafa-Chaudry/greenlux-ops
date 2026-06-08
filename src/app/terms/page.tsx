@@ -4,8 +4,11 @@ import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
 
 export const metadata: Metadata = {
-  title: "Terms",
+  title: "Terms and House Rules",
   description: "Basic stay terms for GreenLux Residency guests.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 const terms = [
@@ -14,24 +17,36 @@ const terms = [
     body: "Availability and rates are confirmed by management before check-in. Prices may vary by dates, number of guests, room type, booking source, and length of stay.",
   },
   {
-    title: "Check-in and verification",
-    body: "Guests may be required to complete verification before arrival, including CNIC/passport details and supporting documents. GreenLux may refuse check-in if required verification is incomplete.",
+    title: "Check-in and check-out",
+    body: "Check-in and check-out times are confirmed at booking time. Guests arriving outside agreed hours should message GreenLux on WhatsApp in advance. Already-confirmed guests can complete online check-in before arrival.",
+  },
+  {
+    title: "Verification",
+    body: "Guests are required to complete verification before or on arrival, including CNIC or passport details and any supporting documents requested. GreenLux may refuse check-in if required verification is incomplete.",
   },
   {
     title: "Payment",
-    body: "Payment method and amount are agreed before or during check-in. Bank transfer or online payment may require proof of payment before the booking is treated as confirmed.",
+    body: "GreenLux accepts payment by bank transfer, cash, EasyPaisa, and JazzCash. The method and amount are agreed at booking time. Bank transfers require proof of payment before the booking is treated as confirmed.",
+  },
+  {
+    title: "House rules",
+    body: "GreenLux is a quiet, family-friendly residency. Guests must keep noise levels respectful at all times and avoid disturbances to other guests and neighbouring residents. Guests are responsible for any visitors they bring onto the property.",
   },
   {
     title: "Guest conduct",
-    body: "Guests must maintain a peaceful, family-friendly environment and respect the property, neighbours, staff, and other guests. Management may take action if conduct creates safety or disturbance concerns.",
+    body: "Guests must respect the property, staff, and other guests at all times. Management may take action, including removal without refund, if a guest's conduct creates safety or disturbance concerns.",
   },
   {
     title: "Damage and missing items",
-    body: "Guests may be responsible for damage, misuse, or missing items during their stay. Any charges should be communicated by management with reasonable supporting details.",
+    body: "Guests are responsible for damage, misuse, or missing items during their stay. Any charges will be communicated before departure, with supporting details provided by management.",
   },
   {
     title: "Cancellation and changes",
-    body: "Cancellation and date-change rules may vary by booking source and agreed rate. For direct bookings, management will confirm the applicable policy at booking time.",
+    body: "Cancellation and date-change terms vary by booking source and agreed rate. For direct bookings, GreenLux confirms the applicable cancellation policy at booking time. Where a booking has been confirmed, a cancellation or date-change fee may apply.",
+  },
+  {
+    title: "Privacy",
+    body: "Guest details collected during booking, verification, and check-in are used solely to manage your stay. GreenLux does not share guest information with third parties except where required by law or by a booking platform's data-handling terms.",
   },
 ];
 
@@ -46,7 +61,7 @@ export default function TermsPage() {
           <SectionHeading
             eyebrow="Terms"
             title="Basic stay terms."
-            description="These are starter terms for the public website. Final terms can be expanded with management-approved cancellation and house-rule details."
+            description="Please read these terms before confirming your stay. For questions about any item, message GreenLux on WhatsApp before booking."
           />
 
           <div className="mt-10 space-y-4">

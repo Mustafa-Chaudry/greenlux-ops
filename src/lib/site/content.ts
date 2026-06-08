@@ -195,6 +195,24 @@ export const propertyMoments: PropertyMoment[] = [
     image: "/greenlux/curation-review/homepage/11__common-area__shared-lounge-changed.jpg",
     alt: "GreenLux Residency premium rooftop terrace garden and common area",
   },
+  {
+    title: "First floor lounge",
+    description: "A comfortable shared lounge for selected stays when you want a quiet place outside the room.",
+    image: "/greenlux/curation-review/homepage/18__video-poster__First-floor-lounge__updated.webp",
+    alt: "GreenLux Residency first floor lounge seating",
+  },
+  {
+    title: "Studio terrace seating",
+    description: "A private studio terrace corner for tea, fresh air, or a slower moment during a longer stay.",
+    image: "/greenlux/curation-review/rooms/studio-1/06__gallery__Private-terrace-seating-corner__studio-1-terrace-garden-new.jpg",
+    alt: "GreenLux Residency private studio terrace seating corner",
+  },
+  {
+    title: "First floor kitchen",
+    description: "Shared kitchen access where listed, useful for tea, snacks, simple meals, and longer visits.",
+    image: "/greenlux/curation-review/rooms/room-5/first_floor_Kitchen.png",
+    alt: "GreenLux Residency first floor shared kitchen",
+  },
 ];
 
 export const faqs = [
@@ -222,5 +240,10 @@ export const faqs = [
     question: "Are amenities identical in every room?",
     answer:
       "No. Amenities vary by room. Each room page shows what is available for that stay.",
+  },
+  {
+    question: "What payment methods does GreenLux accept?",
+    answer:
+      "GreenLux accepts bank transfer, cash, EasyPaisa, and JazzCash. The method and amount are confirmed at booking time. Bank transfers require proof of payment before the stay is confirmed.",
   },
 ];

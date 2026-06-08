@@ -4,7 +4,7 @@
 |---:|---|---|---|---|---|---|---|
 | 1 | 01__header-brand__GreenLux-Residency-emblem__glr-emblem.png | /greenlux/brand/glr-emblem.png | src/components/site/header.tsx | location | header-brand | GreenLux Residency emblem |  |
 | 2 | 02__footer-brand__GreenLux-Residency-emblem__glr-emblem.png | /greenlux/brand/glr-emblem.png | src/components/site/footer.tsx | location | footer-brand | GreenLux Residency emblem |  |
-| 3 | 03__location-image__afic-hospital__afic-hospital.jpg | /greenlux/location/afic-hospital.jpg | src/app/location/page.tsx | location | location-image | afic hospital |  |
+| 3 | 03__location-image__quaid-e-azam-international-hospital__qih.webp | /greenlux/curation-review/location/03__location-image__quaid-e-azam-international-hospital__qih.webp | src/app/location/page.tsx | location | location-image | Quaid-e-Azam International Hospital |  |
 | 4 | 04__location-image__westridge-food-options__westridge-food-options.jpg | /greenlux/location/westridge-food-options.jpg | src/app/location/page.tsx | location | location-image | westridge food options |  |
 | 5 | 05__location-image__race-course-park__race-course-park.jpg | /greenlux/location/race-course-park.jpg | src/app/location/page.tsx | location | location-image | race course park |  |
 | 6 | 06__location-image__army-museum-park__army-museum-park.jpg | /greenlux/location/army-museum-park.jpg | src/app/location/page.tsx | location | location-image | army museum park |  |

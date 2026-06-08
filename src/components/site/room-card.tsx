@@ -89,13 +89,13 @@ export function RoomCard({ room, featured = false, imageSrc, imageAlt }: RoomCar
             size="default"
             className="flex-1"
           >
-            Check availability
+            Ask about this room
           </CTAButton>
         </div>
 
         <p className="flex items-center gap-2 text-xs text-slate-500">
           <MessageCircle className="h-3.5 w-3.5 text-brand-fresh" aria-hidden="true" />
-          Direct WhatsApp confirmation for your dates.
+          Send dates, guest count, and arrival time for a direct GreenLux reply.
         </p>
       </CardContent>
     </Card>

@@ -6,6 +6,9 @@ import { SiteShell } from "@/components/site/site-shell";
 export const metadata: Metadata = {
   title: "Privacy",
   description: "GreenLux Residency privacy information for guest records, ID verification, and payment proof.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 const privacySections = [
@@ -58,4 +61,3 @@ export default function PrivacyPage() {
     </SiteShell>
   );
 }
-

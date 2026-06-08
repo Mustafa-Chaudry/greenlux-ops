@@ -1,7 +1,9 @@
 import Image from "next/image";
+import Link from "next/link";
 import { CheckCircle2, MapPin, MessageCircle } from "lucide-react";
 import { CTAButton } from "@/components/site/cta-button";
 import { FAQSection } from "@/components/site/faq-section";
+import { GroupedCarousel } from "@/components/site/grouped-carousel";
 import { Hero } from "@/components/site/hero";
 import { MobileCarousel } from "@/components/site/mobile-carousel";
 import { RatingCards } from "@/components/site/rating-cards";
@@ -10,14 +12,14 @@ import { SectionHeading } from "@/components/site/section-heading";
 import { SiteShell } from "@/components/site/site-shell";
 import { TestimonialVideoSection } from "@/components/site/testimonial-video-section";
 import { VideoTourSection } from "@/components/site/video-tour-section";
-import { propertyMoments } from "@/lib/site/content";
+import { faqs, propertyMoments } from "@/lib/site/content";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
-
 import { featuredRooms } from "@/lib/site/rooms";
+import { guides } from "@/lib/site/guides";
 import { approvedVideoTestimonials } from "@/lib/site/testimonials";
 import { homepageRatings } from "@/lib/site/trust";
 import { homepageVideos } from "@/lib/site/videos";
-
+import { faqPageJsonLd, lodgingBusinessJsonLd } from "@/lib/site/seo";
 
 const guestMentionHighlights = [
   "Clean and well-kept rooms",
@@ -32,25 +34,12 @@ const featuredRoomImages: Record<string, string> = {
   "room-5": "/greenlux/curation-review/homepage/15__featured-stay-card__Room-5__room-5-1.jpg",
 };
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "LodgingBusiness",
-  name: "GreenLux Residency",
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: "Rawalpindi / Islamabad",
-    addressCountry: "Pakistan",
-  },
-  description: "Thoughtfully managed serviced stays in Rawalpindi with calm, privacy, and direct host care.",
-  priceRange: "$$",
-};
-
 export default function HomePage() {
   return (
     <SiteShell>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify([lodgingBusinessJsonLd, faqPageJsonLd(faqs.slice(0, 4))]) }}
       />
       <main>
         <Hero />
@@ -124,7 +113,7 @@ export default function HomePage() {
                 </article>
               ))}
             </MobileCarousel>
-            <div className="mt-10 hidden gap-5 md:grid md:grid-cols-3">
+            <GroupedCarousel ariaLabel="Common areas grouped carousel" itemsPerPage={3} className="mt-10 hidden md:block" gridClassName="md:grid-cols-3">
               {propertyMoments.map((moment) => (
                 <article key={moment.title} className="overflow-hidden rounded-[1.5rem] border border-brand-deep/10 bg-brand-ivory">
                   <div className="relative aspect-[4/3]">
@@ -142,7 +131,7 @@ export default function HomePage() {
                   </div>
                 </article>
               ))}
-            </div>
+            </GroupedCarousel>
           </div>
         </section>
 
@@ -175,6 +164,32 @@ export default function HomePage() {
           videos={homepageVideos}
         />
 
+        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="space-y-8">
+            <SectionHeading
+              eyebrow="Stay planning"
+              title="Local notes for choosing a calmer Rawalpindi stay."
+              description="A few practical GreenLux guides for guests planning family visits, medical appointments, work trips, food access, and Rawalpindi / Islamabad movement."
+              className="max-w-4xl"
+            />
+            <GroupedCarousel ariaLabel="GreenLux stay planning guides" itemsPerPage={2} gridClassName="md:grid-cols-2">
+              {guides.map((guide) => (
+                <Link
+                  key={guide.slug}
+                  href={guide.href}
+                  className="group min-h-[230px] rounded-[1.5rem] border border-brand-deep/10 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:bg-brand-ivory hover:shadow-[0_18px_44px_rgba(15,61,46,0.08)]"
+                >
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">{guide.shortTitle}</p>
+                  <h3 className="mt-3 font-serif text-3xl font-semibold leading-tight text-brand-deep">{guide.title}</h3>
+                  <p className="mt-4 text-sm leading-7 text-slate-700">{guide.description}</p>
+                  <span className="mt-4 inline-flex text-sm font-bold text-brand-deep transition group-hover:text-brand-fresh">
+                    Read guide
+                  </span>
+                </Link>
+              ))}
+            </GroupedCarousel>
+          </div>
+        </section>
 
         <section className="bg-brand-ivory py-12">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">

@@ -16,21 +16,25 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   metadataBase: new URL("https://greenluxresidency.com"),
   title: {
-    default: "Thoughtfully managed serviced stays in Rawalpindi with calm, privacy, and direct host care.",
+    default: "GreenLux Residency | Serviced Rooms & Apartments in Rawalpindi",
     template: "%s | GreenLux Residency",
   },
   description:
     "A clean, green, and quiet serviced-stay retreat in Westridge 1 for overseas families, business executives, medical visitors, and short stays.",
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: "/greenlux/brand/glr-emblem.png",
     apple: "/greenlux/brand/glr-emblem.png",
   },
   openGraph: {
-    title: "Thoughtfully managed serviced stays in Rawalpindi with calm, privacy, and direct host care.",
+    title: "GreenLux Residency | Serviced Rooms & Apartments in Rawalpindi",
     description:
       "A clean, green, and quiet serviced-stay retreat in Westridge 1 for overseas families, business executives, medical visitors, and short stays.",
     type: "website",
     siteName: "GreenLux Residency",
+    url: "/",
     images: [
       {
         url: "/greenlux/property/hero-terrace.jpg",
@@ -42,7 +46,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Thoughtfully managed serviced stays in Rawalpindi with calm, privacy, and direct host care.",
+    title: "GreenLux Residency | Serviced Rooms & Apartments in Rawalpindi",
     description:
       "A clean, green, and quiet serviced-stay retreat in Westridge 1 for overseas families, business executives, medical visitors, and short stays.",
     images: ["/greenlux/property/hero-terrace.jpg"],

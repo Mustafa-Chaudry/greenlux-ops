@@ -12,7 +12,7 @@ const footerLinks = [
   { href: "/contact", label: "Contact" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
-  { href: siteConfig.onlineCheckInHref, label: "Online check-in" },
+  { href: siteConfig.arrivalGuideHref, label: "Arrival guide" },
 ];
 
 export function SiteFooter() {
@@ -34,8 +34,8 @@ export function SiteFooter() {
             <CTAButton href={getWhatsAppHref()} external whatsapp variant="secondary" size="default" className="bg-brand-gold text-brand-deep hover:bg-[#d9b96d]">
               Book on WhatsApp
             </CTAButton>
-            <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" size="default" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
-              Online check-in
+            <CTAButton href={siteConfig.arrivalGuideHref} variant="outline" size="default" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+              Arrival guide
             </CTAButton>
           </div>
         </div>

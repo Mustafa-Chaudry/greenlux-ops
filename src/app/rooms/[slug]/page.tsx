@@ -13,6 +13,7 @@ import { VideoCard } from "@/components/site/video-card";
 import { Button } from "@/components/ui/button";
 import { getRoomWhatsAppHref, siteConfig } from "@/lib/site/config";
 import { formatPricePkr, getRelatedRooms, getRoomBySlug, rooms } from "@/lib/site/rooms";
+import { breadcrumbJsonLd, roomJsonLd } from "@/lib/site/seo";
 import { getRoomRating } from "@/lib/site/trust";
 import { getVideoBySlug } from "@/lib/site/videos";
 
@@ -37,6 +38,20 @@ export async function generateMetadata({ params }: RoomDetailPageProps): Promise
   return {
     title: room.name,
     description: room.shortDescription,
+    alternates: {
+      canonical: `/rooms/${room.slug}`,
+    },
+    openGraph: {
+      title: `${room.name} at GreenLux Residency`,
+      description: room.shortDescription,
+      url: `/rooms/${room.slug}`,
+      images: [
+        {
+          url: room.images[0],
+          alt: room.imageAlt,
+        },
+      ],
+    },
   };
 }
 
@@ -60,6 +75,19 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
 
   return (
     <SiteShell>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            roomJsonLd(room),
+            breadcrumbJsonLd([
+              { name: "Home", href: "/" },
+              { name: "Rooms", href: "/rooms" },
+              { name: room.name, href: `/rooms/${room.slug}` },
+            ]),
+          ]),
+        }}
+      />
       <main>
         <section className="bg-gradient-to-b from-brand-ivory via-white to-brand-ivory px-4 py-8 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
@@ -93,7 +121,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
                 </div>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <CTAButton href={getRoomWhatsAppHref(room.name)} external whatsapp>
-                    Check availability on WhatsApp
+                    Ask about this room
                   </CTAButton>
                   {roomVideo ? (
                     <CTAButton href="#video-tour" variant="outline">
@@ -259,7 +287,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
               </div>
               <div className="mt-6 space-y-3">
                 <CTAButton href={getRoomWhatsAppHref(room.name)} external whatsapp className="w-full">
-                  Check availability on WhatsApp
+                  Ask about this room on WhatsApp
                 </CTAButton>
                 <CTAButton href={siteConfig.onlineCheckInHref} variant="outline" showArrow className="w-full">
                   Already booked? Complete online check-in

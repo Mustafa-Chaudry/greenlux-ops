@@ -18,7 +18,7 @@ test("guest portal renders a clear concierge-style journey", () => {
   const pageSource = sourceAt(pagePath, "src/app/dashboard/check-in/page.tsx");
 
   for (const label of [
-    "Guest details",
+    "Your details",
     "ID/payment upload",
     "Arrival details",
     "Review/submission",
@@ -38,9 +38,9 @@ test("guest portal success state avoids false verification claims", () => {
 
   assert.match(formSource, /Welcome to GreenLux/, "success state must welcome the guest");
   assert.match(formSource, /details have been received/, "success state must confirm receipt");
-  assert.match(formSource, /staff will review/i, "success state must say staff review is pending");
+  assert.match(formSource, /team will review/i, "success state must say staff review is pending");
   assert.match(formSource, /ID received/, "success state must show ID received");
-  assert.match(formSource, /pending review/i, "success state must show pending review");
+  assert.match(formSource, /Pending Team Review/i, "success state must show pending team review");
   assert.match(formSource, /room assigned/i, "success state must mention room assignment status");
   assert.doesNotMatch(formSource, /documents verified|payment verified|approved for arrival/i, "must not claim verification or approval after submission");
 });
@@ -52,7 +52,7 @@ test("guest portal supports Wi-Fi request without exposing credentials", () => {
   assert.match(formSource, /Request Wi-Fi Access/, "must include Wi-Fi request button");
   assert.match(
     formSource,
-    /Hello GreenLux team, I have completed my check-in and would like Wi-Fi access\. My name is/,
+    /Hello GreenLux team, I have completed my arrival details and would like to request Wi-Fi access\. My name is/,
     "must use approved named Wi-Fi WhatsApp message",
   );
   assert.match(formSource, /getWhatsAppHref/, "must use existing WhatsApp helper");

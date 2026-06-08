@@ -7,19 +7,56 @@ import { SiteShell } from "@/components/site/site-shell";
 import { CTAButton } from "@/components/site/cta-button";
 import { getWhatsAppHref, siteConfig } from "@/lib/site/config";
 import { formatPricePkr, roomTypeLabels, rooms, type RoomType } from "@/lib/site/rooms";
+import { roomItemListJsonLd } from "@/lib/site/seo";
 
 export const metadata: Metadata = {
-  title: "Rooms and Apartments",
+  title: "Rooms and Apartments in Rawalpindi",
   description: "Explore GreenLux Residency rooms, studios, and serviced apartments in Rawalpindi.",
+  alternates: {
+    canonical: "/rooms",
+  },
+  openGraph: {
+    title: "Rooms and Apartments at GreenLux Residency",
+    description: "Compare GreenLux private rooms, studios, and serviced apartments in Westridge 1, Rawalpindi.",
+    url: "/rooms",
+    images: [
+      {
+        url: "/greenlux/curation-review/rooms-page/03__rooms-page-image__booking-lounge-01__booking-lounge-01.jpg",
+        width: 1200,
+        height: 800,
+        alt: "GreenLux Residency shared lounge seating",
+      },
+    ],
+  },
 };
 
-const roomTypes: Array<{ label: string; type?: RoomType }> = [
+const roomTypes: Array<{ label: string; type?: RoomType; description?: string }> = [
   { label: "All stays" },
-  { label: roomTypeLabels.club_class, type: "club_class" },
-  { label: roomTypeLabels.deluxe, type: "deluxe" },
-  { label: roomTypeLabels.executive, type: "executive" },
-  { label: roomTypeLabels.economy, type: "economy" },
-  { label: roomTypeLabels.apartment, type: "apartment" },
+  {
+    label: roomTypeLabels.club_class,
+    type: "club_class",
+    description: "Studios for guests who want more independence, kitchen basics, and a calmer longer-stay rhythm.",
+  },
+  {
+    label: roomTypeLabels.deluxe,
+    type: "deluxe",
+    description: "Polished private rooms for couples, work trips, repeat guests, and short Rawalpindi stays.",
+  },
+  {
+    label: roomTypeLabels.executive,
+    type: "executive",
+    description: "Practical private rooms with strong value for solo guests, business travel, and simple overnight stays.",
+  },
+  {
+    label: roomTypeLabels.economy,
+    type: "economy",
+    description: "Lower-cost private options when the priority is a clean, managed base and sensible nightly rate.",
+  },
+  {
+    label: roomTypeLabels.apartment,
+    type: "apartment",
+    description: "Full apartment-style stays for families, luggage, longer visits, and guests who need more space.",
+  },
 ];
 
 const decisionGuide = [
@@ -45,6 +82,7 @@ const roomCardImages: Record<string, string> = {
 export default function RoomsPage() {
   return (
     <SiteShell>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(roomItemListJsonLd) }} />
       <main>
         <section className="bg-brand-ivory px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
@@ -119,7 +157,7 @@ export default function RoomsPage() {
             <SectionHeading
               eyebrow="Which stay fits?"
               title="A quick way to decide."
-              description="Private rooms suit short stays and work trips. Studios add kitchenette-style independence. Full apartments give families more room to settle."
+              description="Use this section to narrow the room type, then message GreenLux with dates, guest count, arrival time, and anything that matters for your stay."
             />
             <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               {roomTypes.slice(1).map((type) => {
@@ -131,6 +169,7 @@ export default function RoomsPage() {
                     <p className="mt-2 text-sm leading-6 text-slate-600">
                       {count} stay{count === 1 ? "" : "s"}
                     </p>
+                    <p className="mt-3 text-sm leading-6 text-slate-700">{type.description}</p>
                   </div>
                 );
               })}

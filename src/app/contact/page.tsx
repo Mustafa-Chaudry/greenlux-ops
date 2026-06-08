@@ -12,14 +12,30 @@ import { homepageRatings } from "@/lib/site/trust";
 import { contactVideos } from "@/lib/site/videos";
 
 export const metadata: Metadata = {
-  title: "Contact",
+  title: "Contact GreenLux - Rawalpindi",
   description: "Contact GreenLux Residency on WhatsApp for availability and arrival support.",
+  alternates: {
+    canonical: "/contact",
+  },
+  openGraph: {
+    title: "Contact GreenLux Residency",
+    description: "Message GreenLux Residency on WhatsApp for availability, room fit, and arrival support.",
+    url: "/contact",
+    images: [
+      {
+        url: "/greenlux/curation-review/contact/03__contact-image__building-front-new__building-front-new.jpg",
+        width: 1200,
+        height: 800,
+        alt: "GreenLux Residency building front",
+      },
+    ],
+  },
 };
 
 const contactMethods = [
   {
     label: "WhatsApp",
-    value: "Fastest way to confirm dates and rates",
+    value: "Best for dates, rates, room fit, and arrival timing",
     href: getWhatsAppHref(),
     icon: MessageCircle,
     external: true,
@@ -48,17 +64,18 @@ const contactMethods = [
 ];
 
 const bookingSteps = [
-  "Send your dates and guest count.",
-  "We confirm the best available room, studio, or apartment.",
+  "Send dates, guest count, arrival time, and the reason for your visit.",
+  "We suggest the room, studio, or apartment that fits the stay.",
   "After booking, complete online check-in before you arrive.",
 ];
 
 const inquiryChecklist = [
   "Dates",
   "Number of guests",
+  "Arrival time",
+  "Visit purpose",
   "Preferred room, studio, or apartment",
-  "Purpose of visit if relevant",
-  "Expected arrival time",
+  "Kitchen, luggage, children, or late arrival needs",
 ];
 
 export default function ContactPage() {
@@ -73,8 +90,8 @@ export default function ContactPage() {
                 Message us your dates. We will help you choose the right stay.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-700">
-                WhatsApp is the quickest way to check availability, compare options, and get arrival guidance for
-                GreenLux Residency in Westridge, Rawalpindi.
+                WhatsApp is the quickest way to check availability, compare rooms, confirm the live rate, and plan
+                arrival for GreenLux Residency in Westridge, Rawalpindi.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <CTAButton href={getWhatsAppHref()} external whatsapp>
@@ -99,7 +116,7 @@ export default function ContactPage() {
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">Location</p>
                 <p className="mt-1 font-serif text-2xl font-semibold text-brand-deep">{siteConfig.addressLine}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Approx coordinates: {siteConfig.coordinates.latitude} N, {siteConfig.coordinates.longitude} E
+                  Westridge 1, Rawalpindi - a quiet residential neighbourhood.
                 </p>
               </div>
             </div>
@@ -167,7 +184,8 @@ export default function ContactPage() {
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-gold">Quick inquiry</p>
                 <h2 className="mt-3 font-serif text-3xl font-semibold text-brand-deep">Send details on WhatsApp</h2>
                 <p className="mt-3 text-sm leading-6 text-slate-600">
-                  Add your dates, guest count, and room preference. The form opens WhatsApp with your message ready.
+                  Add the details that affect the stay. The form opens WhatsApp with your message ready for the
+                  GreenLux team to review.
                 </p>
                 <div className="mt-6">
                   <ContactInquiryForm />
