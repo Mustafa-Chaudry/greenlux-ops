@@ -3,7 +3,7 @@ import { guides } from "@/lib/site/guides";
 import { rooms } from "@/lib/site/rooms";
 import { siteConfig } from "@/lib/site/config";
 
-export const siteUrl = "https://greenluxresidency.com";
+export const siteUrl = "https://www.greenluxresidency.com";
 
 export function absoluteUrl(path = "/") {
   return new URL(path, siteUrl).toString();

@@ -191,7 +191,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="bg-brand-ivory py-12">
+        <section id="faq" className="bg-brand-ivory py-12">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
             <SectionHeading
               eyebrow="FAQ"

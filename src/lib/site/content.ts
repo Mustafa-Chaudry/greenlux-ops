@@ -204,13 +204,13 @@ export const propertyMoments: PropertyMoment[] = [
   {
     title: "Studio terrace seating",
     description: "A private studio terrace corner for tea, fresh air, or a slower moment during a longer stay.",
-    image: "/greenlux/curation-review/rooms/studio-1/06__gallery__Private-terrace-seating-corner__studio-1-terrace-garden-new.jpg",
+    image: "/greenlux/rooms/studio-1-terrace-garden-new.jpg",
     alt: "GreenLux Residency private studio terrace seating corner",
   },
   {
     title: "First floor kitchen",
     description: "Shared kitchen access where listed, useful for tea, snacks, simple meals, and longer visits.",
-    image: "/greenlux/curation-review/rooms/room-5/first_floor_Kitchen.png",
+    image: "/greenlux/rooms/first_floor_Kitchen.png",
     alt: "GreenLux Residency first floor shared kitchen",
   },
 ];

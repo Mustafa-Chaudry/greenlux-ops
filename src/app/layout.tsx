@@ -14,7 +14,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://greenluxresidency.com"),
+  metadataBase: new URL("https://www.greenluxresidency.com"),
   title: {
     default: "GreenLux Residency | Serviced Rooms & Apartments in Rawalpindi",
     template: "%s | GreenLux Residency",
