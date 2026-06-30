@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { hasAllowedRole, managementRoles, superAdminRoles } from "@/lib/auth/roles";
 import { getBusinessTodayDate, maintenanceStatusOptions, paymentMethodOptions } from "@/lib/check-in/options";
-import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/uploads";
+import { isAllowedUploadMimeType, isAllowedUploadSize, hasValidMagicBytes } from "@/lib/validation/uploads";
 
 type MaintenancePayload = {
   id?: string;
@@ -195,6 +195,9 @@ async function createLinkedExpense({
   let receiptPath: string | null = null;
 
   if (receipt) {
+    if (!(await hasValidMagicBytes(receipt))) {
+      throw new Error("Receipt file content does not match the expected format.");
+    }
     receiptPath = `${profileId}/${expenseId}/receipt-${crypto.randomUUID()}-${sanitizeFileName(receipt.name)}`;
     const { error: uploadError } = await supabase.storage.from("expense-receipts").upload(receiptPath, receipt, {
       cacheControl: "3600",

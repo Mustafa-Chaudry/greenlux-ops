@@ -14,7 +14,7 @@ import {
 } from "@/lib/check-in/options";
 import { findUnitAssignmentConflict, formatUnitConflictMessage } from "@/lib/check-in/unit-availability";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/uploads";
+import { isAllowedUploadMimeType, isAllowedUploadSize, hasValidMagicBytes } from "@/lib/validation/uploads";
 import type { Database } from "@/types/database";
 
 type DocumentType = Database["public"]["Enums"]["document_type"];
@@ -114,8 +114,11 @@ function getFiles(formData: FormData, fieldName: string) {
     .filter((value): value is File => value instanceof File && value.size > 0);
 }
 
-function validateUploadFile(file: File) {
+async function validateUploadFile(file: File) {
   if (!isAllowedUploadMimeType(file.type) || !isAllowedUploadSize(file.size)) {
+    throw new Error("Uploads must be JPG, PNG, or PDF files up to 10 MB each.");
+  }
+  if (!(await hasValidMagicBytes(file))) {
     throw new Error("Uploads must be JPG, PNG, or PDF files up to 10 MB each.");
   }
 }
@@ -135,7 +138,7 @@ async function uploadGuestDocument({
   uploadedBy: string;
   documentStatus?: DocumentStatus;
 }) {
-  validateUploadFile(file);
+  await validateUploadFile(file);
 
   const documentFolder = documentType === "supporting_document" ? "supporting-documents" : documentType;
   const filePath = `${uploadedBy}/${checkinId}/${documentFolder}/${documentType}-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;

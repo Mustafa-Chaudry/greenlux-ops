@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { sanitizeAuthMessage } from "@/lib/auth/messages";
 
 export const metadata: Metadata = {
   title: "Create Account",
@@ -19,7 +20,7 @@ export default async function SignUpPage({
         <Link href="/" className="block text-center font-serif text-2xl font-semibold text-brand-deep">
           GreenLux Residency
         </Link>
-        <SignUpForm message={params.message} />
+        <SignUpForm message={sanitizeAuthMessage(params.message)} />
       </div>
     </main>
   );

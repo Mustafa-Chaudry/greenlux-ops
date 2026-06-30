@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { superAdminRoles } from "@/lib/auth/roles";
 import { expenseCategoryOptions, paymentMethodOptions } from "@/lib/check-in/options";
-import { isAllowedUploadMimeType, isAllowedUploadSize } from "@/lib/validation/uploads";
+import { isAllowedUploadMimeType, isAllowedUploadSize, hasValidMagicBytes } from "@/lib/validation/uploads";
 
 const nullableString = (value: FormDataEntryValue | null) => {
   if (typeof value !== "string" || value.trim() === "") {
@@ -54,6 +54,9 @@ async function uploadReceipt({
   file: File;
   userId: string;
 }) {
+  if (!(await hasValidMagicBytes(file))) {
+    throw new Error("Receipt file content does not match the expected format.");
+  }
   const { supabase } = await requireRole(superAdminRoles);
   const filePath = `${userId}/${expenseId}/receipt-${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
   const { error } = await supabase.storage.from("expense-receipts").upload(filePath, file, {

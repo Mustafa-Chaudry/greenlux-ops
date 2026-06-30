@@ -94,7 +94,7 @@ export default async function NewGuestPage({ searchParams }: PageProps) {
   const today = getBusinessTodayDate();
   const tomorrow = addDaysIso(today, 1);
   const repeatSearch = params.repeat_q?.trim() ?? "";
-  const repeatSearchTerm = repeatSearch.replace(/,/g, " ");
+  const repeatSearchTerm = repeatSearch.replace(/,/g, " ").replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
   const [{ data: rooms }, { data: bookingGroups }, { data: selectedRepeatStay }, repeatSearchResult, { data: selectedBookingGroup }] = await Promise.all([
     supabase
       .from("rooms")

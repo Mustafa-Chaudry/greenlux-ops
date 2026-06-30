@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signInSchema, signUpSchema } from "@/lib/validation/auth";
+import { sanitizeSupabaseSignInError, sanitizeSupabaseSignUpError } from "@/lib/auth/messages";
 
 function redirectWithMessage(path: string, message: string): never {
   redirect(`${path}?message=${encodeURIComponent(message)}`);
@@ -19,7 +20,7 @@ export async function signIn(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
-    redirectWithMessage("/auth/sign-in", error.message);
+    redirectWithMessage("/auth/sign-in", sanitizeSupabaseSignInError(error.message));
   }
 
   redirect("/dashboard");
@@ -46,7 +47,7 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
-    redirectWithMessage("/auth/sign-up", error.message);
+    redirectWithMessage("/auth/sign-up", sanitizeSupabaseSignUpError(error.message));
   }
 
   redirectWithMessage(

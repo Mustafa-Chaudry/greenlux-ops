@@ -167,7 +167,7 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
   }
 
   if (params.q?.trim()) {
-    const search = params.q.trim().replace(/,/g, " ");
+    const search = params.q.trim().replace(/,/g, " ").replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
     query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
   }
 

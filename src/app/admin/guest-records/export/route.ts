@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     query = query.eq("status", "issue");
   }
 
-  const search = params.get("q")?.trim().replace(/,/g, " ");
+  const search = params.get("q")?.trim().replace(/,/g, " ").replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
   if (search) {
     query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
   }
