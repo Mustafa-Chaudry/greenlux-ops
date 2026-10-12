@@ -37,6 +37,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/rooms/budget-room-11",
+        destination: "/rooms/executive-room-11",
+        permanent: true,
+      },
+      {
         source: "/westridge-1-location",
         destination: "/guides/westridge-rawalpindi",
         permanent: true,
@@ -228,12 +233,12 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/apartment/room-13",
-        destination: "/rooms/budget-room-11",
+        destination: "/rooms/executive-room-11",
         permanent: true,
       },
       {
         source: "/apartment/room-13/",
-        destination: "/rooms/budget-room-11",
+        destination: "/rooms/executive-room-11",
         permanent: true,
       },
     ];

@@ -70,7 +70,7 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
     room.stayType === "Full apartment"
       ? ["Private apartment space", "Kitchen and lounge where listed", "Terrace or shared outdoor access where listed"]
       : room.stayType === "Studio apartment"
-        ? ["Private studio space", "Kitchen basics where listed", "Terrace or shared outdoor access where listed"]
+        ? ["Private studio space", "Kitchen", "Terrace or shared outdoor access where listed"]
         : ["Private room", "Shared lounge or terrace access where listed", "Direct GreenLux support on WhatsApp"];
 
   return (
@@ -114,6 +114,11 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
                     <BedDouble className="h-4 w-4 text-brand-fresh" aria-hidden="true" />
                     {room.stayType}
                   </span>
+                  {room.sizeLabel ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-brand-deep/10 bg-white px-4 py-2 text-sm font-semibold text-brand-deep shadow-sm">
+                      {room.sizeLabel}
+                    </span>
+                  ) : null}
                   <span className="inline-flex items-center gap-2 rounded-full border border-brand-deep/10 bg-white px-4 py-2 text-sm font-semibold text-brand-deep shadow-sm">
                     <BadgeCheck className="h-4 w-4 text-brand-fresh" aria-hidden="true" />
                     {room.decisionLabel}

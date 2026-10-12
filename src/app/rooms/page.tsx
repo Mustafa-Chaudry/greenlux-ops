@@ -35,7 +35,7 @@ const roomTypes: Array<{ label: string; type?: RoomType; description?: string }>
   {
     label: roomTypeLabels.club_class,
     type: "club_class",
-    description: "Studios for guests who want more independence, kitchen basics, and a calmer longer-stay rhythm.",
+    description: "Studios for guests who want more independence, a private kitchen, and a calmer longer-stay rhythm.",
   },
   {
     label: roomTypeLabels.deluxe,
@@ -48,11 +48,6 @@ const roomTypes: Array<{ label: string; type?: RoomType; description?: string }>
     description: "Practical private rooms with strong value for solo guests, business travel, and simple overnight stays.",
   },
   {
-    label: roomTypeLabels.economy,
-    type: "economy",
-    description: "Lower-cost private options when the priority is a clean, managed base and sensible nightly rate.",
-  },
-  {
     label: roomTypeLabels.apartment,
     type: "apartment",
     description: "Full apartment-style stays for families, luggage, longer visits, and guests who need more space.",
@@ -60,7 +55,7 @@ const roomTypes: Array<{ label: string; type?: RoomType; description?: string }>
 ];
 
 const decisionGuide = [
-  { label: "Exceptional value", room: rooms.find((room) => room.slug === "budget-room-11") },
+  { label: "Exceptional value", room: rooms.find((room) => room.slug === "executive-room-11") },
   { label: "Best for family", room: rooms.find((room) => room.slug === "apartment-3") },
   { label: "Most private", room: rooms.find((room) => room.slug === "studio-1") },
   { label: "Executive value", room: rooms.find((room) => room.slug === "room-10") },
@@ -74,9 +69,9 @@ const roomCardImages: Record<string, string> = {
   "room-5": "/greenlux/curation-review/rooms-page/08__room-card__Room-5__room-5-1.jpg",
   "room-7": "/greenlux/curation-review/rooms-page/09__room-card__Room-7__room-7-1.jpg",
   "room-6": "/greenlux/curation-review/rooms-page/10__room-card__Room-6__room-6-1.jpg",
-  "room-10": "/greenlux/curation-review/rooms-page/11__room-card__Room-10__room-10-1.jpg",
+  "room-10": "/greenlux/rooms/room-10-curated-02.jpg",
   "room-9": "/greenlux/curation-review/rooms-page/12__room-card__Room-9__room-9-1.jpg",
-  "budget-room-11": "/greenlux/curation-review/rooms-page/13__room-card__Budget-Room-11__budget-room-11-1.jpg",
+  "executive-room-11": "/greenlux/curation-review/rooms-page/13__room-card__Budget-Room-11__budget-room-11-1.jpg",
 };
 
 export default function RoomsPage() {
@@ -159,9 +154,9 @@ export default function RoomsPage() {
               title="A quick way to decide."
               description="Use this section to narrow the room type, then message GreenLux with dates, guest count, arrival time, and anything that matters for your stay."
             />
-            <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {roomTypes.slice(1).map((type) => {
-                const count = type.type === "economy" ? 3 : rooms.filter((room) => room.type === type.type).length;
+                const count = rooms.filter((room) => room.type === type.type).length;
 
                 return (
                   <div key={type.label} id={type.type} className="rounded-2xl border border-brand-deep/10 bg-brand-ivory p-5">

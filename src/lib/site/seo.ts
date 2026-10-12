@@ -182,7 +182,7 @@ export const lodgingBusinessJsonLd = {
   url: absoluteUrl("/"),
   telephone: siteConfig.phoneDisplay,
   email: siteConfig.email,
-  priceRange: "PKR 10,000+",
+  priceRange: `PKR ${Math.min(...rooms.map((room) => room.priceFromPkr)).toLocaleString("en-PK")}+`,
   description:
     "Thoughtfully managed private rooms, studios, and serviced apartments in Westridge 1, Rawalpindi with direct GreenLux support.",
   image: [

@@ -229,7 +229,7 @@ export const faqs = [
   {
     question: "Are studios and full apartments available?",
     answer:
-      "Yes. GreenLux has studios, full apartments, deluxe rooms, executive rooms, and budget rooms.",
+      "Yes. GreenLux has studios, full apartments, deluxe rooms, and executive rooms.",
   },
   {
     question: "Is GreenLux suitable for families?",
