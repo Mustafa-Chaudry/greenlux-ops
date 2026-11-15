@@ -405,12 +405,17 @@ export function getActionRequiredLabel(checkin: {
 }
 
 export function getBusinessTodayDate() {
+  return getBusinessDate();
+}
+
+// The GreenLux calendar date (Asia/Karachi) for any instant. Use this instead of slicing UTC timestamps.
+export function getBusinessDate(date: Date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Karachi",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(date);
 
   const year = parts.find((part) => part.type === "year")?.value;
   const month = parts.find((part) => part.type === "month")?.value;

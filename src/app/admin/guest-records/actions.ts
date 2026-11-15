@@ -22,7 +22,16 @@ import {
   mapExceptionReasonToIssueType,
   paymentMethodOptions,
   paymentStatusOptions,
+  getBusinessDate,
+  type CheckinStatus,
 } from "@/lib/check-in/options";
+import {
+  canFlagStay,
+  canResolveStayIssue,
+  canTransitionStay,
+  guestTagAfterResolve,
+  statusAfterFlag,
+} from "@/lib/check-in/stay-lifecycle";
 import { findUnitAssignmentConflict, formatUnitConflictMessage } from "@/lib/check-in/unit-availability";
 import { isAllowedUploadMimeType, isAllowedUploadSize, hasValidMagicBytes } from "@/lib/validation/uploads";
 import type { Database, Json } from "@/types/database";
@@ -444,6 +453,10 @@ export async function updateGuestRecord(formData: FormData) {
     redirect(`/admin/guest-records/${id}?message=${encodeURIComponent(error.message)}`);
   }
 
+  if (currentRecord.status === "submitted") {
+    await logStayStatusChange(supabase, profile.id, id, { from_status: "submitted", to_status: "under_review", source: "record_reviewed" });
+  }
+
   if (payload.booking_group_id !== currentRecord.booking_group_id) {
     await supabase.from("audit_logs").insert({
       actor_user_id: profile.id,
@@ -553,8 +566,26 @@ function withMessage(path: string, message: string) {
   return `${path}${separator}message=${encodeURIComponent(message)}`;
 }
 
+const blockedTransitionMessages: Partial<Record<CheckinStatus, string>> = {
+  approved: "Only submitted or under-review records can be approved.",
+  checked_in: "This stay is already checked-in or completed.",
+  checked_out: "Only checked-in records can be marked checked-out.",
+  issue: "Completed stays cannot be marked Needs Attention. Use Super Admin correction if the record is wrong.",
+};
+
+// Every lifecycle change leaves a timestamped trail (who, from, to). Logging must never block the front desk.
+async function logStayStatusChange(supabase: SupabaseClient, actorId: string, checkinId: string, metadata: Json) {
+  await supabase.from("audit_logs").insert({
+    actor_user_id: actorId,
+    action: "stay_status_changed",
+    entity_type: "guest_checkins",
+    entity_id: checkinId,
+    metadata,
+  });
+}
+
 export async function updateCheckinStatus(formData: FormData) {
-  const { supabase } = await requireRole(managementRoles);
+  const { supabase, profile } = await requireRole(managementRoles);
   const parsed = statusActionSchema.safeParse({
     id: formData.get("id"),
     status: formData.get("status"),
@@ -570,7 +601,9 @@ export async function updateCheckinStatus(formData: FormData) {
 
   const { data: record, error: fetchError } = await supabase
     .from("guest_checkins")
-    .select("status,assigned_room_id,cnic_verified,payment_status,payment_method,payment_verified,internal_notes")
+    .select(
+      "status,assigned_room_id,check_out_date,cnic_verified,payment_status,payment_method,payment_verified,internal_notes,issue_type,has_stayed_before",
+    )
     .eq("id", id)
     .single();
 
@@ -578,52 +611,119 @@ export async function updateCheckinStatus(formData: FormData) {
     redirect(withMessage(returnTo, fetchError?.message ?? "Guest record not found."));
   }
 
+  // The allowed moves live in src/lib/check-in/stay-lifecycle.ts. "Needs Attention" is the one request
+  // that may keep the status as-is: an in-house guest is flagged, not moved out of checked_in.
+  const isFlag = status === "issue";
+  const nextStatus = isFlag ? statusAfterFlag(record.status) : status;
+  const allowed = isFlag ? canFlagStay(record.status) : canTransitionStay(record.status, status);
+
+  if (!allowed) {
+    redirect(
+      withMessage(
+        returnTo,
+        blockedTransitionMessages[status] ??
+          `A ${getCheckinStatusLabel(record.status)} stay cannot be moved to ${getCheckinStatusLabel(status)}.`,
+      ),
+    );
+  }
+
   if (status === "approved") {
     const missing = getApprovalMissingRequirements(record);
-    if (record.status !== "submitted" && record.status !== "under_review") {
-      redirect(withMessage(returnTo, "Only submitted or under-review records can be approved."));
-    }
 
     if (missing.length > 0 || !isReadyToApprove(record)) {
       redirect(withMessage(returnTo, `Cannot approve yet: ${missing.join(", ")}.`));
     }
   }
 
-  if (status === "checked_in") {
-    if (record.status === "checked_out") {
-      redirect(withMessage(returnTo, "Checked-out records cannot be marked checked-in again."));
-    }
-
-    const readyForCheckin = isReadyForCheckin(record);
-    if (!readyForCheckin && !exception_reason) {
-      redirect(withMessage(returnTo, "Select an exception reason before checking in an unverified guest."));
-    }
+  if (status === "checked_in" && !isReadyForCheckin(record) && !exception_reason) {
+    redirect(withMessage(returnTo, "Select an exception reason before checking in an unverified guest."));
   }
 
-  if (status === "checked_out" && record.status !== "checked_in") {
-    redirect(withMessage(returnTo, "Only checked-in records can be marked checked-out."));
-  }
+  const isResolve = status === "under_review" && canResolveStayIssue(record.status);
+  let updatePayload: GuestCheckinUpdate = { status: nextStatus };
+  let message = `Status updated to ${getCheckinStatusLabel(nextStatus)}.`;
 
-  let updatePayload: GuestCheckinUpdate = status === "issue" ? { status, guest_tag: "issue" as const, issue_type: "other" } : { status };
-
-  if (status === "checked_in" && exception_reason) {
+  if (isFlag) {
+    updatePayload = { status: nextStatus, guest_tag: "issue", issue_type: record.issue_type ?? "other" };
+    if (nextStatus === record.status) {
+      message = "Stay flagged Needs Attention. The guest remains checked-in.";
+    }
+  } else if (isResolve) {
+    updatePayload = { status: nextStatus, guest_tag: guestTagAfterResolve(record.has_stayed_before), issue_type: null };
+    message = "Needs Attention resolved. The stay is back under review.";
+  } else if (status === "checked_in" && exception_reason) {
     const reasonLabel = getExceptionReasonLabel(exception_reason);
     updatePayload = {
-      status,
+      status: nextStatus,
       guest_tag: "issue",
       issue_type: mapExceptionReasonToIssueType(exception_reason),
       internal_notes: appendInternalNote(record.internal_notes, `Checked-in with exception: ${reasonLabel}`),
     };
   }
-  const { error } = await supabase.from("guest_checkins").update(updatePayload).eq("id", id);
+
+  // Only apply if the stay is still in the status we just read, so a double tap or two staff
+  // acting at once cannot apply two transitions.
+  const { data: updatedRows, error } = await supabase
+    .from("guest_checkins")
+    .update(updatePayload)
+    .eq("id", id)
+    .eq("status", record.status)
+    .select("id");
 
   if (error) {
     redirect(withMessage(returnTo, error.message));
   }
 
+  if (!updatedRows?.length) {
+    redirect(withMessage(returnTo, "This stay was just updated by someone else. Refresh and try again."));
+  }
+
+  await logStayStatusChange(supabase, profile.id, id, {
+    from_status: record.status,
+    to_status: nextStatus,
+    flagged: isFlag,
+    resolved: isResolve,
+    exception_reason: exception_reason ?? null,
+  });
+
+  // Departure hands the unit to housekeeping: a real state, not something inferred from today's date.
+  // ponytail: only for departures happening around now (check-out date is yesterday or later), so
+  // closing an old record for bookkeeping does not flag a room that has since been cleaned or re-let.
+  if (
+    nextStatus === "checked_out" &&
+    record.assigned_room_id &&
+    record.check_out_date >= getBusinessDate(new Date(Date.now() - 86_400_000))
+  ) {
+    const { data: flaggedRooms } = await supabase
+      .from("rooms")
+      .update({
+        cleaning_status: "cleaning_required",
+        cleaning_status_updated_at: new Date().toISOString(),
+        cleaning_status_updated_by: profile.id,
+      })
+      .eq("id", record.assigned_room_id)
+      .eq("cleaning_status", "ready")
+      .select("id");
+
+    if (flaggedRooms?.length) {
+      message = `${message} Unit marked Cleaning Required.`;
+      await supabase.from("audit_logs").insert({
+        actor_user_id: profile.id,
+        action: "room_cleaning_status_updated",
+        entity_type: "rooms",
+        entity_id: record.assigned_room_id,
+        metadata: { previous_cleaning_status: "ready", cleaning_status: "cleaning_required", source: "guest_checkout", guest_checkin_id: id },
+      });
+    }
+
+    revalidatePath("/admin/occupancy");
+    revalidatePath("/admin/rooms");
+    revalidatePath("/admin");
+  }
+
   revalidatePath("/admin/guest-records");
   revalidatePath(`/admin/guest-records/${id}`);
-  redirect(withMessage(returnTo, `Status updated to ${getCheckinStatusLabel(status)}.`));
+  redirect(withMessage(returnTo, message));
 }
 
 function sanitizeFileName(fileName: string) {
@@ -742,7 +842,7 @@ const documentStatusSchema = z.object({
 });
 
 export async function updateGuestDocumentStatus(formData: FormData) {
-  const { supabase } = await requireRole(managementRoles);
+  const { supabase, profile } = await requireRole(managementRoles);
   const parsed = documentStatusSchema.safeParse({
     id: formData.get("id"),
     checkin_id: formData.get("checkin_id"),
@@ -791,10 +891,23 @@ export async function updateGuestDocumentStatus(formData: FormData) {
     );
   }
 
+  let statusChange: { from_status: CheckinStatus; to_status: CheckinStatus } | null = null;
+
   if (document_status === "rejected") {
-    updatePayload.status = "issue";
-    updatePayload.guest_tag = "issue";
-    updatePayload.issue_type = document.document_type === "payment_proof" ? "payment_pending" : "missing_documents";
+    // A rejected document flags the stay through the same lifecycle rules as the Needs Attention button:
+    // pre-arrival stays move to "issue", in-house guests stay checked-in, completed stays are not reopened.
+    const { data: current } = await supabase.from("guest_checkins").select("status").eq("id", checkin_id).single();
+
+    if (current && canFlagStay(current.status)) {
+      const nextStatus = statusAfterFlag(current.status);
+      updatePayload.status = nextStatus;
+      updatePayload.guest_tag = "issue";
+      updatePayload.issue_type = document.document_type === "payment_proof" ? "payment_pending" : "missing_documents";
+
+      if (nextStatus !== current.status) {
+        statusChange = { from_status: current.status, to_status: nextStatus };
+      }
+    }
   }
 
   if (Object.keys(updatePayload).length > 0) {
@@ -802,6 +915,10 @@ export async function updateGuestDocumentStatus(formData: FormData) {
 
     if (checkinError) {
       redirect(`/admin/guest-records/${checkin_id}?message=${encodeURIComponent(checkinError.message)}`);
+    }
+
+    if (statusChange) {
+      await logStayStatusChange(supabase, profile.id, checkin_id, { ...statusChange, flagged: true, source: "document_rejected" });
     }
   }
 

@@ -1,10 +1,12 @@
 import {
   formatUnitRoomLabel,
+  getBusinessDate,
   getBusinessTodayDate,
   getExpectedAmount,
   type CheckinStatus,
   type RoomCleaningStatus,
 } from "@/lib/check-in/options";
+import { isOpenStayStatus } from "@/lib/check-in/stay-lifecycle";
 import type { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -93,7 +95,7 @@ export type OccupancySnapshot = {
 };
 
 function isOpenStay(checkin: CheckinRow) {
-  return checkin.status !== "checked_out";
+  return isOpenStayStatus(checkin.status);
 }
 
 function isActiveStay(checkin: CheckinRow, today: string) {
@@ -259,8 +261,10 @@ function getEffectiveCleaningStatus({
   departedToday: CheckinRow | null;
   today: string;
 }) {
+  // Compare in the business timezone: the stored timestamp is UTC, `today` is the Karachi date.
   const manuallyMarkedReadyToday =
-    room.cleaning_status === "ready" && Boolean(room.cleaning_status_updated_at?.startsWith(today));
+    room.cleaning_status === "ready" &&
+    Boolean(room.cleaning_status_updated_at && getBusinessDate(new Date(room.cleaning_status_updated_at)) === today);
   const inferredTurnoverNeeded = !currentStay && Boolean(departedToday) && !manuallyMarkedReadyToday;
 
   if (inferredTurnoverNeeded) {
@@ -442,5 +446,5 @@ export async function fetchOccupancySnapshot(supabase: SupabaseServerClient, tod
 }
 
 export function isOperationallyOpenStatus(status: CheckinStatus) {
-  return status !== "checked_out";
+  return isOpenStayStatus(status);
 }

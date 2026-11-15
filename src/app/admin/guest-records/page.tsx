@@ -24,6 +24,7 @@ import {
   paymentStatusOptions,
   guestTypeOptions,
 } from "@/lib/check-in/options";
+import { canTransitionStay, issuesViewFilter, stayViewStatuses, type StayView } from "@/lib/check-in/stay-lifecycle";
 import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -44,7 +45,7 @@ type PageProps = {
 };
 
 type Checkin = Database["public"]["Tables"]["guest_checkins"]["Row"];
-type OperatorView = "all" | "needs_review" | "ready" | "active" | "completed" | "issues";
+type OperatorView = StayView;
 
 const operatorViews: Array<{ value: OperatorView; label: string }> = [
   { value: "all", label: "All" },
@@ -154,16 +155,10 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
 
   let query = supabase.from("guest_checkins").select("*").order("created_at", { ascending: false });
 
-  if (activeView === "needs_review") {
-    query = query.eq("status", "submitted");
-  } else if (activeView === "ready") {
-    query = query.not("status", "in", "(issue,checked_in,checked_out)");
-  } else if (activeView === "active") {
-    query = query.eq("status", "checked_in");
-  } else if (activeView === "completed") {
-    query = query.eq("status", "checked_out");
-  } else if (activeView === "issues") {
-    query = query.eq("status", "issue");
+  if (activeView === "issues") {
+    query = query.or(issuesViewFilter);
+  } else if (activeView !== "all") {
+    query = query.in("status", [...stayViewStatuses[activeView]]);
   }
 
   if (params.q?.trim()) {
@@ -372,13 +367,13 @@ export default async function GuestRecordsPage({ searchParams }: PageProps) {
                                 Approve
                               </QuickStatusButton>
                             ) : null}
-                            {isReadyForCheckin(record) && record.status !== "checked_in" && record.status !== "checked_out" ? (
+                            {isReadyForCheckin(record) && canTransitionStay(record.status, "checked_in") ? (
                               <QuickStatusButton id={record.id} returnTo={returnTo} status="checked_in">
                                 <LogIn className="h-4 w-4" aria-hidden="true" />
                                 Check-in
                               </QuickStatusButton>
                             ) : null}
-                            {record.status === "checked_in" ? (
+                            {canTransitionStay(record.status, "checked_out") ? (
                               <QuickStatusButton id={record.id} returnTo={returnTo} status="checked_out">
                                 <LogOut className="h-4 w-4" aria-hidden="true" />
                                 Check-out

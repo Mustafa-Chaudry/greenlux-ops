@@ -6,6 +6,7 @@ GreenLux Ops is a live serviced-accommodation operations system. Work like a sen
 
 - For normal tasks, read this file and `docs/codex-context/CODEX_HANDOVER.md`, then inspect only files directly relevant to the task.
 - Pilot repo-local skill: `.codex/skills/greenlux-task-runner/SKILL.md`.
+- Before changing any status, verification, payment, cleaning, or maintenance behaviour, read `docs/codex-context/STATE_MACHINES.md`. Guest Stay transition rules live only in `src/lib/check-in/stay-lifecycle.ts`.
 - Do not perform a full repo audit unless the task changes schema, auth/RLS, reports, payments, financial calculations, role access, deployment, or production recovery logic.
 - For complex tasks, plan first: state the operational need, likely files, validation path, and risks before editing.
 
@@ -79,6 +80,7 @@ Run targeted validators when relevant:
 - `node scripts/validate-cleaning-turnover-layer.mjs`
 - `node scripts/validate-phase-6-4-multi-room-bookings.mjs`
 - `node scripts/validate-phase-6-5-accommodation-receipt.mjs`
+- `node scripts/validate-stay-lifecycle.mjs` (any change to stay status, list views, or check-out)
 
 Docs-only changes normally require only `git diff --check` unless package/tooling/source behavior changed.
 

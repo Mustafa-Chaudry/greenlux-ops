@@ -52,6 +52,7 @@ import {
   roomCleaningStatusLabels,
 } from "@/lib/check-in/options";
 import { formatStayRangeWithNights, getStayNights } from "@/lib/check-in/stay-dates";
+import { canFlagStay, canResolveStayIssue, canTransitionStay, isOpenStayStatus } from "@/lib/check-in/stay-lifecycle";
 import type { Database } from "@/types/database";
 
 export const metadata: Metadata = {
@@ -465,12 +466,14 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
   const guestTypeLabel = guestTypeOptions.find((option) => option.value === record.guest_type)?.label ?? formatEnumLabel(record.guest_type);
   const missingApprovalRequirements = getApprovalMissingRequirements(record);
   const canApprove = isReadyToApprove(record);
-  const showApproveAction = record.status === "submitted" || record.status === "under_review";
+  const showApproveAction = canTransitionStay(record.status, "approved");
   const readyForCheckin = isReadyForCheckin(record);
-  const showCheckInAction = record.status !== "checked_in" && record.status !== "checked_out";
-  const showCheckOutAction = record.status === "checked_in";
-  const isCompleted = record.status === "checked_out";
-  const showIssueAction = record.status !== "issue" && record.status !== "checked_out";
+  const showCheckInAction = canTransitionStay(record.status, "checked_in");
+  const showCheckOutAction = canTransitionStay(record.status, "checked_out");
+  const isCompleted = !isOpenStayStatus(record.status);
+  const showResolveIssueAction = canResolveStayIssue(record.status);
+  // In-house guests are flagged once; the flag is cleared from Guest tag / Issue type below.
+  const showIssueAction = canFlagStay(record.status) && !(record.status === "checked_in" && record.guest_tag === "issue");
   const assignedRoom = record.assigned_room_id ? rooms?.find((room) => room.id === record.assigned_room_id) ?? null : null;
   const assignedRoomNotReady = Boolean(assignedRoom && assignedRoom.cleaning_status !== "ready");
   const roomName = assignedRoom ? formatUnitRoomLabel(assignedRoom) : "To be assigned";
@@ -1555,6 +1558,17 @@ export default async function GuestRecordDetailPage({ params, searchParams }: Pa
                       </form>
                     ) : null}
                   </div>
+                ) : null}
+
+                {showResolveIssueAction ? (
+                  <form action={updateCheckinStatus}>
+                    <input type="hidden" name="id" value={record.id} />
+                    <input type="hidden" name="status" value="under_review" />
+                    <Button type="submit" variant="outline" className="w-full">
+                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                      Needs Attention resolved - return to review
+                    </Button>
+                  </form>
                 ) : null}
 
                 {showIssueAction ? (

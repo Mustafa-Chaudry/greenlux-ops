@@ -7,13 +7,14 @@ import {
   isReadyToApprove,
   paymentStatusOptions,
 } from "@/lib/check-in/options";
+import { issuesViewFilter, stayViewStatuses, stayViews, type StayView } from "@/lib/check-in/stay-lifecycle";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
 type Checkin = Database["public"]["Tables"]["guest_checkins"]["Row"];
-type OperatorView = "all" | "needs_review" | "ready" | "active" | "completed" | "issues";
+type OperatorView = StayView;
 
-const operatorViews = ["all", "needs_review", "ready", "active", "completed", "issues"] as const;
+const operatorViews = stayViews;
 
 function getActiveView(value: string | null): OperatorView {
   return operatorViews.includes(value as OperatorView) ? (value as OperatorView) : "all";
@@ -57,16 +58,11 @@ export async function GET(request: NextRequest) {
   const activeView = getActiveView(params.get("view"));
   let query = supabase.from("guest_checkins").select("*").order("created_at", { ascending: false });
 
-  if (activeView === "needs_review") {
-    query = query.eq("status", "submitted");
-  } else if (activeView === "ready") {
-    query = query.in("status", ["submitted", "under_review"]);
-  } else if (activeView === "active") {
-    query = query.eq("status", "checked_in");
-  } else if (activeView === "completed") {
-    query = query.eq("status", "checked_out");
-  } else if (activeView === "issues") {
-    query = query.eq("status", "issue");
+  // Same view rules as the Guest Stays list, so the CSV always matches the screen.
+  if (activeView === "issues") {
+    query = query.or(issuesViewFilter);
+  } else if (activeView !== "all") {
+    query = query.in("status", [...stayViewStatuses[activeView]]);
   }
 
   const search = params.get("q")?.trim().replace(/,/g, " ").replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
