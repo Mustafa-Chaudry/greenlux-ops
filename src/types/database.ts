@@ -271,6 +271,12 @@ export type Database = {
       };
     };
     Views: {
+      rooms_directory: {
+        Row: Pick<Database["public"]["Tables"]["rooms"]["Row"], "id" | "unit_number" | "name">;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       guest_checkins_guest_view: {
         Row: Omit<
           Database["public"]["Tables"]["guest_checkins"]["Row"],

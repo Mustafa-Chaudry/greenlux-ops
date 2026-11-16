@@ -33,7 +33,7 @@ export default async function DashboardPage() {
     new Set((checkins ?? []).map((checkin) => checkin.assigned_room_id).filter((id): id is string => Boolean(id))),
   );
   const { data: rooms } = assignedRoomIds.length
-    ? await supabase.from("rooms").select("id,unit_number,name").in("id", assignedRoomIds)
+    ? await supabase.from("rooms_directory").select("id,unit_number,name").in("id", assignedRoomIds)
     : { data: [] };
   const roomNames = new Map((rooms ?? []).map((room) => [room.id, formatUnitRoomLabel(room)]));
 

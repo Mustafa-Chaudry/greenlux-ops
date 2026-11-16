@@ -49,6 +49,7 @@ List views (`needs_review`, `ready`, `active`, `completed`, `issues`) are define
 - Derived on every read in `src/lib/occupancy/snapshot.ts`: `OccupancyStatus` (`vacant`, `occupied`, `due_out_today`, `reserved_upcoming`, `needs_attention`, `maintenance`) and `effectiveCleaningStatus`.
 - Check-out now writes `cleaning_required` on the unit when it was `ready` and the departure is current (check-out date is yesterday or later). Staff clear it with Mark Ready on the Room Reality Board. The same-day inferred turnover remains as a fallback for stays closed another way.
 - "Marked ready today" is compared in Asia/Karachi time (`getBusinessDate`), not by slicing the UTC timestamp.
+- Access: `public.rooms` is for management. Guest-facing code reads unit labels from the `rooms_directory` view only.
 - Still implicit: "this unit is under maintenance" can be said three ways (`rooms.status = maintenance`, `cleaning_status = maintenance_blocked`, an open maintenance log) and nothing keeps them in step. The board treats any of them as blocking.
 
 ## 5. Maintenance issue — implicit, low risk

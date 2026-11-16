@@ -11,7 +11,8 @@ const reportsPath = join(root, "src/lib/reports/analytics.ts");
 
 function sourceAt(path, label) {
   assert.equal(existsSync(path), true, `${label} is missing`);
-  return readFileSync(path, "utf8");
+  // Normalise line endings: Windows checkouts use CRLF and the block matcher below expects LF.
+  return readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 }
 
 function correctionActionSource(source) {
